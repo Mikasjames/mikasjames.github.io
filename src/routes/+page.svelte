@@ -38,12 +38,7 @@
             "E2E Testing",
             "Manual Test Docs",
         ],
-        AI: [
-            "LLM Integration",
-            "Prompt Optimization",
-            "AI-Assisted Tools",
-            "RAG Pipelines",
-        ],
+        AI: ["LLM Integration", "Prompt Optimization", "AI-Assisted Tools"],
     };
 
     const experience = [
