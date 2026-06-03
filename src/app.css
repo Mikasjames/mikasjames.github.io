@@ -16,6 +16,7 @@
 
 html {
 	scroll-padding-top: 5rem;
+	scrollbar-gutter: stable;
 }
 
 ::selection {
