@@ -1,7 +1,10 @@
 <script lang="ts">
-	import Load from "$lib/Load.svelte";
+	import Load from "$lib/components/Load.svelte";
 	import "../app.css";
 	import { onMount } from "svelte";
+	import { page } from '$app/stores';
+
+	const isHome = $derived($page.url.pathname === '/');
 
 	let { children } = $props();
 	let isLoaded = $state(false);
@@ -59,7 +62,7 @@
 >
 	<nav class="mx-auto max-w-5xl px-6 py-4 flex items-center justify-between">
 		<a
-			href="#about"
+			href={isHome ? '#about' : '/'}
 			onclick={closeMobile}
 			class="font-mono text-sm font-medium text-zinc-400 hover:text-accent-400 transition-colors duration-200 tracking-widest uppercase"
 		>
@@ -70,7 +73,7 @@
 			{#each navLinks as link}
 				<li>
 					<a
-						href={link.href}
+						href={isHome ? link.href : `/${link.href}`}
 						class="text-sm text-zinc-400 hover:text-zinc-100 transition-colors duration-200 relative group font-medium"
 					>
 						{link.label}
@@ -80,6 +83,19 @@
 					</a>
 				</li>
 			{/each}
+			<li>
+				<a
+					href="/blogs/"
+					class="text-sm font-medium transition-colors duration-200 relative group
+						{$page.url.pathname.startsWith('/blogs') ? 'text-accent-400' : 'text-zinc-400 hover:text-zinc-100'}"
+				>
+					Blog
+					<span
+						class="absolute -bottom-0.5 left-0 h-px bg-accent-400 transition-all duration-300
+							{$page.url.pathname.startsWith('/blogs') ? 'w-full' : 'w-0 group-hover:w-full'}"
+					></span>
+				</a>
+			</li>
 		</ul>
 
 		<a
@@ -148,7 +164,7 @@
 				{#each navLinks as link}
 					<li>
 						<a
-							href={link.href}
+							href={isHome ? link.href : `/${link.href}`}
 							onclick={closeMobile}
 							class="block py-3 px-4 rounded-lg text-zinc-400 hover:text-zinc-100 hover:bg-zinc-800/50 transition-all duration-200 text-sm font-medium"
 						>
@@ -156,6 +172,16 @@
 						</a>
 					</li>
 				{/each}
+				<li>
+					<a
+						href="/blogs/"
+						onclick={closeMobile}
+						class="block py-3 px-4 rounded-lg transition-all duration-200 text-sm font-medium
+							{$page.url.pathname.startsWith('/blogs') ? 'text-accent-400 bg-accent-500/10' : 'text-zinc-400 hover:text-zinc-100 hover:bg-zinc-800/50'}"
+					>
+						Blog
+					</a>
+				</li>
 				<li class="mt-2 pt-2 border-t border-zinc-800/60">
 					<a
 						href="mailto:mikasjames@gmail.com"
