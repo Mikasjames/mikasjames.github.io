@@ -208,7 +208,11 @@
             Full-Stack Software Engineer
             <span class="text-zinc-600 mx-2">·</span>
             <span class="font-mono text-sm text-zinc-500"
-                >3+ yrs @ Codefrost</span
+                >3+ yrs @ <a
+                    class="text-accent-400 hover:text-accent-500 transition-colors duration-200"
+                    href="https://www.codefrost.dev/"
+                    target="_blank">Codefrost</a
+                ></span
             >
         </p>
 
