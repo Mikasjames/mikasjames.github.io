@@ -1,5 +1,6 @@
 <script lang="ts">
     import { onMount } from "svelte";
+    import { fly } from "svelte/transition";
 
     let activeSkillTab = $state("Frontend");
     let visibleSections = $state<Set<string>>(new Set());
@@ -23,18 +24,26 @@
             "Express",
             "PostgreSQL",
             "MongoDB",
+            "Firebase",
         ],
         "Cloud & Tools": [
             "Google Cloud (GCP)",
+            "Google Antigravity",
             "Docker",
             "Git / GitHub",
             "Linux",
             "VS Code",
+            "Cursor",
+            "Vim / Neovim",
+            "Postman",
+            "MongoDB Compass",
+            "JetBrains IDEs",
         ],
         QA: [
             "Playwright",
             "Cypress",
             "Jest",
+            "Storybook",
             "E2E Testing",
             "Manual Test Docs",
         ],
@@ -50,9 +59,10 @@
             tag: "Data & Analytics",
             color: "indigo",
             points: [
-                "Developing and maintaining complex web applications focused on data visualization and statistics.",
-                "Built with Angular and Django; optimized reporting tools for large datasets.",
-                "Re-engaged on the platform after cross-functional experience in extensions and SaaS.",
+                "Engineered scalable web applications focused on Amazon data visualization, listing analysis, and predictive revenue forecasting.",
+                "Built high-throughput scrapers for Amazon product pages and listings, feeding a custom data engine that scores listing quality.",
+                "Integrated AI recommendation systems to provide actionable insights for optimizing product visibility and performance.",
+                "Optimized reporting tools and data pipelines within Angular and Django to fluidly handle large, complex market datasets.",
             ],
         },
         {
@@ -77,7 +87,7 @@
             color: "sky",
             points: [
                 "Implemented a modular SaaS architecture using Angular and Django.",
-                "Introduced Node.js + Express as a Backend-for-Frontend (BFF) layer.",
+                "Worked with Node.js + Express as a Backend-for-Frontend (BFF) layer.",
                 "Streamlined data flow between services and improved frontend performance.",
             ],
         },
@@ -89,9 +99,9 @@
             tag: "Data & Analytics",
             color: "indigo",
             points: [
-                "Developed and maintained data-driven web apps for statistics and visualization.",
-                "Contributed QA automation: wrote e2e test suites and manual documentation.",
-                "Established reliable test coverage across Angular + Django projects.",
+                "Developed data-driven web apps utilizing Amazon ASIN data to build statistics and analytics visualizations.",
+                "Contributed QA automation: wrote end-to-end (e2e) test suites and detailed manual documentation.",
+                "Established reliable test coverage across Angular and Django projects to ensure stable tracking of e-commerce metrics.",
             ],
         },
         {
@@ -417,15 +427,16 @@
             </div>
 
             <div class="flex flex-wrap gap-3 min-h-[100px]">
-                {#each skills[activeSkillTab] as skill}
-                    <span
+                {#each skills[activeSkillTab] as skill (skill)}
+                    <div
                         class="inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-zinc-900 border border-zinc-800 text-zinc-300 text-sm font-medium hover:border-zinc-600 hover:text-zinc-100 transition-all duration-200 cursor-default group"
+                        in:fly={{ y: 8, duration: 250, delay: 50 }}
                     >
                         <span
                             class="w-1.5 h-1.5 rounded-full bg-accent-400 group-hover:scale-125 transition-transform duration-200"
                         ></span>
                         {skill}
-                    </span>
+                    </div>
                 {/each}
             </div>
         </div>
