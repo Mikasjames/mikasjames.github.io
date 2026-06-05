@@ -129,48 +129,62 @@
 						href="/blogs/{post.slug}/"
 						class="block group rounded-xl bg-surface-900/60 border border-zinc-800/40 hover:border-accent-500/30 hover:bg-surface-900/90 p-6 transition-all duration-300 hover:shadow-lg hover:shadow-accent-600/5"
 					>
-						<div class="flex items-center gap-3 mb-3">
-							{#if post.createdAt}
-								<time class="text-xs text-zinc-600 font-mono"
-									>{formatDate(post.createdAt)}</time
-								>
-								<span class="w-1 h-1 rounded-full bg-zinc-700"
-								></span>
+						<div class="flex flex-col md:flex-row gap-5">
+							{#if post.coverImage}
+								<div class="w-full md:w-44 h-28 shrink-0 overflow-hidden rounded-lg bg-zinc-950 border border-zinc-800/80">
+									<img
+										src={post.coverImage}
+										alt=""
+										class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
+									/>
+								</div>
 							{/if}
-							<span class="text-xs text-zinc-600"
-								>{readingTime(post.content)}</span
-							>
-						</div>
 
-						<h2
-							class="text-lg font-semibold text-zinc-100 group-hover:text-accent-300 transition-colors duration-200 leading-snug mb-2"
-						>
-							{post.title}
-						</h2>
+							<div class="flex-1 min-w-0">
+								<div class="flex items-center gap-3 mb-2.5">
+									{#if post.createdAt}
+										<time class="text-xs text-zinc-550 font-mono"
+											>{formatDate(post.createdAt)}</time
+										>
+										<span class="w-1 h-1 rounded-full bg-zinc-800"
+										></span>
+									{/if}
+									<span class="text-xs text-zinc-550"
+										>{readingTime(post.content)}</span
+									>
+								</div>
 
-						<p
-							class="text-sm text-zinc-400 leading-relaxed line-clamp-2"
-						>
-							{post.excerpt}
-						</p>
+								<h2
+									class="text-lg font-semibold text-zinc-100 group-hover:text-accent-300 transition-colors duration-200 leading-snug mb-2"
+								>
+									{post.title}
+								</h2>
 
-						<div
-							class="mt-4 flex items-center gap-1.5 text-xs font-medium text-accent-400 group-hover:text-accent-300 transition-colors duration-200"
-						>
-							Read post
-							<svg
-								class="w-3.5 h-3.5 translate-x-0 group-hover:translate-x-1 transition-transform duration-200"
-								fill="none"
-								stroke="currentColor"
-								viewBox="0 0 24 24"
-							>
-								<path
-									stroke-linecap="round"
-									stroke-linejoin="round"
-									stroke-width="2"
-									d="M17 8l4 4m0 0l-4 4m4-4H3"
-								/>
-							</svg>
+								<p
+									class="text-sm text-zinc-400 leading-relaxed line-clamp-2"
+								>
+									{post.excerpt}
+								</p>
+
+								<div
+									class="mt-4 flex items-center gap-1.5 text-xs font-medium text-accent-400 group-hover:text-accent-300 transition-colors duration-200"
+								>
+									Read post
+									<svg
+										class="w-3.5 h-3.5 translate-x-0 group-hover:translate-x-1 transition-transform duration-200"
+										fill="none"
+										stroke="currentColor"
+										viewBox="0 0 24 24"
+									>
+										<path
+											stroke-linecap="round"
+											stroke-linejoin="round"
+											stroke-width="2"
+											d="M17 8l4 4m0 0l-4 4m4-4H3"
+										/>
+									</svg>
+								</div>
+							</div>
 						</div>
 					</a>
 				{/each}

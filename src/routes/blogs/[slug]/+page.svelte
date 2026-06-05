@@ -40,6 +40,10 @@
 			)
 			.replace(/^---$/gm, '<hr class="border-zinc-800 my-8"/>')
 			.replace(
+				/!\[(.*?)\]\((.*?)\)/g,
+				'<img src="$2" alt="$1" class="my-6 rounded-lg max-w-full border border-zinc-800/80 shadow-md mx-auto object-cover" />',
+			)
+			.replace(
 				/\[(.+?)\]\((.+?)\)/g,
 				'<a href="$2" class="text-accent-400 hover:text-accent-300 underline underline-offset-2 transition-colors" target="_blank" rel="noopener noreferrer">$1</a>',
 			)
@@ -174,14 +178,24 @@
 			</div>
 		{:else if post}
 			<header class="mb-10">
+				{#if post.coverImage}
+					<div class="w-full aspect-video mb-8 overflow-hidden rounded-xl bg-zinc-950 border border-zinc-800/80 shadow-lg">
+						<img
+							src={post.coverImage}
+							alt={post.title}
+							class="w-full h-full object-cover"
+						/>
+					</div>
+				{/if}
+
 				<div class="flex items-center gap-3 mb-5">
 					{#if post.createdAt}
-						<time class="text-xs text-zinc-600 font-mono"
+						<time class="text-xs text-zinc-650 font-mono"
 							>{formatDate(post.createdAt)}</time
 						>
-						<span class="w-1 h-1 rounded-full bg-zinc-700"></span>
+						<span class="w-1 h-1 rounded-full bg-zinc-800"></span>
 					{/if}
-					<span class="text-xs text-zinc-600"
+					<span class="text-xs text-zinc-650"
 						>{readingTime(post.content)}</span
 					>
 				</div>
@@ -192,7 +206,7 @@
 					{post.title}
 				</h1>
 
-				<p class="text-zinc-400 text-lg leading-relaxed">
+				<p class="text-zinc-450 text-lg leading-relaxed">
 					{post.excerpt}
 				</p>
 

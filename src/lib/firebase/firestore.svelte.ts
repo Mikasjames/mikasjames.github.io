@@ -7,6 +7,8 @@ import {
     query,
     orderBy,
     serverTimestamp,
+    updateDoc,
+    deleteDoc,
     type DocumentData
 } from 'firebase/firestore';
 import { db } from './firebase';
@@ -17,6 +19,7 @@ export interface BlogPost {
     slug: string;
     excerpt: string;
     content: string;
+    coverImage: string | null;
     createdAt: Date | null;
 }
 
@@ -40,12 +43,32 @@ export async function createPost(data: {
     slug: string;
     excerpt: string;
     content: string;
+    coverImage: string | null;
 }): Promise<string> {
     const ref = await addDoc(collection(db, COLLECTION), {
         ...data,
         createdAt: serverTimestamp()
     });
     return ref.id;
+}
+
+export async function updatePost(
+    id: string,
+    data: {
+        title: string;
+        slug: string;
+        excerpt: string;
+        content: string;
+        coverImage: string | null;
+    }
+): Promise<void> {
+    const postRef = doc(db, COLLECTION, id);
+    await updateDoc(postRef, data);
+}
+
+export async function deletePost(id: string): Promise<void> {
+    const postRef = doc(db, COLLECTION, id);
+    await deleteDoc(postRef);
 }
 
 function docToPost(id: string, data: DocumentData): BlogPost {
@@ -55,6 +78,7 @@ function docToPost(id: string, data: DocumentData): BlogPost {
         slug: data.slug ?? '',
         excerpt: data.excerpt ?? '',
         content: data.content ?? '',
+        coverImage: data.coverImage ?? null,
         createdAt: data.createdAt?.toDate?.() ?? null
     };
 }
