@@ -82,3 +82,41 @@ function docToPost(id: string, data: DocumentData): BlogPost {
         createdAt: data.createdAt?.toDate?.() ?? null
     };
 }
+
+export interface MediaItem {
+    id: string;
+    url: string;
+    name: string;
+    uploadedAt: Date | null;
+}
+
+const MEDIA_COLLECTION = 'media_gallery';
+
+export async function getMediaItems(): Promise<MediaItem[]> {
+    const q = query(collection(db, MEDIA_COLLECTION), orderBy('uploadedAt', 'desc'));
+    const snapshot = await getDocs(q);
+    return snapshot.docs.map((d) => docToMediaItem(d.id, d.data()));
+}
+
+export async function addMediaItem(data: { url: string; name: string }): Promise<string> {
+    const ref = await addDoc(collection(db, MEDIA_COLLECTION), {
+        ...data,
+        uploadedAt: serverTimestamp()
+    });
+    return ref.id;
+}
+
+export async function deleteMediaItem(id: string): Promise<void> {
+    const mediaRef = doc(db, MEDIA_COLLECTION, id);
+    await deleteDoc(mediaRef);
+}
+
+function docToMediaItem(id: string, data: DocumentData): MediaItem {
+    return {
+        id,
+        url: data.url ?? '',
+        name: data.name ?? '',
+        uploadedAt: data.uploadedAt?.toDate?.() ?? null
+    };
+}
+

@@ -1,4 +1,4 @@
-import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
+import { ref, uploadBytes, getDownloadURL, deleteObject } from 'firebase/storage';
 import { storage } from './firebase';
 
 /**
@@ -12,3 +12,13 @@ export async function uploadImage(file: File, folder = 'blog-images'): Promise<s
     const snapshot = await uploadBytes(storageRef, file);
     return getDownloadURL(snapshot.ref);
 }
+
+/**
+ * Deletes a file from Firebase Storage using its download URL.
+ * @param url The download URL of the file to delete.
+ */
+export async function deleteImage(url: string): Promise<void> {
+    const storageRef = ref(storage, url);
+    await deleteObject(storageRef);
+}
+
