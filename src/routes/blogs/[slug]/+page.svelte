@@ -1,38 +1,14 @@
 <script lang="ts">
-	import { onMount } from "svelte";
-	import { page } from "$app/stores";
-	import {
-		getPostBySlug,
-		type BlogPost,
-	} from "$lib/firebase/firestore.svelte";
 	import { marked } from "marked";
+	import type { BlogPost } from "$lib/firebase/firestore.svelte";
 
-	let post = $state<BlogPost | null>(null);
-	let loading = $state(true);
-	let error = $state("");
-	let notFound = $state(false);
+	let { data } = $props();
+	let post = $derived(data.post);
 
 	function renderMarkdown(md: string): string {
 		if (!md) return "";
 		return marked.parse(md, { async: false }) as string;
 	}
-
-
-	onMount(async () => {
-		const slug = $page.params.slug!;
-		try {
-			const result = await getPostBySlug(slug);
-			if (!result) {
-				notFound = true;
-			} else {
-				post = result;
-			}
-		} catch (err: unknown) {
-			error = err instanceof Error ? err.message : "Failed to load post.";
-		} finally {
-			loading = false;
-		}
-	});
 
 	function formatDate(d: Date | null) {
 		if (!d) return "";
@@ -83,56 +59,7 @@
 			All posts
 		</a>
 
-		{#if loading}
-			<div class="animate-pulse space-y-4">
-				<div class="h-3 w-32 bg-zinc-800 rounded"></div>
-				<div class="h-8 w-3/4 bg-zinc-800 rounded"></div>
-				<div class="h-4 w-full bg-zinc-800/60 rounded"></div>
-				<div class="h-4 w-5/6 bg-zinc-800/60 rounded"></div>
-				<div class="h-px w-full bg-zinc-800 my-8"></div>
-				{#each { length: 6 } as _}
-					<div class="h-4 w-full bg-zinc-800/40 rounded"></div>
-				{/each}
-			</div>
-		{:else if error}
-			<div
-				class="flex items-center gap-3 px-5 py-4 rounded-xl bg-red-500/10 border border-red-500/20 text-red-400 text-sm"
-			>
-				<svg
-					class="w-5 h-5 shrink-0"
-					fill="none"
-					stroke="currentColor"
-					viewBox="0 0 24 24"
-				>
-					<path
-						stroke-linecap="round"
-						stroke-linejoin="round"
-						stroke-width="2"
-						d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
-					/>
-				</svg>
-				{error}
-			</div>
-		{:else if notFound}
-			<div class="text-center py-20">
-				<p
-					class="font-mono text-accent-400 text-xs tracking-widest uppercase mb-3"
-				>
-					404
-				</p>
-				<h1 class="text-2xl font-bold text-zinc-100 mb-3">
-					Post not found
-				</h1>
-				<p class="text-zinc-500 text-sm mb-6">
-					This post doesn't exist or may have been removed.
-				</p>
-				<a
-					href="/blogs/"
-					class="text-sm text-accent-400 hover:text-accent-300 transition-colors"
-					>← Back to blog</a
-				>
-			</div>
-		{:else if post}
+		{#if post}
 			<header class="mb-10">
 				{#if post.coverImage}
 					<div class="w-full aspect-video mb-8 overflow-hidden rounded-xl bg-zinc-950 border border-zinc-800/80 shadow-lg">

@@ -39,7 +39,7 @@ async function triggerGitHubDispatch(
 
 export const deployOnPostChange = onDocumentWritten(
   {
-    document: 'posts/{docId}',
+    document: 'blogs/{docId}',
     secrets: ['GITHUB_PAT'],
   },
   async (event) => {

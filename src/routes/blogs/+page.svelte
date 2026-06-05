@@ -1,21 +1,9 @@
 <script lang="ts">
-	import { onMount } from "svelte";
-	import { getPosts, type BlogPost } from "$lib/firebase/firestore.svelte";
+	import { page } from '$app/stores';
+	import type { BlogPost } from "$lib/firebase/firestore.svelte";
 
-	let posts = $state<BlogPost[]>([]);
-	let loading = $state(true);
-	let error = $state("");
-
-	onMount(async () => {
-		try {
-			posts = await getPosts();
-		} catch (err: unknown) {
-			error =
-				err instanceof Error ? err.message : "Failed to load posts.";
-		} finally {
-			loading = false;
-		}
-	});
+	let { data } = $props();
+	let posts = $derived(data.posts ?? []);
 
 	function formatDate(d: Date | null) {
 		if (!d) return "";
@@ -65,41 +53,7 @@
 			<div class="mt-6 h-px w-16 bg-accent-500/50 rounded-full"></div>
 		</div>
 
-		{#if loading}
-			<div class="space-y-4">
-				{#each { length: 4 } as _, i}
-					<div
-						class="rounded-xl bg-surface-900/60 border border-zinc-800/40 p-6 animate-pulse"
-					>
-						<div class="h-3 w-24 bg-zinc-800 rounded mb-4"></div>
-						<div class="h-5 w-3/4 bg-zinc-800 rounded mb-3"></div>
-						<div
-							class="h-4 w-full bg-zinc-800/60 rounded mb-2"
-						></div>
-						<div class="h-4 w-5/6 bg-zinc-800/60 rounded"></div>
-					</div>
-				{/each}
-			</div>
-		{:else if error}
-			<div
-				class="flex items-center gap-3 px-5 py-4 rounded-xl bg-red-500/10 border border-red-500/20 text-red-400 text-sm"
-			>
-				<svg
-					class="w-5 h-5 shrink-0"
-					fill="none"
-					stroke="currentColor"
-					viewBox="0 0 24 24"
-				>
-					<path
-						stroke-linecap="round"
-						stroke-linejoin="round"
-						stroke-width="2"
-						d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
-					/>
-				</svg>
-				{error}
-			</div>
-		{:else if posts.length === 0}
+		{#if posts.length === 0}
 			<div class="text-center py-20">
 				<div
 					class="w-12 h-12 rounded-xl bg-surface-800 border border-zinc-800 flex items-center justify-center mx-auto mb-4"
