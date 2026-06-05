@@ -5,6 +5,7 @@
 		getPostBySlug,
 		type BlogPost,
 	} from "$lib/firebase/firestore.svelte";
+	import { marked } from "marked";
 
 	let post = $state<BlogPost | null>(null);
 	let loading = $state(true);
@@ -12,55 +13,10 @@
 	let notFound = $state(false);
 
 	function renderMarkdown(md: string): string {
-		return md
-			.replace(
-				/^### (.+)$/gm,
-				'<h3 class="text-lg font-semibold text-zinc-100 mt-8 mb-3">$1</h3>',
-			)
-			.replace(
-				/^## (.+)$/gm,
-				'<h2 class="text-xl font-bold text-zinc-100 mt-10 mb-4">$1</h2>',
-			)
-			.replace(
-				/^# (.+)$/gm,
-				'<h2 class="text-2xl font-bold text-zinc-100 mt-10 mb-4">$1</h2>',
-			)
-			.replace(
-				/\*\*(.+?)\*\*/g,
-				'<strong class="text-zinc-100 font-semibold">$1</strong>',
-			)
-			.replace(/\*(.+?)\*/g, '<em class="italic text-zinc-300">$1</em>')
-			.replace(
-				/`([^`]+)`/g,
-				'<code class="px-1.5 py-0.5 rounded bg-zinc-800 text-accent-300 font-mono text-[0.85em]">$1</code>',
-			)
-			.replace(
-				/^> (.+)$/gm,
-				'<blockquote class="border-l-2 border-accent-500/50 pl-4 text-zinc-400 italic my-4">$1</blockquote>',
-			)
-			.replace(/^---$/gm, '<hr class="border-zinc-800 my-8"/>')
-			.replace(
-				/!\[(.*?)\]\((.*?)\)/g,
-				'<img src="$2" alt="$1" class="my-6 rounded-lg max-w-full border border-zinc-800/80 shadow-md mx-auto object-cover" />',
-			)
-			.replace(
-				/\[(.+?)\]\((.+?)\)/g,
-				'<a href="$2" class="text-accent-400 hover:text-accent-300 underline underline-offset-2 transition-colors" target="_blank" rel="noopener noreferrer">$1</a>',
-			)
-			.replace(
-				/^- (.+)$/gm,
-				'<li class="ml-4 list-disc text-zinc-300">$1</li>',
-			)
-			.replace(
-				/^\d+\. (.+)$/gm,
-				'<li class="ml-4 list-decimal text-zinc-300">$1</li>',
-			)
-			.replace(
-				/\n\n/g,
-				'</p><p class="text-zinc-400 leading-relaxed my-4">',
-			)
-			.replace(/\n/g, "<br/>");
+		if (!md) return "";
+		return marked.parse(md, { async: false }) as string;
 	}
+
 
 	onMount(async () => {
 		const slug = $page.params.slug!;
@@ -218,10 +174,8 @@
 			<article
 				class="prose-custom text-zinc-400 leading-relaxed text-[0.96rem]"
 			>
-				<p class="text-zinc-400 leading-relaxed my-4">
-					<!-- eslint-disable-next-line svelte/no-at-html-tags -->
-					{@html renderMarkdown(post.content)}
-				</p>
+				<!-- eslint-disable-next-line svelte/no-at-html-tags -->
+				{@html renderMarkdown(post.content)}
 			</article>
 
 			<div
