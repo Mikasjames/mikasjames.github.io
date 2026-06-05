@@ -5,6 +5,9 @@ on:
     branches:
       - main
 
+  repository_dispatch:
+    types: [deploy-blog]
+
   workflow_dispatch:
 
 permissions:
