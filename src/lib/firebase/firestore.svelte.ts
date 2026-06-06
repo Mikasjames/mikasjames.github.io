@@ -13,6 +13,11 @@ import {
 } from 'firebase/firestore';
 import { db } from './firebase';
 
+export interface ImageMeta {
+    width: number;
+    height: number;
+}
+
 export interface BlogPost {
     id: string;
     title: string;
@@ -20,6 +25,7 @@ export interface BlogPost {
     excerpt: string;
     content: string;
     coverImage: string | null;
+    imageMeta?: Record<string, ImageMeta>;
     createdAt: Date | null;
 }
 
@@ -44,6 +50,7 @@ export async function createPost(data: {
     excerpt: string;
     content: string;
     coverImage: string | null;
+    imageMeta?: Record<string, ImageMeta>;
 }): Promise<string> {
     const ref = await addDoc(collection(db, COLLECTION), {
         ...data,
@@ -60,6 +67,7 @@ export async function updatePost(
         excerpt: string;
         content: string;
         coverImage: string | null;
+        imageMeta?: Record<string, ImageMeta>;
     }
 ): Promise<void> {
     const postRef = doc(db, COLLECTION, id);
@@ -79,6 +87,7 @@ function docToPost(id: string, data: DocumentData): BlogPost {
         excerpt: data.excerpt ?? '',
         content: data.content ?? '',
         coverImage: data.coverImage ?? null,
+        imageMeta: data.imageMeta ?? {},
         createdAt: data.createdAt?.toDate?.() ?? null
     };
 }

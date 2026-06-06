@@ -11,8 +11,14 @@
 		addMediaItem,
 		deleteMediaItem,
 		type BlogPost,
+		type ImageMeta,
 		type MediaItem,
 	} from "$lib/firebase/firestore.svelte";
+import {
+	extractImageUrlsFromMarkdown,
+	sanitizeImageMetaFromMarkdown,
+	removeImageReferencesFromMarkdown,
+} from "$lib/utils/imageMeta";
 	import { uploadImage, deleteImage } from "$lib/firebase/storage";
 	import { marked } from "marked";
 	import type { User } from "firebase/auth";
@@ -36,6 +42,7 @@
 	let excerpt = $state("");
 	let content = $state("");
 	let coverImage = $state<string | null>(null);
+	let imageMeta = $state<Record<string, ImageMeta>>({});
 	let slugManuallyEdited = $state(false);
 
 	let editingPostId = $state<string | null>(null);
@@ -107,27 +114,26 @@
 			formError = "All fields are required.";
 			return;
 		}
+
+		const sanitizedMeta = sanitizeImageMetaFromMarkdown(content, imageMeta);
+		const postPayload = {
+			title,
+			slug,
+			excerpt,
+			content,
+			coverImage,
+			imageMeta: sanitizedMeta,
+		};
+
 		submitting = true;
 		formError = "";
 		successMsg = "";
 		try {
 			if (editingPostId) {
-				await updatePost(editingPostId, {
-					title,
-					slug,
-					excerpt,
-					content,
-					coverImage,
-				});
+				await updatePost(editingPostId, postPayload);
 				successMsg = `"${title}" updated successfully!`;
 			} else {
-				await createPost({
-					title,
-					slug,
-					excerpt,
-					content,
-					coverImage,
-				});
+				await createPost(postPayload);
 				successMsg = `"${title}" published successfully!`;
 			}
 			resetForm();
@@ -140,6 +146,28 @@
 		}
 	}
 
+	function enrichImageMetaFromGallery(
+		markdown: string,
+		currentImageMeta: Record<string, ImageMeta>,
+	): Record<string, ImageMeta> {
+		const urls = extractImageUrlsFromMarkdown(markdown);
+		return urls.reduce((acc, url) => {
+			if (currentImageMeta[url]) {
+				acc[url] = currentImageMeta[url];
+				return acc;
+			}
+
+			const media = mediaItems.find((item) => item.url === url);
+			if (media?.width && media?.height) {
+				acc[url] = {
+					width: media.width,
+					height: media.height,
+				};
+			}
+			return acc;
+		}, {} as Record<string, ImageMeta>);
+	}
+
 	function startEdit(post: BlogPost) {
 		editingPostId = post.id;
 		title = post.title;
@@ -147,6 +175,7 @@
 		excerpt = post.excerpt;
 		content = post.content;
 		coverImage = post.coverImage;
+		imageMeta = enrichImageMetaFromGallery(post.content, post.imageMeta ?? {});
 		slugManuallyEdited = true;
 		successMsg = "";
 		formError = "";
@@ -160,6 +189,7 @@
 		excerpt = "";
 		content = "";
 		coverImage = null;
+		imageMeta = {};
 		slugManuallyEdited = false;
 	}
 
@@ -241,6 +271,10 @@
 			const { compressedFile, width, height } = await compressAndGetMeta(file);
 			const url = await uploadImage(compressedFile, "blog-content");
 			await addMediaItem({ url, name: compressedFile.name, width, height });
+			imageMeta = {
+				...imageMeta,
+				[url]: { width, height },
+			};
 			await loadMediaItems();
 			insertMarkdownAtCursor(url, file.name.split(".")[0]);
 		} catch (err: unknown) {
@@ -375,6 +409,9 @@
 		try {
 			await deleteImage(item.url);
 			await deleteMediaItem(item.id);
+			imageMeta = { ...imageMeta };
+			delete imageMeta[item.url];
+			content = removeImageReferencesFromMarkdown(content, item.url);
 			await loadMediaItems();
 		} catch (err: unknown) {
 			alert(

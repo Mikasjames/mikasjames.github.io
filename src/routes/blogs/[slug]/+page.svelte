@@ -1,22 +1,25 @@
 <script lang="ts">
 	import { marked } from "marked";
-	import type { BlogPost } from "$lib/firebase/firestore.svelte";
+import type { BlogPost } from "$lib/firebase/firestore.svelte";
 
-	let { data } = $props();
-	let post = $derived(data.post);
+let { data } = $props();
+let post = $derived(data.post as BlogPost);
 
-	function renderMarkdown(md: string): string {
-		if (!md) return "";
+function renderMarkdown(md: string): string {
+	if (!md) return "";
 
-		const renderer = {
-			image(token: { href: string; title: string | null; text: string }) {
-				return `<img src="${token.href}" alt="${token.text}" loading="lazy" style="max-width: 100%; height: auto;" />`;
-			}
-		};
+	const renderer = {
+		image(token: { href: string; title: string | null; text: string }) {
+			const metadata = post?.imageMeta?.[token.href];
+			const widthAttr = metadata?.width ? ` width="${metadata.width}"` : "";
+			const heightAttr = metadata?.height ? ` height="${metadata.height}"` : "";
+			return `<img src="${token.href}" alt="${token.text}" loading="lazy"${widthAttr}${heightAttr} style="max-width: 100%; height: auto;" />`;
+		}
+	};
 
-		marked.use({ renderer });
-		return marked.parse(md, { async: false }) as string;
-	}
+	marked.use({ renderer });
+	return marked.parse(md, { async: false }) as string;
+}
 
 	function formatDate(d: Date | null) {
 		if (!d) return "";
