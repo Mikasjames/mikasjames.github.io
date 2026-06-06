@@ -80,6 +80,7 @@ function renderMarkdown(md: string): string {
 							width="1280"
 							height="720"
 							loading="eager"
+							fetchpriority="high"
 							class="w-full h-full object-cover"
 						/>
 					</div>
