@@ -1,3 +1,15 @@
+import type { MediaDimensions } from "./mediaMeta";
+import {
+  isDirectVideoUrl,
+  standaloneImageRegex,
+  standaloneVideoRegex,
+  videoEmbedRegex,
+} from "./mediaMeta";
+
+export interface MediaRenderMeta {
+  imageMeta?: Record<string, MediaDimensions>;
+}
+
 function escapeHtml(value: string): string {
   return value
     .replace(/&/g, "&amp;")
@@ -27,45 +39,56 @@ function getVideoEmbedUrl(url: string): string | null {
   return null;
 }
 
-function isDirectVideoUrl(url: string): boolean {
-  return /\.(mp4|webm|ogg)(?:\?.*)?$/i.test(url.trim());
+function dimensionAttrs(meta: MediaDimensions | undefined): string {
+  if (!meta?.width || !meta?.height) return "";
+  return ` width="${meta.width}" height="${meta.height}"`;
 }
 
 function createVideoEmbedHtml(url: string, title = "Video"): string {
-  const escapedUrl = escapeHtml(url.trim());
+  const trimmedUrl = url.trim();
+  const escapedUrl = escapeHtml(trimmedUrl);
   const escapedTitle = escapeHtml(title || "Video embed");
-  const embedUrl = getVideoEmbedUrl(url);
+  const embedUrl = getVideoEmbedUrl(trimmedUrl);
 
   if (embedUrl) {
-    return `<div class="video-embed my-6"><iframe src="${escapeHtml(embedUrl)}" title="${escapedTitle}" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowfullscreen style="width:100%;min-height:360px;max-height:65vh;border-radius:0.75rem;overflow:hidden;"></iframe></div>`;
+    return `<div class="video-embed my-6"><iframe src="${escapeHtml(embedUrl)}" title="${escapedTitle}" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowfullscreen></iframe></div>`;
   }
 
-  if (isDirectVideoUrl(url)) {
-    return `<div class="video-embed my-6"><video controls preload="metadata" style="width:100%;height:auto;max-height:65vh;border-radius:0.75rem;background:#000;"><source src="${escapedUrl}" /></video></div>`;
+  if (isDirectVideoUrl(trimmedUrl)) {
+    return `<div class="video-embed my-6"><video controls preload="metadata"><source src="${escapedUrl}" /></video></div>`;
   }
 
   return "";
 }
 
-export function transformMediaMarkdown(markdown: string): string {
+function createStandaloneImageHtml(
+  url: string,
+  imageMeta?: Record<string, MediaDimensions>,
+): string {
+  const trimmedUrl = url.trim();
+  const meta = imageMeta?.[trimmedUrl];
+  const dimAttrs = dimensionAttrs(meta);
+  return `<img src="${escapeHtml(trimmedUrl)}" alt="Image" loading="lazy"${dimAttrs} />`;
+}
+
+export function transformMediaMarkdown(
+  markdown: string,
+  meta?: MediaRenderMeta,
+): string {
   if (!markdown) return "";
 
   const transformCustomVideo = markdown.replace(
-    /^!video\[(.*?)\]\((.*?)\)\s*$/gm,
-    (_, title, url) => createVideoEmbedHtml(url, title),
+    videoEmbedRegex,
+    (_, title, url) => createVideoEmbedHtml(url, title) || `!video[${title}](${url})`,
   );
 
   const transformImageUrl = transformCustomVideo.replace(
-    /^\s*(https?:\/\/(?:www\.)?\S+\.(?:png|jpe?g|gif|webp|avif|svg)(?:\?.*)?)\s*$/gm,
-    (_, url) =>
-      `<img src="${escapeHtml(url)}" alt="Image" loading="lazy" style="max-width: 100%; height: auto;" />`,
+    standaloneImageRegex,
+    (_, url) => createStandaloneImageHtml(url, meta?.imageMeta),
   );
 
-  return transformImageUrl.replace(
-    /^\s*(https?:\/\/\S+\.(?:mp4|webm|ogg)(?:\?.*)?|https?:\/\/(?:www\.)?(?:youtube\.com\/watch\?v=[A-Za-z0-9_-]+|youtu\.be\/[A-Za-z0-9_-]+|vimeo\.com\/\d+))\s*$/gm,
-    (_, url) => {
-      const videoHtml = createVideoEmbedHtml(url);
-      return videoHtml || _;
-    },
-  );
+  return transformImageUrl.replace(standaloneVideoRegex, (_, url) => {
+    const videoHtml = createVideoEmbedHtml(url, "Video");
+    return videoHtml || _;
+  });
 }

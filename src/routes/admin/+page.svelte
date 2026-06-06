@@ -19,7 +19,9 @@ import {
 	extractImageUrlsFromMarkdown,
 	sanitizeImageMetaFromMarkdown,
 	removeImageReferencesFromMarkdown,
-	compressAndGetMeta
+	compressAndGetMeta,
+	getImageDimensionsFromUrl,
+	resolveMissingImageMeta,
 } from "$lib/utils/imageMeta";
 	import { uploadImage, deleteImage } from "$lib/firebase/storage";
 	import { marked } from "marked";
@@ -117,14 +119,20 @@ import {
 			return;
 		}
 
-		const sanitizedMeta = sanitizeImageMetaFromMarkdown(content, imageMeta);
+		const resolvedImageMeta = await resolveMissingImageMeta(content, imageMeta);
+		const sanitizedImageMeta = sanitizeImageMetaFromMarkdown(
+			content,
+			resolvedImageMeta,
+		);
+		imageMeta = sanitizedImageMeta;
+
 		const postPayload = {
 			title,
 			slug,
 			excerpt,
 			content,
 			coverImage,
-			imageMeta: sanitizedMeta,
+			imageMeta: sanitizedImageMeta,
 		};
 
 		submitting = true;
@@ -177,7 +185,10 @@ import {
 		excerpt = post.excerpt;
 		content = post.content;
 		coverImage = post.coverImage;
-		imageMeta = enrichImageMetaFromGallery(post.content, post.imageMeta ?? {});
+		imageMeta = sanitizeImageMetaFromMarkdown(
+			post.content,
+			enrichImageMetaFromGallery(post.content, post.imageMeta ?? {}),
+		);
 		slugManuallyEdited = true;
 		successMsg = "";
 		formError = "";
@@ -304,14 +315,25 @@ import {
 		}, 50);
 	}
 
-	function promptInsertImage() {
+	async function promptInsertImage() {
 		const url = window.prompt("Image URL");
 		if (!url) return;
+		const trimmed = url.trim();
 		const alt = window.prompt("Alt text", "Image")?.trim() || "Image";
-		insertMarkdownAtCursor(url.trim(), alt);
+
+		if (!imageMeta[trimmed]) {
+			try {
+				const dims = await getImageDimensionsFromUrl(trimmed);
+				imageMeta = { ...imageMeta, [trimmed]: dims };
+			} catch {
+				// Insert without dimensions when probing fails.
+			}
+		}
+
+		insertMarkdownAtCursor(trimmed, alt);
 	}
 
-	function promptInsertVideo() {
+	async function promptInsertVideo() {
 		const url = window.prompt(
 			"Video URL (YouTube, Vimeo, or direct .mp4/.webm/.ogg)"
 		);
@@ -465,7 +487,23 @@ import {
 
 	function renderMarkdown(md: string): string {
 		if (!md) return "";
-		return marked.parse(transformMediaMarkdown(md), { async: false }) as string;
+
+		const renderer = {
+			image(token: { href: string; title: string | null; text: string }) {
+				const metadata = imageMeta[token.href];
+				const widthAttr = metadata?.width ? ` width="${metadata.width}"` : "";
+				const heightAttr = metadata?.height
+					? ` height="${metadata.height}"`
+					: "";
+				return `<img src="${token.href}" alt="${token.text}" loading="lazy"${widthAttr}${heightAttr} style="max-width: 100%; height: auto;" />`;
+			},
+		};
+
+		marked.use({ renderer });
+		return marked.parse(
+			transformMediaMarkdown(md, { imageMeta }),
+			{ async: false },
+		) as string;
 	}
 
 	function copyToClipboard(text: string) {

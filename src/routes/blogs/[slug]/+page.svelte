@@ -19,7 +19,12 @@ function renderMarkdown(md: string): string {
 	};
 
 	marked.use({ renderer });
-	return marked.parse(transformMediaMarkdown(md), { async: false }) as string;
+	return marked.parse(
+		transformMediaMarkdown(md, {
+			imageMeta: post?.imageMeta,
+		}),
+		{ async: false },
+	) as string;
 }
 
 	function formatDate(d: Date | null) {
