@@ -1,6 +1,7 @@
 <script lang="ts">
 	import { onMount, onDestroy } from "svelte";
 	import { goto } from "$app/navigation";
+	import { computeFormattedSelection, type FormatAction } from "$lib/utils/markdownEditor";
 	import { subscribeToAuth, logout } from "$lib/firebase/auth";
 	import {
 		createPost,
@@ -18,11 +19,11 @@ import {
 	extractImageUrlsFromMarkdown,
 	sanitizeImageMetaFromMarkdown,
 	removeImageReferencesFromMarkdown,
+	compressAndGetMeta
 } from "$lib/utils/imageMeta";
 	import { uploadImage, deleteImage } from "$lib/firebase/storage";
 	import { marked } from "marked";
 	import type { User } from "firebase/auth";
-	import imageCompression from 'browser-image-compression';
 
 	let user = $state<User | null>(null);
 	let authReady = $state(false);
@@ -192,35 +193,7 @@ import {
 		imageMeta = {};
 		slugManuallyEdited = false;
 	}
-
-	async function compressAndGetMeta(file: File) {
-		const options = {
-			maxWidthOrHeight: 1200,
-			useWebWorker: true,
-			fileType: 'image/webp',
-			initialQuality: 0.78
-		} as any;
-
-		const compressedBlob = await imageCompression(file, options);
-		const compressedFile =
-			compressedBlob instanceof File
-				? compressedBlob
-				: new File([compressedBlob], file.name.replace(/\.[^/.]+$/, '') + '.webp', {
-					  type: 'image/webp'
-				  });
-
-		const url = URL.createObjectURL(compressedFile);
-		const img = new Image();
-		img.src = url;
-		await new Promise<void>((res, rej) => {
-			img.onload = () => res();
-			img.onerror = (e) => rej(e);
-		});
-		const width = img.naturalWidth;
-		const height = img.naturalHeight;
-		URL.revokeObjectURL(url);
-		return { compressedFile, width, height };
-	}
+	
 
 	async function handleDelete(post: BlogPost) {
 		if (!confirm(`Are you sure you want to delete "${post.title}"?`)) {
@@ -308,46 +281,18 @@ import {
 		}, 50);
 	}
 
-	type FormatAction =
-		| { kind: "wrap"; before: string; after: string; placeholder: string }
-		| { kind: "prefix"; prefix: string; placeholder: string }
-		| { kind: "block"; before: string; after: string; placeholder: string };
-
 	function applyFormat(action: FormatAction) {
 		activeTab = "write";
 		setTimeout(() => {
 			if (!textareaRef) return;
-			const start = textareaRef.selectionStart;
-			const end = textareaRef.selectionEnd;
-			const selected = textareaRef.value.substring(start, end);
-			const before = textareaRef.value.substring(0, start);
-			const after = textareaRef.value.substring(end);
-
-			let replacement: string;
-			let cursorStart: number;
-			let cursorEnd: number;
-
-			if (action.kind === "wrap") {
-				const text = selected || action.placeholder;
-				replacement = `${action.before}${text}${action.after}`;
-				cursorStart = start + action.before.length;
-				cursorEnd = cursorStart + text.length;
-			} else if (action.kind === "prefix") {
-				const lines = (selected || action.placeholder).split("\n");
-				const prefixed = lines
-					.map((l) => `${action.prefix}${l}`)
-					.join("\n");
-				replacement = prefixed;
-				cursorStart = start;
-				cursorEnd = start + prefixed.length;
-			} else {
-				const text = selected || action.placeholder;
-				replacement = `${action.before}${text}${action.after}`;
-				cursorStart = start + action.before.length;
-				cursorEnd = cursorStart + text.length;
-			}
-
-			content = before + replacement + after;
+			const { newContent, cursorStart, cursorEnd } = computeFormattedSelection(
+				content,
+				textareaRef.selectionStart,
+				textareaRef.selectionEnd,
+				action
+			);
+			
+			content = newContent;
 
 			setTimeout(() => {
 				if (textareaRef) {
