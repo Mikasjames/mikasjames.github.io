@@ -23,6 +23,7 @@ import {
 } from "$lib/utils/imageMeta";
 	import { uploadImage, deleteImage } from "$lib/firebase/storage";
 	import { marked } from "marked";
+	import { transformMediaMarkdown } from "$lib/utils/mediaMarkdown";
 	import type { User } from "firebase/auth";
 
 	let user = $state<User | null>(null);
@@ -281,6 +282,53 @@ import {
 		}, 50);
 	}
 
+	function insertVideoEmbedAtCursor(url: string, title: string) {
+		activeTab = "write";
+		setTimeout(() => {
+			if (!textareaRef) return;
+			const start = textareaRef.selectionStart;
+			const end = textareaRef.selectionEnd;
+			const text = textareaRef.value;
+			const before = text.substring(0, start);
+			const after = text.substring(end, text.length);
+			const tag = `!video[${title}](${url})`;
+			content = before + tag + after;
+
+			setTimeout(() => {
+				if (textareaRef) {
+					textareaRef.focus();
+					textareaRef.selectionStart = textareaRef.selectionEnd =
+						start + tag.length;
+				}
+			}, 50);
+		}, 50);
+	}
+
+	function promptInsertImage() {
+		const url = window.prompt("Image URL");
+		if (!url) return;
+		const alt = window.prompt("Alt text", "Image")?.trim() || "Image";
+		insertMarkdownAtCursor(url.trim(), alt);
+	}
+
+	function promptInsertVideo() {
+		const url = window.prompt(
+			"Video URL (YouTube, Vimeo, or direct .mp4/.webm/.ogg)"
+		);
+		if (!url) return;
+		const title = window.prompt(
+			"Video title",
+			textareaRef
+				? textareaRef.value.substring(
+					textareaRef.selectionStart,
+					textareaRef.selectionEnd
+				)
+				: "Video"
+		)
+			?.trim() || "Video";
+		insertVideoEmbedAtCursor(url.trim(), title);
+	}
+
 	function applyFormat(action: FormatAction) {
 		activeTab = "write";
 		setTimeout(() => {
@@ -417,7 +465,7 @@ import {
 
 	function renderMarkdown(md: string): string {
 		if (!md) return "";
-		return marked.parse(md, { async: false }) as string;
+		return marked.parse(transformMediaMarkdown(md), { async: false }) as string;
 	}
 
 	function copyToClipboard(text: string) {
@@ -990,6 +1038,37 @@ import {
 											d="M3.9 12c0-1.71 1.39-3.1 3.1-3.1h4V7H7c-2.76 0-5 2.24-5 5s2.24 5 5 5h4v-1.9H7c-1.71 0-3.1-1.39-3.1-3.1zM8 13h8v-2H8v2zm9-6h-4v1.9h4c1.71 0 3.1 1.39 3.1 3.1s-1.39 3.1-3.1 3.1h-4V17h4c2.76 0 5-2.24 5-5s-2.24-5-5-5z"
 										/></svg
 									>
+								</button>
+
+								<button
+									type="button"
+									title="Image"
+									onclick={promptInsertImage}
+									class="p-1.5 rounded hover:bg-zinc-800 text-zinc-400 hover:text-zinc-100 transition-colors cursor-pointer"
+								>
+									<svg
+										class="w-3.5 h-3.5"
+										viewBox="0 0 24 24"
+										fill="currentColor"
+									>
+										<path d="M21 19V5a2 2 0 0 0-2-2H5a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2Zm-2 0H5V5h14v14Z" />
+										<path d="M8 14h2l1.5 2 2-3 2.5 3H18V8l-3.5 3-2-2L8 14Z" />
+									</svg>
+								</button>
+
+								<button
+									type="button"
+									title="Video"
+									onclick={promptInsertVideo}
+									class="p-1.5 rounded hover:bg-zinc-800 text-zinc-400 hover:text-zinc-100 transition-colors cursor-pointer"
+								>
+									<svg
+										class="w-3.5 h-3.5"
+										viewBox="0 0 24 24"
+										fill="currentColor"
+									>
+										<path d="M10 8.64L15.27 12 10 15.36V8.64ZM4 6h16a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2Z" />
+									</svg>
 								</button>
 
 								<button

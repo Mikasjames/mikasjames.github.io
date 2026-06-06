@@ -1,6 +1,7 @@
 <script lang="ts">
 	import { marked } from "marked";
 import type { BlogPost } from "$lib/firebase/firestore.svelte";
+import { transformMediaMarkdown } from "$lib/utils/mediaMarkdown";
 
 let { data } = $props();
 let post = $derived(data.post as BlogPost);
@@ -18,7 +19,7 @@ function renderMarkdown(md: string): string {
 	};
 
 	marked.use({ renderer });
-	return marked.parse(md, { async: false }) as string;
+	return marked.parse(transformMediaMarkdown(md), { async: false }) as string;
 }
 
 	function formatDate(d: Date | null) {
