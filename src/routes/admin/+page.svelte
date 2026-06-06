@@ -16,6 +16,7 @@
 	import { uploadImage, deleteImage } from "$lib/firebase/storage";
 	import { marked } from "marked";
 	import type { User } from "firebase/auth";
+	import imageCompression from 'browser-image-compression';
 
 	let user = $state<User | null>(null);
 	let authReady = $state(false);
@@ -162,6 +163,35 @@
 		slugManuallyEdited = false;
 	}
 
+	async function compressAndGetMeta(file: File) {
+		const options = {
+			maxWidthOrHeight: 1200,
+			useWebWorker: true,
+			fileType: 'image/webp',
+			initialQuality: 0.78
+		} as any;
+
+		const compressedBlob = await imageCompression(file, options);
+		const compressedFile =
+			compressedBlob instanceof File
+				? compressedBlob
+				: new File([compressedBlob], file.name.replace(/\.[^/.]+$/, '') + '.webp', {
+					  type: 'image/webp'
+				  });
+
+		const url = URL.createObjectURL(compressedFile);
+		const img = new Image();
+		img.src = url;
+		await new Promise<void>((res, rej) => {
+			img.onload = () => res();
+			img.onerror = (e) => rej(e);
+		});
+		const width = img.naturalWidth;
+		const height = img.naturalHeight;
+		URL.revokeObjectURL(url);
+		return { compressedFile, width, height };
+	}
+
 	async function handleDelete(post: BlogPost) {
 		if (!confirm(`Are you sure you want to delete "${post.title}"?`)) {
 			return;
@@ -186,9 +216,10 @@
 		coverUploading = true;
 		coverError = "";
 		try {
-			const url = await uploadImage(file, "cover-images");
+			const { compressedFile, width, height } = await compressAndGetMeta(file);
+			const url = await uploadImage(compressedFile, "cover-images");
 			coverImage = url;
-			await addMediaItem({ url, name: file.name });
+			await addMediaItem({ url, name: compressedFile.name, width, height });
 			if (showMediaGallery) {
 				await loadMediaItems();
 			}
@@ -207,8 +238,9 @@
 		contentUploading = true;
 		contentUploadError = "";
 		try {
-			const url = await uploadImage(file, "blog-content");
-			await addMediaItem({ url, name: file.name });
+			const { compressedFile, width, height } = await compressAndGetMeta(file);
+			const url = await uploadImage(compressedFile, "blog-content");
+			await addMediaItem({ url, name: compressedFile.name, width, height });
 			await loadMediaItems();
 			insertMarkdownAtCursor(url, file.name.split(".")[0]);
 		} catch (err: unknown) {
@@ -321,8 +353,9 @@
 		mediaUploading = true;
 		mediaUploadError = "";
 		try {
-			const url = await uploadImage(file, "blog-content");
-			await addMediaItem({ url, name: file.name });
+			const { compressedFile, width, height } = await compressAndGetMeta(file);
+			const url = await uploadImage(compressedFile, "blog-content");
+			await addMediaItem({ url, name: compressedFile.name, width, height });
 			await loadMediaItems();
 		} catch (err: unknown) {
 			mediaUploadError =
@@ -660,7 +693,7 @@
 									Media Gallery
 								</button>
 								<div
-									class="flex bg-zinc-950 p-0.5 rounded-lg border border-zinc-850"
+									class="flex bg-zinc-950 p-0.5 rounded-lg border border-zinc-100"
 								>
 									<button
 										type="button"

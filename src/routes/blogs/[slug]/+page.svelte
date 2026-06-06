@@ -7,6 +7,14 @@
 
 	function renderMarkdown(md: string): string {
 		if (!md) return "";
+
+		const renderer = {
+			image(token: { href: string; title: string | null; text: string }) {
+				return `<img src="${token.href}" alt="${token.text}" loading="lazy" style="max-width: 100%; height: auto;" />`;
+			}
+		};
+
+		marked.use({ renderer });
 		return marked.parse(md, { async: false }) as string;
 	}
 
@@ -66,6 +74,9 @@
 						<img
 							src={post.coverImage}
 							alt={post.title}
+							width="1280"
+							height="720"
+							loading="eager"
 							class="w-full h-full object-cover"
 						/>
 					</div>

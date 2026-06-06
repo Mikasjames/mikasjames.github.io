@@ -88,6 +88,8 @@ export interface MediaItem {
     url: string;
     name: string;
     uploadedAt: Date | null;
+    width?: number;
+    height?: number;
 }
 
 const MEDIA_COLLECTION = 'media_gallery';
@@ -98,7 +100,7 @@ export async function getMediaItems(): Promise<MediaItem[]> {
     return snapshot.docs.map((d) => docToMediaItem(d.id, d.data()));
 }
 
-export async function addMediaItem(data: { url: string; name: string }): Promise<string> {
+export async function addMediaItem(data: { url: string; name: string; width?: number; height?: number }): Promise<string> {
     const ref = await addDoc(collection(db, MEDIA_COLLECTION), {
         ...data,
         uploadedAt: serverTimestamp()
@@ -116,7 +118,9 @@ function docToMediaItem(id: string, data: DocumentData): MediaItem {
         id,
         url: data.url ?? '',
         name: data.name ?? '',
-        uploadedAt: data.uploadedAt?.toDate?.() ?? null
+        uploadedAt: data.uploadedAt?.toDate?.() ?? null,
+        width: data.width ?? undefined,
+        height: data.height ?? undefined
     };
 }
 
