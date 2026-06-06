@@ -1,4 +1,7 @@
 <script lang="ts">
+  	import '@fontsource-variable/inter/index.css';
+  	import '@fontsource/jetbrains-mono/index.css';
+
 	import Load from "$lib/components/Load.svelte";
 	import "../app.css";
 	import { onMount } from "svelte";
