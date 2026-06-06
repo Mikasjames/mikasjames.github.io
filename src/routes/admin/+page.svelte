@@ -304,6 +304,53 @@ import {
 		}, 50);
 	}
 
+	function handleKeyDown(e: KeyboardEvent) {
+		const isModifier = e.ctrlKey || e.metaKey;
+		
+		if (!isModifier) return;
+
+		switch (e.key.toLowerCase()) {
+			case "b":
+				e.preventDefault(); 
+				applyFormat({
+					kind: "wrap",
+					before: "**",
+					after: "**",
+					placeholder: "bold text",
+				});
+				break;
+				
+			case "i":
+				e.preventDefault(); 
+				applyFormat({
+					kind: "wrap",
+					before: "_",
+					after: "_",
+					placeholder: "italic text",
+				});
+				break;
+				
+			case "k":
+				e.preventDefault(); 
+				applyFormat({
+					kind: "wrap",
+					before: "[",
+					after: "](url)",
+					placeholder: "link text",
+				});
+				break;
+				
+			case "q":
+				e.preventDefault(); 
+				applyFormat({
+					kind: "prefix",
+					prefix: "> ",
+					placeholder: "quoted text",
+				});
+				break;
+		}
+	}
+
 	async function loadMediaItems() {
 		mediaLoading = true;
 		mediaLoadError = "";
@@ -970,6 +1017,7 @@ import {
 								id="post-content"
 								bind:value={content}
 								bind:this={textareaRef}
+								onkeydown={handleKeyDown}
 								required
 								rows="14"
 								placeholder="Write your post content here…&#10;&#10;## Heading&#10;&#10;Markdown is supported."
