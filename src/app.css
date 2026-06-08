@@ -202,3 +202,32 @@ html {
 	object-fit: contain;
 	background: #000;
 }
+
+.prose-custom table {
+	width: 100%;
+	border-collapse: collapse;
+	margin-top: 1.5rem;
+	margin-bottom: 1.5rem;
+	text-align: left;
+}
+
+.prose-custom th {
+	border-bottom: 2px solid #27272a;
+	/* zinc-800 */
+	padding: 0.75rem 1rem;
+	font-weight: 600;
+	color: #f4f4f5;
+	/* zinc-100 */
+}
+
+.prose-custom td {
+	border-bottom: 1px solid #18181b;
+	/* zinc-900 */
+	padding: 0.75rem 1rem;
+	color: #a1a1aa;
+	/* zinc-400 */
+}
+
+.prose-custom tr:hover {
+	background-color: rgba(255, 255, 255, 0.02);
+}
