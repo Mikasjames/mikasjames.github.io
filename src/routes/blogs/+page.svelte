@@ -88,6 +88,7 @@
 								<div class="w-full md:w-44 h-28 shrink-0 overflow-hidden rounded-lg bg-zinc-950 border border-zinc-800/80">
 									<img
 										src={post.coverImage}
+										fetchpriority="high"
 										alt=""
 										class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
 									/>
