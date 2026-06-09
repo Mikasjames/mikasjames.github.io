@@ -1,5 +1,5 @@
 <script lang="ts">
-	import { onMount, onDestroy } from "svelte";
+	import { onMount, onDestroy, tick } from "svelte";
 	import { goto } from "$app/navigation";
 	import { computeFormattedSelection, type FormatAction } from "$lib/utils/markdownEditor";
 	import { subscribeToAuth, logout } from "$lib/firebase/auth";
@@ -271,48 +271,48 @@ import {
 		}
 	}
 
-	function insertMarkdownAtCursor(url: string, altText: string) {
+	async function insertMarkdownAtCursor(url: string, altText: string) {
 		activeTab = "write";
-		setTimeout(() => {
-			if (!textareaRef) return;
-			const start = textareaRef.selectionStart;
-			const end = textareaRef.selectionEnd;
-			const text = textareaRef.value;
-			const before = text.substring(0, start);
-			const after = text.substring(end, text.length);
-			const tag = `![${altText}](${url})`;
-			content = before + tag + after;
+		await tick();
+		if (!textareaRef) return;
 
-			setTimeout(() => {
-				if (textareaRef) {
-					textareaRef.focus();
-					textareaRef.selectionStart = textareaRef.selectionEnd =
-						start + tag.length;
-				}
-			}, 50);
-		}, 50);
+		const start = textareaRef.selectionStart;
+		const end = textareaRef.selectionEnd;
+		const text = textareaRef.value;
+		
+		const before = text.substring(0, start);
+		const after = text.substring(end, text.length);
+		const tag = `![${altText}](${url})`;
+
+		content = before + tag + after;
+
+		await tick();
+
+		if (textareaRef) {
+			textareaRef.focus();
+			textareaRef.selectionStart = textareaRef.selectionEnd = start + tag.length;
+		}
 	}
 
-	function insertVideoEmbedAtCursor(url: string, title: string) {
+	async function insertVideoEmbedAtCursor(url: string, title: string) {
 		activeTab = "write";
-		setTimeout(() => {
-			if (!textareaRef) return;
-			const start = textareaRef.selectionStart;
-			const end = textareaRef.selectionEnd;
-			const text = textareaRef.value;
-			const before = text.substring(0, start);
-			const after = text.substring(end, text.length);
-			const tag = `!video[${title}](${url})`;
-			content = before + tag + after;
+		await tick();
+		if (!textareaRef) return;
 
-			setTimeout(() => {
-				if (textareaRef) {
-					textareaRef.focus();
-					textareaRef.selectionStart = textareaRef.selectionEnd =
-						start + tag.length;
-				}
-			}, 50);
-		}, 50);
+		const start = textareaRef.selectionStart;
+		const end = textareaRef.selectionEnd;
+		const text = textareaRef.value;
+		const before = text.substring(0, start);
+		const after = text.substring(end, text.length);
+		const tag = `!video[${title}](${url})`;
+		content = before + tag + after;
+
+		await tick();
+
+		if (textareaRef) {
+			textareaRef.focus();
+			textareaRef.selectionStart = textareaRef.selectionEnd = start + tag.length;
+		}
 	}
 
 	async function promptInsertImage() {
@@ -330,7 +330,7 @@ import {
 			}
 		}
 
-		insertMarkdownAtCursor(trimmed, alt);
+		await insertMarkdownAtCursor(trimmed, alt);
 	}
 
 	async function promptInsertVideo() {
@@ -348,33 +348,36 @@ import {
 				: "Video"
 		)
 			?.trim() || "Video";
-		insertVideoEmbedAtCursor(url.trim(), title);
+		await insertVideoEmbedAtCursor(url.trim(), title);
 	}
 
-	function applyFormat(action: FormatAction) {
+	async function applyFormat(action: FormatAction) {
 		activeTab = "write";
-		setTimeout(() => {
-			if (!textareaRef) return;
-			const { newContent, cursorStart, cursorEnd } = computeFormattedSelection(
-				content,
-				textareaRef.selectionStart,
-				textareaRef.selectionEnd,
-				action
-			);
-			
-			content = newContent;
+		await tick();
+		if (!textareaRef) return;
 
-			setTimeout(() => {
-				if (textareaRef) {
-					textareaRef.focus();
-					textareaRef.selectionStart = cursorStart;
-					textareaRef.selectionEnd = cursorEnd;
-				}
-			}, 50);
-		}, 50);
+		const start = textareaRef.selectionStart;
+		const end = textareaRef.selectionEnd;
+
+		const { newContent, cursorStart, cursorEnd } = computeFormattedSelection(
+			content,
+			start,
+			end,
+			action
+		);
+
+		content = newContent;
+
+		await tick();
+
+		if (textareaRef) {
+			textareaRef.focus();
+			textareaRef.selectionStart = cursorStart;
+			textareaRef.selectionEnd = cursorEnd;
+		}
 	}
 
-	function handleKeyDown(e: KeyboardEvent) {
+	async function handleKeyDown(e: KeyboardEvent) {
 		const isModifier = e.ctrlKey || e.metaKey;
 		
 		if (!isModifier) return;
@@ -382,7 +385,7 @@ import {
 		switch (e.key.toLowerCase()) {
 			case "b":
 				e.preventDefault(); 
-				applyFormat({
+				await applyFormat({
 					kind: "wrap",
 					before: "**",
 					after: "**",
@@ -392,7 +395,7 @@ import {
 				
 			case "i":
 				e.preventDefault(); 
-				applyFormat({
+				await applyFormat({
 					kind: "wrap",
 					before: "_",
 					after: "_",
@@ -402,7 +405,7 @@ import {
 				
 			case "k":
 				e.preventDefault(); 
-				applyFormat({
+				await applyFormat({
 					kind: "wrap",
 					before: "[",
 					after: "](url)",
@@ -412,7 +415,7 @@ import {
 				
 			case "q":
 				e.preventDefault(); 
-				applyFormat({
+				await applyFormat({
 					kind: "prefix",
 					prefix: "> ",
 					placeholder: "quoted text",
@@ -843,6 +846,7 @@ import {
 								<button
 									type="button"
 									title="Bold"
+									onmousedown={(e) => e.preventDefault()} 
 									onclick={() =>
 										applyFormat({
 											kind: "wrap",
@@ -865,6 +869,7 @@ import {
 								<button
 									type="button"
 									title="Italic"
+									onmousedown={(e) => e.preventDefault()} 
 									onclick={() =>
 										applyFormat({
 											kind: "wrap",
@@ -887,6 +892,7 @@ import {
 								<button
 									type="button"
 									title="Strikethrough"
+									onmousedown={(e) => e.preventDefault()} 
 									onclick={() =>
 										applyFormat({
 											kind: "wrap",
@@ -911,6 +917,7 @@ import {
 								<button
 									type="button"
 									title="Inline Code"
+									onmousedown={(e) => e.preventDefault()} 
 									onclick={() =>
 										applyFormat({
 											kind: "wrap",
@@ -933,6 +940,7 @@ import {
 								<button
 									type="button"
 									title="Code block"
+									onmousedown={(e) => e.preventDefault()} 
 									onclick={() =>
 										applyFormat({
 											kind: "block",
@@ -950,6 +958,7 @@ import {
 								<button
 									type="button"
 									title="Heading 1"
+									onmousedown={(e) => e.preventDefault()} 
 									onclick={() =>
 										applyFormat({
 											kind: "prefix",
@@ -964,6 +973,7 @@ import {
 								<button
 									type="button"
 									title="Heading 2"
+									onmousedown={(e) => e.preventDefault()} 
 									onclick={() =>
 										applyFormat({
 											kind: "prefix",
@@ -978,6 +988,7 @@ import {
 								<button
 									type="button"
 									title="Heading 3"
+									onmousedown={(e) => e.preventDefault()} 
 									onclick={() =>
 										applyFormat({
 											kind: "prefix",
@@ -994,6 +1005,7 @@ import {
 								<button
 									type="button"
 									title="Blockquote"
+									onmousedown={(e) => e.preventDefault()} 
 									onclick={() =>
 										applyFormat({
 											kind: "prefix",
@@ -1015,6 +1027,7 @@ import {
 								<button
 									type="button"
 									title="Unordered List"
+									onmousedown={(e) => e.preventDefault()} 
 									onclick={() =>
 										applyFormat({
 											kind: "prefix",
@@ -1036,6 +1049,7 @@ import {
 								<button
 									type="button"
 									title="Ordered List"
+									onmousedown={(e) => e.preventDefault()} 
 									onclick={() =>
 										applyFormat({
 											kind: "prefix",
@@ -1059,6 +1073,7 @@ import {
 								<button
 									type="button"
 									title="Link"
+									onmousedown={(e) => e.preventDefault()} 
 									onclick={() =>
 										applyFormat({
 											kind: "wrap",
@@ -1081,6 +1096,7 @@ import {
 								<button
 									type="button"
 									title="Image"
+									onmousedown={(e) => e.preventDefault()} 
 									onclick={promptInsertImage}
 									class="p-1.5 rounded hover:bg-zinc-800 text-zinc-400 hover:text-zinc-100 transition-colors cursor-pointer"
 								>
@@ -1097,6 +1113,7 @@ import {
 								<button
 									type="button"
 									title="Video"
+									onmousedown={(e) => e.preventDefault()} 
 									onclick={promptInsertVideo}
 									class="p-1.5 rounded hover:bg-zinc-800 text-zinc-400 hover:text-zinc-100 transition-colors cursor-pointer"
 								>
@@ -1112,6 +1129,7 @@ import {
 								<button
 									type="button"
 									title="Horizontal Rule"
+									onmousedown={(e) => e.preventDefault()} 
 									onclick={() =>
 										applyFormat({
 											kind: "block",
