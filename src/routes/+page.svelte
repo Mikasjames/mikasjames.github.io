@@ -541,7 +541,7 @@
         </div>
 
         <footer
-            class="mt-16 pt-8 border-t border-zinc-800/60 flex flex-col sm:flex-row items-center justify-between gap-4 text-xs text-zinc-600"
+            class="mt-16 pt-8 border-t border-zinc-800/60 flex flex-col sm:flex-row items-center justify-between gap-4 text-xs text-zinc-400"
         >
             <p class="font-mono">
                 <span class="text-accent-400">&gt;_</span> mikas · built with
