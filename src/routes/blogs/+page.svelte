@@ -25,7 +25,7 @@
 	<title>Blog · Mikas James</title>
 	<meta
 		name="description"
-		content="Thoughts on software engineering, frontend development, and building things on the web."
+		content="Some stuff that came to mind."
 	/>
 </svelte:head>
 
@@ -47,8 +47,7 @@
 				Blog
 			</h1>
 			<p class="mt-4 text-zinc-400 text-lg leading-relaxed max-w-xl">
-				Thoughts on software, design, and the craft of building things
-				for the web.
+				Some stuff that came to mind.
 			</p>
 			<div class="mt-6 h-px w-16 bg-accent-500/50 rounded-full"></div>
 		</div>
