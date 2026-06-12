@@ -54,6 +54,11 @@
 
 <svelte:window onscroll={onScroll} />
 
+<svelte:head>
+  <link rel="canonical" href="https://mikasjames.com" />
+</svelte:head>
+
+
 {#if showLoaderDOM}
 	<Load />
 {/if}
