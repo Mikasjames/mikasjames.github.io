@@ -1,5 +1,5 @@
 <script lang="ts">
-	import { page } from '$app/stores';
+	import { page } from "$app/stores";
 	import type { BlogPost } from "$lib/firebase/firestore.svelte";
 
 	let { data } = $props();
@@ -23,10 +23,8 @@
 
 <svelte:head>
 	<title>Blog · Mikas James</title>
-	<meta
-		name="description"
-		content="Some stuff that came to mind."
-	/>
+	<meta name="description" content="Some stuff that came to mind." />
+	<link rel="canonical" href="https://mikasjames.com/blogs" />
 </svelte:head>
 
 <div class="min-h-screen bg-[#09090b] pt-28 pb-20 px-4">
@@ -84,7 +82,9 @@
 					>
 						<div class="flex flex-col md:flex-row gap-5">
 							{#if post.coverImage}
-								<div class="w-full md:w-44 h-28 shrink-0 overflow-hidden rounded-lg bg-zinc-950 border border-zinc-800/80">
+								<div
+									class="w-full md:w-44 h-28 shrink-0 overflow-hidden rounded-lg bg-zinc-950 border border-zinc-800/80"
+								>
 									<img
 										src={post.coverImage}
 										fetchpriority="high"
@@ -97,10 +97,12 @@
 							<div class="flex-1 min-w-0">
 								<div class="flex items-center gap-3 mb-2.5">
 									{#if post.createdAt}
-										<time class="text-xs text-zinc-550 font-mono"
+										<time
+											class="text-xs text-zinc-550 font-mono"
 											>{formatDate(post.createdAt)}</time
 										>
-										<span class="w-1 h-1 rounded-full bg-zinc-800"
+										<span
+											class="w-1 h-1 rounded-full bg-zinc-800"
 										></span>
 									{/if}
 									<span class="text-xs text-zinc-550"

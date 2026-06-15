@@ -1,13 +1,13 @@
 <script lang="ts">
-  	import '@fontsource-variable/inter/index.css';
-  	import '@fontsource/jetbrains-mono/index.css';
+	import "@fontsource-variable/inter/index.css";
+	import "@fontsource/jetbrains-mono/index.css";
 
 	import Load from "$lib/components/Load.svelte";
 	import "../app.css";
 	import { onMount } from "svelte";
-	import { page } from '$app/stores';
+	import { page } from "$app/stores";
 
-	const isHome = $derived($page.url.pathname === '/');
+	const isHome = $derived($page.url.pathname === "/");
 
 	let { children } = $props();
 	let isLoaded = $state(false);
@@ -54,11 +54,6 @@
 
 <svelte:window onscroll={onScroll} />
 
-<svelte:head>
-  <link rel="canonical" href="https://mikasjames.com" />
-</svelte:head>
-
-
 {#if showLoaderDOM}
 	<Load />
 {/if}
@@ -70,7 +65,7 @@
 >
 	<nav class="mx-auto max-w-5xl px-6 py-4 flex items-center justify-between">
 		<a
-			href={isHome ? '#about' : '/'}
+			href={isHome ? "#about" : "/"}
 			onclick={closeMobile}
 			class="font-mono text-sm font-medium text-zinc-400 hover:text-accent-400 transition-colors duration-200 tracking-widest uppercase"
 		>
@@ -95,7 +90,9 @@
 				<a
 					href="/blogs/"
 					class="text-sm font-medium transition-colors duration-200 relative group
-						{$page.url.pathname.startsWith('/blogs') ? 'text-accent-400' : 'text-zinc-400 hover:text-zinc-100'}"
+						{$page.url.pathname.startsWith('/blogs')
+						? 'text-accent-400'
+						: 'text-zinc-400 hover:text-zinc-100'}"
 				>
 					Blog
 					<span
@@ -185,7 +182,9 @@
 						href="/blogs/"
 						onclick={closeMobile}
 						class="block py-3 px-4 rounded-lg transition-all duration-200 text-sm font-medium
-							{$page.url.pathname.startsWith('/blogs') ? 'text-accent-400 bg-accent-500/10' : 'text-zinc-400 hover:text-zinc-100 hover:bg-zinc-800/50'}"
+							{$page.url.pathname.startsWith('/blogs')
+							? 'text-accent-400 bg-accent-500/10'
+							: 'text-zinc-400 hover:text-zinc-100 hover:bg-zinc-800/50'}"
 					>
 						Blog
 					</a>

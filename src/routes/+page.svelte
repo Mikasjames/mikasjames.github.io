@@ -160,6 +160,7 @@
 
 <svelte:head>
     <title>Mikas James | Full-Stack Software Engineer</title>
+    <link rel="canonical" href="https://mikasjames.com" />
 </svelte:head>
 
 <section

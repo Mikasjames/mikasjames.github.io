@@ -25,6 +25,10 @@
 	<title>{post ? `${post.title} · Mikas James` : "Blog · Mikas James"}</title>
 	{#if post}
 		<meta name="description" content={post.excerpt} />
+		<link
+			rel="canonical"
+			href={`https://mikasjames.com/blogs/${post.slug}`}
+		/>
 	{/if}
 </svelte:head>
 
@@ -57,7 +61,9 @@
 		{#if post}
 			<header class="mb-10">
 				{#if post.coverImage}
-					<div class="w-full aspect-video mb-8 overflow-hidden rounded-xl bg-zinc-950 border border-zinc-800/80 shadow-lg">
+					<div
+						class="w-full aspect-video mb-8 overflow-hidden rounded-xl bg-zinc-950 border border-zinc-800/80 shadow-lg"
+					>
 						<img
 							src={post.coverImage}
 							alt={post.title}
