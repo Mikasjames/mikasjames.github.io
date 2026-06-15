@@ -1,4 +1,4 @@
-import { getPosts } from "$lib/firebase/firestore.svelte";
+import { getPublishedPosts } from "$lib/firebase/firestore.svelte";
 import { SITE_URL } from "$lib/site";
 
 export const prerender = true;
@@ -29,7 +29,7 @@ function urlEntry(path, lastmod) {
 }
 
 export async function GET() {
-  const posts = await getPosts();
+  const posts = await getPublishedPosts();
 
   const urls = [
     urlEntry("/", undefined),

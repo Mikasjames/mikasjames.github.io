@@ -5,6 +5,7 @@ export const prerender = true;
 export function GET() {
 	const body = `User-agent: *
 Disallow: /admin/
+Disallow: /journal/
 
 Sitemap: ${SITE_URL}/sitemap.xml
 `;

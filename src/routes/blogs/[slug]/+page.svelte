@@ -25,10 +25,14 @@
 	<title>{post ? `${post.title} · Mikas James` : "Blog · Mikas James"}</title>
 	{#if post}
 		<meta name="description" content={post.excerpt} />
-		<link
-			rel="canonical"
-			href={`https://mikasjames.com/blogs/${post.slug}`}
-		/>
+		{#if post.status === "unlisted"}
+			<meta name="robots" content="noindex, nofollow" />
+		{:else}
+			<link
+				rel="canonical"
+				href={`https://mikasjames.com/blogs/${post.slug}`}
+			/>
+		{/if}
 	{/if}
 </svelte:head>
 
