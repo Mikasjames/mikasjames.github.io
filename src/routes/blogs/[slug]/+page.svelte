@@ -1,31 +1,9 @@
 <script lang="ts">
-	import { marked } from "marked";
-import type { BlogPost } from "$lib/firebase/firestore.svelte";
-import { transformMediaMarkdown } from "$lib/utils/mediaMarkdown";
+	import type { BlogPost } from "$lib/firebase/firestore.svelte";
+	import { renderMarkdown } from "$lib/utils/renderMarkdown";
 
-let { data } = $props();
-let post = $derived(data.post as BlogPost);
-
-function renderMarkdown(md: string): string {
-	if (!md) return "";
-
-	const renderer = {
-		image(token: { href: string; title: string | null; text: string }) {
-			const metadata = post?.imageMeta?.[token.href];
-			const widthAttr = metadata?.width ? ` width="${metadata.width}"` : "";
-			const heightAttr = metadata?.height ? ` height="${metadata.height}"` : "";
-			return `<img src="${token.href}" alt="${token.text}" loading="lazy"${widthAttr}${heightAttr} style="max-width: 100%; height: auto;" />`;
-		}
-	};
-
-	marked.use({ renderer });
-	return marked.parse(
-		transformMediaMarkdown(md, {
-			imageMeta: post?.imageMeta,
-		}),
-		{ async: false },
-	) as string;
-}
+	let { data } = $props();
+	let post = $derived(data.post as BlogPost);
 
 	function formatDate(d: Date | null) {
 		if (!d) return "";
@@ -123,7 +101,7 @@ function renderMarkdown(md: string): string {
 				class="prose-custom text-zinc-400 leading-relaxed text-[0.96rem]"
 			>
 				<!-- eslint-disable-next-line svelte/no-at-html-tags -->
-				{@html renderMarkdown(post.content)}
+				{@html renderMarkdown(post.content, post.imageMeta)}
 			</article>
 
 			<div

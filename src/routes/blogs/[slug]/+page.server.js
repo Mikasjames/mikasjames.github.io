@@ -1,10 +1,10 @@
-import { getPosts, getPostBySlug } from '$lib/firebase/firestore.svelte';
+import { getPrerenderPosts, getPostBySlug } from '$lib/firebase/firestore.svelte';
 import { error } from '@sveltejs/kit';
 
 export const prerender = true;
 
 export async function entries() {
-  const posts = await getPosts();
+  const posts = await getPrerenderPosts();
   return posts.map(post => ({
     slug: post.slug
   }));
@@ -14,7 +14,7 @@ export async function entries() {
 export async function load({ params }) {
   const post = await getPostBySlug(params.slug);
 
-  if (!post) {
+  if (!post || post.status === 'draft') {
     throw error(404, 'Post not found');
   }
 

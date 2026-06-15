@@ -27,6 +27,7 @@ export interface BlogPost {
     coverImage: string | null;
     imageMeta?: Record<string, ImageMeta>;
     createdAt: Date | null;
+    status: 'draft' | 'published' | 'unlisted';
 }
 
 const COLLECTION = 'blogs';
@@ -35,6 +36,16 @@ export async function getPosts(): Promise<BlogPost[]> {
     const q = query(collection(db, COLLECTION), orderBy('createdAt', 'desc'));
     const snapshot = await getDocs(q);
     return snapshot.docs.map((d) => docToPost(d.id, d.data()));
+}
+
+export async function getPublishedPosts(): Promise<BlogPost[]> {
+    const posts = await getPosts();
+    return posts.filter((p) => p.status === 'published');
+}
+
+export async function getPrerenderPosts(): Promise<BlogPost[]> {
+    const posts = await getPosts();
+    return posts.filter((p) => p.status === 'published' || p.status === 'unlisted');
 }
 
 export async function getPostBySlug(slug: string): Promise<BlogPost | null> {
@@ -50,6 +61,7 @@ export async function createPost(data: {
     excerpt: string;
     content: string;
     coverImage: string | null;
+    status: 'draft' | 'published' | 'unlisted';
     imageMeta?: Record<string, ImageMeta>;
 }): Promise<string> {
     const ref = await addDoc(collection(db, COLLECTION), {
@@ -67,6 +79,7 @@ export async function updatePost(
         excerpt: string;
         content: string;
         coverImage: string | null;
+        status: 'draft' | 'published' | 'unlisted';
         imageMeta?: Record<string, ImageMeta>;
     }
 ): Promise<void> {
@@ -88,7 +101,8 @@ function docToPost(id: string, data: DocumentData): BlogPost {
         content: data.content ?? '',
         coverImage: data.coverImage ?? null,
         imageMeta: data.imageMeta ?? {},
-        createdAt: data.createdAt?.toDate?.() ?? null
+        createdAt: data.createdAt?.toDate?.() ?? null,
+        status: data.status ?? 'published'
     };
 }
 
@@ -130,6 +144,75 @@ function docToMediaItem(id: string, data: DocumentData): MediaItem {
         uploadedAt: data.uploadedAt?.toDate?.() ?? null,
         width: data.width ?? undefined,
         height: data.height ?? undefined
+    };
+}
+
+export interface JournalEntry {
+    id: string;
+    title: string;
+    excerpt?: string;
+    content: string;
+    coverImage?: string | null;
+    imageMeta?: Record<string, ImageMeta>;
+    createdAt: Date | null;
+    updatedAt: Date | null;
+}
+
+const JOURNAL_COLLECTION = 'journal';
+
+export async function getJournalEntries(): Promise<JournalEntry[]> {
+    const q = query(collection(db, JOURNAL_COLLECTION), orderBy('createdAt', 'desc'));
+    const snapshot = await getDocs(q);
+    return snapshot.docs.map((d) => docToJournalEntry(d.id, d.data()));
+}
+
+export async function createJournalEntry(data: {
+    title: string;
+    excerpt?: string;
+    content: string;
+    coverImage?: string | null;
+    imageMeta?: Record<string, ImageMeta>;
+}): Promise<string> {
+    const ref = await addDoc(collection(db, JOURNAL_COLLECTION), {
+        ...data,
+        createdAt: serverTimestamp(),
+        updatedAt: serverTimestamp()
+    });
+    return ref.id;
+}
+
+export async function updateJournalEntry(
+    id: string,
+    data: {
+        title: string;
+        excerpt?: string;
+        content: string;
+        coverImage?: string | null;
+        imageMeta?: Record<string, ImageMeta>;
+    }
+): Promise<void> {
+    const entryRef = doc(db, JOURNAL_COLLECTION, id);
+    await updateDoc(entryRef, {
+        ...data,
+        updatedAt: serverTimestamp()
+    });
+}
+
+export async function deleteJournalEntry(id: string): Promise<void> {
+    const entryRef = doc(db, JOURNAL_COLLECTION, id);
+    await deleteDoc(entryRef);
+}
+
+function docToJournalEntry(id: string, data: DocumentData): JournalEntry {
+    return {
+        id,
+        title: data.title ?? '',
+        excerpt: data.excerpt ?? '',
+        content: data.content ?? '',
+        coverImage: data.coverImage ?? null,
+        imageMeta: data.imageMeta ?? {},
+        createdAt: data.createdAt?.toDate?.() ?? null,
+        updatedAt: data.updatedAt?.toDate?.() ?? null
     };
 }
 

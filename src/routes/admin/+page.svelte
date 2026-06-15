@@ -14,6 +14,11 @@
 		type BlogPost,
 		type ImageMeta,
 		type MediaItem,
+		getJournalEntries,
+		createJournalEntry,
+		updateJournalEntry,
+		deleteJournalEntry,
+		type JournalEntry,
 	} from "$lib/firebase/firestore.svelte";
 import {
 	extractImageUrlsFromMarkdown,
@@ -24,8 +29,7 @@ import {
 	resolveMissingImageMeta,
 } from "$lib/utils/imageMeta";
 	import { uploadImage, deleteImage } from "$lib/firebase/storage";
-	import { marked } from "marked";
-	import { transformMediaMarkdown } from "$lib/utils/mediaMarkdown";
+	import { renderMarkdown } from "$lib/utils/renderMarkdown";
 	import type { User } from "firebase/auth";
 
 	let user = $state<User | null>(null);
@@ -45,6 +49,7 @@ import {
 	let slug = $state("");
 	let excerpt = $state("");
 	let content = $state("");
+	let status = $state<'draft' | 'published' | 'unlisted'>('published');
 	let coverImage = $state<string | null>(null);
 	let imageMeta = $state<Record<string, ImageMeta>>({});
 	let slugManuallyEdited = $state(false);
@@ -72,6 +77,60 @@ import {
 	let mediaLoadError = $state("");
 	let deletingMediaIds = $state<Set<string>>(new Set());
 
+	// Journal states
+	let currentSection = $state<'blogs' | 'journal'>('blogs');
+	let journalTitle = $state("");
+	let journalExcerpt = $state("");
+	let journalContent = $state("");
+	let journalCoverImage = $state<string | null>(null);
+	let journalImageMeta = $state<Record<string, ImageMeta>>({});
+	let journalEntries = $state<JournalEntry[]>([]);
+	let journalEntriesLoading = $state(false);
+	let journalEntriesLoadError = $state("");
+	let editingJournalEntryId = $state<string | null>(null);
+	let journalSubmitting = $state(false);
+	let journalSuccessMsg = $state("");
+	let journalFormError = $state("");
+	let journalCoverUploading = $state(false);
+	let journalCoverError = $state("");
+
+	function getEditorContent(): string {
+		return currentSection === "journal" ? journalContent : content;
+	}
+
+	function setEditorContent(value: string) {
+		if (currentSection === "journal") {
+			journalContent = value;
+		} else {
+			content = value;
+		}
+	}
+
+	function getEditorImageMeta(): Record<string, ImageMeta> {
+		return currentSection === "journal" ? journalImageMeta : imageMeta;
+	}
+
+	function setEditorImageMeta(meta: Record<string, ImageMeta>) {
+		if (currentSection === "journal") {
+			journalImageMeta = meta;
+		} else {
+			imageMeta = meta;
+		}
+	}
+
+	function mergeEditorImageMeta(url: string, dims: ImageMeta) {
+		const meta = getEditorImageMeta();
+		setEditorImageMeta({ ...meta, [url]: dims });
+	}
+
+	function setEditorCoverImage(url: string | null) {
+		if (currentSection === "journal") {
+			journalCoverImage = url;
+		} else {
+			coverImage = url;
+		}
+	}
+
 	$effect(() => {
 		if (!slugManuallyEdited && !editingPostId) {
 			slug = title
@@ -97,6 +156,20 @@ import {
 		}
 	}
 
+	async function loadJournalEntries() {
+		journalEntriesLoading = true;
+		journalEntriesLoadError = "";
+		try {
+			journalEntries = await getJournalEntries();
+		} catch (err: unknown) {
+			console.error("Failed to load journal entries:", err);
+			journalEntriesLoadError =
+				err instanceof Error ? err.message : "Failed to load journal entries. Check Firestore rules.";
+		} finally {
+			journalEntriesLoading = false;
+		}
+	}
+
 	onMount(async () => {
 		await new Promise<void>((res) => {
 			const check = setInterval(() => {
@@ -109,6 +182,7 @@ import {
 		if (user) {
 			await loadPosts();
 			await loadMediaItems();
+			await loadJournalEntries();
 		}
 	});
 
@@ -132,6 +206,7 @@ import {
 			excerpt,
 			content,
 			coverImage,
+			status,
 			imageMeta: sanitizedImageMeta,
 		};
 
@@ -153,6 +228,113 @@ import {
 				err instanceof Error ? err.message : "Failed to save post.";
 		} finally {
 			submitting = false;
+		}
+	}
+
+	async function handleJournalCoverUpload(e: Event) {
+		const target = e.target as HTMLInputElement;
+		if (!target.files || target.files.length === 0) return;
+		const file = target.files[0];
+		journalCoverUploading = true;
+		journalCoverError = "";
+		try {
+			const { compressedFile, width, height } = await compressAndGetMeta(file);
+			const url = await uploadImage(compressedFile, "journal-cover-images");
+			journalCoverImage = url;
+			await addMediaItem({ url, name: compressedFile.name, width, height });
+			if (showMediaGallery) {
+				await loadMediaItems();
+			}
+		} catch (err: unknown) {
+			journalCoverError = err instanceof Error ? err.message : "Upload failed.";
+		} finally {
+			journalCoverUploading = false;
+			target.value = "";
+		}
+	}
+
+	// Journal CRUD
+	async function handleJournalSubmit(e: Event) {
+		e.preventDefault();
+		if (!journalContent) {
+			journalFormError = "Content is required.";
+			return;
+		}
+
+		journalSubmitting = true;
+		journalFormError = "";
+		journalSuccessMsg = "";
+		try {
+			const resolvedImageMeta = await resolveMissingImageMeta(journalContent, journalImageMeta);
+			const sanitizedImageMeta = sanitizeImageMetaFromMarkdown(
+				journalContent,
+				resolvedImageMeta,
+			);
+			journalImageMeta = sanitizedImageMeta;
+
+			const payload = {
+				title: journalTitle || "Untitled Entry",
+				excerpt: journalExcerpt,
+				content: journalContent,
+				coverImage: journalCoverImage,
+				imageMeta: sanitizedImageMeta,
+			};
+
+			if (editingJournalEntryId) {
+				await updateJournalEntry(editingJournalEntryId, payload);
+				journalSuccessMsg = "Journal entry updated successfully!";
+			} else {
+				await createJournalEntry(payload);
+				journalSuccessMsg = "Journal entry added successfully!";
+			}
+			resetJournalForm();
+			await loadJournalEntries();
+		} catch (err: unknown) {
+			journalFormError =
+				err instanceof Error ? err.message : "Failed to save journal entry.";
+		} finally {
+			journalSubmitting = false;
+		}
+	}
+
+	function startEditJournal(entry: JournalEntry) {
+		editingJournalEntryId = entry.id;
+		journalTitle = entry.title;
+		journalExcerpt = entry.excerpt || "";
+		journalContent = entry.content;
+		journalCoverImage = entry.coverImage || null;
+		journalImageMeta = sanitizeImageMetaFromMarkdown(
+			entry.content,
+			enrichImageMetaFromGallery(entry.content, entry.imageMeta ?? {}),
+		);
+		journalSuccessMsg = "";
+		journalFormError = "";
+		window.scrollTo({ top: 0, behavior: "smooth" });
+	}
+
+	function resetJournalForm() {
+		editingJournalEntryId = null;
+		journalTitle = "";
+		journalExcerpt = "";
+		journalContent = "";
+		journalCoverImage = null;
+		journalImageMeta = {};
+	}
+
+	async function handleDeleteJournal(entry: JournalEntry) {
+		if (!confirm(`Are you sure you want to delete this journal entry?`)) {
+			return;
+		}
+		try {
+			await deleteJournalEntry(entry.id);
+			if (editingJournalEntryId === entry.id) {
+				resetJournalForm();
+			}
+			await loadJournalEntries();
+		} catch (err: unknown) {
+			alert(
+				err instanceof Error ? err.message : "Failed to delete journal entry.",
+			);
 		}
 	}
 
@@ -185,6 +367,7 @@ import {
 		excerpt = post.excerpt;
 		content = post.content;
 		coverImage = post.coverImage;
+		status = post.status ?? "published";
 		imageMeta = sanitizeImageMetaFromMarkdown(
 			post.content,
 			enrichImageMetaFromGallery(post.content, post.imageMeta ?? {}),
@@ -202,6 +385,7 @@ import {
 		excerpt = "";
 		content = "";
 		coverImage = null;
+		status = "published";
 		imageMeta = {};
 		slugManuallyEdited = false;
 	}
@@ -256,12 +440,9 @@ import {
 			const { compressedFile, width, height } = await compressAndGetMeta(file);
 			const url = await uploadImage(compressedFile, "blog-content");
 			await addMediaItem({ url, name: compressedFile.name, width, height });
-			imageMeta = {
-				...imageMeta,
-				[url]: { width, height },
-			};
+			mergeEditorImageMeta(url, { width, height });
 			await loadMediaItems();
-			insertMarkdownAtCursor(url, file.name.split(".")[0]);
+			await insertMarkdownAtCursor(url, file.name.split(".")[0], { width, height });
 		} catch (err: unknown) {
 			contentUploadError =
 				err instanceof Error ? err.message : "Upload failed.";
@@ -271,20 +452,28 @@ import {
 		}
 	}
 
-	async function insertMarkdownAtCursor(url: string, altText: string) {
+	async function insertMarkdownAtCursor(
+		url: string,
+		altText: string,
+		dims?: { width?: number; height?: number },
+	) {
 		activeTab = "write";
 		await tick();
 		if (!textareaRef) return;
 
+		if (dims?.width && dims?.height) {
+			mergeEditorImageMeta(url, { width: dims.width, height: dims.height });
+		}
+
 		const start = textareaRef.selectionStart;
 		const end = textareaRef.selectionEnd;
-		const text = textareaRef.value;
+		const text = getEditorContent();
 		
 		const before = text.substring(0, start);
 		const after = text.substring(end, text.length);
 		const tag = `![${altText}](${url})`;
 
-		content = before + tag + after;
+		setEditorContent(before + tag + after);
 
 		await tick();
 
@@ -301,11 +490,11 @@ import {
 
 		const start = textareaRef.selectionStart;
 		const end = textareaRef.selectionEnd;
-		const text = textareaRef.value;
+		const text = getEditorContent();
 		const before = text.substring(0, start);
 		const after = text.substring(end, text.length);
 		const tag = `!video[${title}](${url})`;
-		content = before + tag + after;
+		setEditorContent(before + tag + after);
 
 		await tick();
 
@@ -320,11 +509,12 @@ import {
 		if (!url) return;
 		const trimmed = url.trim();
 		const alt = window.prompt("Alt text", "Image")?.trim() || "Image";
+		const meta = getEditorImageMeta();
 
-		if (!imageMeta[trimmed]) {
+		if (!meta[trimmed]) {
 			try {
 				const dims = await getImageDimensionsFromUrl(trimmed);
-				imageMeta = { ...imageMeta, [trimmed]: dims };
+				setEditorImageMeta({ ...meta, [trimmed]: dims });
 			} catch {
 				// Insert without dimensions when probing fails.
 			}
@@ -360,13 +550,13 @@ import {
 		const end = textareaRef.selectionEnd;
 
 		const { newContent, cursorStart, cursorEnd } = computeFormattedSelection(
-			content,
+			getEditorContent(),
 			start,
 			end,
 			action
 		);
 
-		content = newContent;
+		setEditorContent(newContent);
 
 		await tick();
 
@@ -476,7 +666,10 @@ import {
 			await deleteMediaItem(item.id);
 			imageMeta = { ...imageMeta };
 			delete imageMeta[item.url];
+			journalImageMeta = { ...journalImageMeta };
+			delete journalImageMeta[item.url];
 			content = removeImageReferencesFromMarkdown(content, item.url);
+			journalContent = removeImageReferencesFromMarkdown(journalContent, item.url);
 			await loadMediaItems();
 		} catch (err: unknown) {
 			alert(
@@ -486,27 +679,6 @@ import {
 			deletingMediaIds.delete(item.id);
 			deletingMediaIds = new Set(deletingMediaIds);
 		}
-	}
-
-	function renderMarkdown(md: string): string {
-		if (!md) return "";
-
-		const renderer = {
-			image(token: { href: string; title: string | null; text: string }) {
-				const metadata = imageMeta[token.href];
-				const widthAttr = metadata?.width ? ` width="${metadata.width}"` : "";
-				const heightAttr = metadata?.height
-					? ` height="${metadata.height}"`
-					: "";
-				return `<img src="${token.href}" alt="${token.text}" loading="lazy"${widthAttr}${heightAttr} style="max-width: 100%; height: auto;" />`;
-			},
-		};
-
-		marked.use({ renderer });
-		return marked.parse(
-			transformMediaMarkdown(md, { imageMeta }),
-			{ async: false },
-		) as string;
 	}
 
 	function copyToClipboard(text: string) {
@@ -598,6 +770,31 @@ import {
 				</div>
 			</div>
 
+			<!-- Tab switcher -->
+			<div class="flex border-b border-zinc-800/40 gap-6">
+				<button
+					type="button"
+					onclick={() => currentSection = 'blogs'}
+					class="pb-3 text-sm font-semibold tracking-wide transition-all duration-200 relative {currentSection === 'blogs' ? 'text-accent-400' : 'text-zinc-400 hover:text-zinc-200'}"
+				>
+					Blog Posts
+					{#if currentSection === 'blogs'}
+						<span class="absolute bottom-0 left-0 right-0 h-0.5 bg-accent-500 rounded-t-full"></span>
+					{/if}
+				</button>
+				<button
+					type="button"
+					onclick={() => currentSection = 'journal'}
+					class="pb-3 text-sm font-semibold tracking-wide transition-all duration-200 relative {currentSection === 'journal' ? 'text-accent-400' : 'text-zinc-400 hover:text-zinc-200'}"
+				>
+					Personal Journal
+					{#if currentSection === 'journal'}
+						<span class="absolute bottom-0 left-0 right-0 h-0.5 bg-accent-500 rounded-t-full"></span>
+					{/if}
+				</button>
+			</div>
+
+			{#if currentSection === 'blogs'}
 			<section
 				class="bg-surface-900/80 backdrop-blur-md border border-zinc-800/60 rounded-2xl p-6 md:p-8 shadow-2xl shadow-black/40"
 			>
@@ -642,7 +839,7 @@ import {
 					onsubmit={handlePublish}
 					class="space-y-5"
 				>
-					<div class="grid md:grid-cols-2 gap-5">
+					<div class="grid md:grid-cols-3 gap-5">
 						<div class="space-y-1.5">
 							<label
 								for="post-title"
@@ -679,6 +876,23 @@ import {
 								placeholder="my-awesome-post"
 								class="w-full px-3.5 py-2.5 rounded-lg bg-zinc-900 border border-zinc-700/60 text-zinc-100 text-sm placeholder-zinc-600 font-mono focus:outline-none focus:border-accent-500 focus:ring-1 focus:ring-accent-500/30 transition-all duration-200"
 							/>
+						</div>
+
+						<div class="space-y-1.5">
+							<label
+								for="post-status"
+								class="block text-xs font-medium text-zinc-400 tracking-wide uppercase"
+								>Status</label
+							>
+							<select
+								id="post-status"
+								bind:value={status}
+								class="w-full px-3.5 py-2.5 rounded-lg bg-zinc-900 border border-zinc-700/60 text-zinc-100 text-sm focus:outline-none focus:border-accent-500 focus:ring-1 focus:ring-accent-500/30 transition-all duration-200"
+							>
+								<option value="published">Published</option>
+								<option value="unlisted">Unlisted</option>
+								<option value="draft">Draft</option>
+							</select>
 						</div>
 					</div>
 
@@ -933,7 +1147,7 @@ import {
 								>
 									{#if content.trim()}
 										<!-- eslint-disable-next-line svelte/no-at-html-tags -->
-										{@html renderMarkdown(content)}
+										{@html renderMarkdown(content, imageMeta)}
 									{:else}
 										<p
 											class="text-zinc-600 italic text-sm text-center py-10"
@@ -1081,6 +1295,10 @@ import {
 															img.name.split(
 																".",
 															)[0],
+															{
+																width: img.width,
+																height: img.height,
+															},
 														)}
 													class="px-2 py-1 rounded bg-accent-600/10 hover:bg-accent-600/20 text-accent-300 font-medium transition-colors text-[10px] cursor-pointer"
 													title="Insert image into editor content"
@@ -1090,7 +1308,7 @@ import {
 												<button
 													type="button"
 													onclick={() => {
-														coverImage = img.url;
+														setEditorCoverImage(img.url);
 														alert(
 															"Set cover image successfully!",
 														);
@@ -1293,11 +1511,20 @@ import {
 								{/if}
 
 								<div class="flex-1 min-w-0">
-									<p
-										class="text-sm font-medium text-zinc-200 truncate"
-									>
-										{post.title}
-									</p>
+									<div class="flex items-center gap-2">
+										<p
+											class="text-sm font-medium text-zinc-200 truncate"
+										>
+											{post.title}
+										</p>
+										{#if post.status === 'draft'}
+											<span class="px-1.5 py-0.5 rounded bg-zinc-800 text-[10px] font-medium text-zinc-450 border border-zinc-700/50 uppercase tracking-wider font-mono">Draft</span>
+										{:else if post.status === 'unlisted'}
+											<span class="px-1.5 py-0.5 rounded bg-amber-500/10 text-[10px] font-medium text-amber-400 border border-amber-500/20 uppercase tracking-wider font-mono">Unlisted</span>
+										{:else}
+											<span class="px-1.5 py-0.5 rounded bg-emerald-500/10 text-[10px] font-medium text-emerald-400 border border-emerald-500/20 uppercase tracking-wider font-mono">Published</span>
+										{/if}
+									</div>
 									<p
 										class="text-xs text-zinc-650 font-mono mt-0.5 truncate"
 									>
@@ -1338,6 +1565,592 @@ import {
 					</div>
 				{/if}
 			</section>
+			{:else if currentSection === 'journal'}
+			<section
+				class="bg-surface-900/80 backdrop-blur-md border border-zinc-800/60 rounded-2xl p-6 md:p-8 shadow-2xl shadow-black/40"
+			>
+				<h2
+					class="text-lg font-semibold text-zinc-100 mb-6 flex items-center gap-2"
+				>
+					{#if editingJournalEntryId}
+						<svg
+							class="w-4 h-4 text-accent-400"
+							fill="none"
+							stroke="currentColor"
+							viewBox="0 0 24 24"
+						>
+							<path
+								stroke-linecap="round"
+								stroke-linejoin="round"
+								stroke-width="2"
+								d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"
+							/>
+						</svg>
+						Edit Journal Entry
+					{:else}
+						<svg
+							class="w-4 h-4 text-accent-400"
+							fill="none"
+							stroke="currentColor"
+							viewBox="0 0 24 24"
+						>
+							<path
+								stroke-linecap="round"
+								stroke-linejoin="round"
+								stroke-width="2"
+								d="M12 4v16m8-8H4"
+							/>
+						</svg>
+						New Journal Entry
+					{/if}
+				</h2>
+
+				<form
+					onsubmit={handleJournalSubmit}
+					class="space-y-5"
+				>
+					<div class="grid md:grid-cols-2 gap-5">
+						<div class="space-y-1.5">
+							<label
+								for="journal-title"
+								class="block text-xs font-medium text-zinc-400 tracking-wide uppercase"
+								>Title (Optional)</label
+							>
+							<input
+								id="journal-title"
+								type="text"
+								bind:value={journalTitle}
+								placeholder="Untitled Entry"
+								class="w-full px-3.5 py-2.5 rounded-lg bg-zinc-900 border border-zinc-700/60 text-zinc-100 text-sm placeholder-zinc-600 focus:outline-none focus:border-accent-500 focus:ring-1 focus:ring-accent-500/30 transition-all duration-200"
+							/>
+						</div>
+						<div class="space-y-1.5">
+							<label
+								for="journal-excerpt"
+								class="block text-xs font-medium text-zinc-400 tracking-wide uppercase"
+								>Excerpt <span class="normal-case font-normal text-zinc-600">(Optional)</span></label
+							>
+							<input
+								id="journal-excerpt"
+								type="text"
+								bind:value={journalExcerpt}
+								placeholder="A short summary or mood for this entry…"
+								class="w-full px-3.5 py-2.5 rounded-lg bg-zinc-900 border border-zinc-700/60 text-zinc-100 text-sm placeholder-zinc-600 focus:outline-none focus:border-accent-500 focus:ring-1 focus:ring-accent-500/30 transition-all duration-200"
+							/>
+						</div>
+					</div>
+
+					<div class="space-y-3 p-4 rounded-xl bg-zinc-900/40 border border-zinc-800/60">
+						<span class="block text-xs font-semibold text-zinc-400 tracking-wide uppercase">Cover Image</span>
+						<div class="grid md:grid-cols-2 gap-4 items-start">
+							<div class="space-y-2">
+								<label for="journal-cover-image-url" class="block text-xs text-zinc-500">Cover Image URL</label>
+								<input
+									id="journal-cover-image-url"
+									type="text"
+									bind:value={journalCoverImage}
+									placeholder="https://example.com/image.jpg"
+									class="w-full px-3.5 py-2 rounded-lg bg-zinc-900 border border-zinc-700/60 text-zinc-100 text-sm placeholder-zinc-600 focus:outline-none focus:border-accent-500 focus:ring-1 focus:ring-accent-500/30 transition-all duration-200"
+								/>
+								<div class="flex items-center gap-2">
+									<label class="px-3 py-1.5 rounded bg-zinc-800 hover:bg-zinc-750 text-zinc-300 text-xs font-medium cursor-pointer transition-colors border border-zinc-700/50 flex items-center gap-1.5">
+										<svg class="w-3.5 h-3.5 text-accent-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+											<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12" />
+										</svg>
+										Upload File
+										<input type="file" accept="image/*" onchange={handleJournalCoverUpload} class="hidden" />
+									</label>
+									{#if journalCoverUploading}
+										<div class="flex items-center gap-1 text-xs text-zinc-500">
+											<div class="w-3 h-3 border border-zinc-700 border-t-accent-400 rounded-full animate-spin"></div>
+											Uploading...
+										</div>
+									{/if}
+									{#if journalCoverImage}
+										<button type="button" onclick={() => (journalCoverImage = null)} class="px-2 py-1.5 rounded hover:bg-red-500/10 text-red-400 text-xs font-medium transition-colors">Remove Cover</button>
+									{/if}
+								</div>
+								{#if journalCoverError}
+									<p class="text-xs text-red-400 mt-1">{journalCoverError}</p>
+								{/if}
+							</div>
+							<div class="flex items-center justify-center border border-zinc-800/80 rounded-lg bg-zinc-950 p-2 min-h-[100px]">
+								{#if journalCoverImage}
+									<img src={journalCoverImage} alt="Cover Preview" class="max-h-[120px] rounded object-cover aspect-video shadow border border-zinc-800" onerror={(e) => { (e.target as HTMLImageElement).style.display = "none"; }} />
+								{:else}
+									<span class="text-xs text-zinc-600">No cover image preview</span>
+								{/if}
+							</div>
+						</div>
+					</div>
+
+					<div class="space-y-2">
+						<div class="flex items-center justify-between border-b border-zinc-800/80 pb-2">
+							<label for="journal-content" class="block text-xs font-semibold text-zinc-400 tracking-wide uppercase">Content</label>
+							<div class="flex items-center gap-3">
+								<button type="button" onclick={openMediaGallery} class="px-2.5 py-1 text-xs font-medium text-accent-400 hover:text-accent-300 hover:bg-accent-500/10 rounded-md border border-accent-500/20 transition-all duration-150 flex items-center gap-1.5 cursor-pointer">
+									<svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+										<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
+									</svg>
+									Media Gallery
+								</button>
+								<div class="flex text-xs font-medium rounded-lg border border-zinc-800/80 overflow-hidden">
+									<button type="button" onclick={() => (activeTab = "write")} class="px-3 py-1.5 transition-colors {activeTab === 'write' ? 'bg-zinc-800 text-zinc-200' : 'bg-transparent text-zinc-500 hover:text-zinc-300'}">Write</button>
+									<button type="button" onclick={() => (activeTab = "preview")} class="px-3 py-1.5 transition-colors {activeTab === 'preview' ? 'bg-zinc-800 text-zinc-200' : 'bg-transparent text-zinc-500 hover:text-zinc-300'}">Preview</button>
+								</div>
+							</div>
+						</div>
+
+						{#if activeTab === "write"}
+							<div
+								class="flex flex-wrap items-center gap-0.5 px-2 py-1.5 bg-zinc-950 border border-zinc-800 border-b-0 rounded-t-lg"
+								role="toolbar"
+								aria-label="Markdown formatting toolbar"
+							>
+								{@render toolbarButton("Bold (Ctrl+B)", { kind: "wrap", before: "**", after: "**", placeholder: "bold text"}, "M13.5 15.5H10V12.5H13.5C14.33 12.5 15 13.17 15 14C15 14.83 14.33 15.5 13.5 15.5ZM10 6.5H13C13.83 6.5 14.5 7.17 14.5 8C14.5 8.83 13.83 9.5 13 9.5H10V6.5ZM15.6 11.29C16.57 10.61 17.25 9.53 17.25 8.5C17.25 6.26 15.5 4.5 13.25 4.5H7V19.5H14.04C16.13 19.5 17.75 17.8 17.75 15.75C17.75 14.24 16.88 12.96 15.6 11.29Z")}	
+								{@render toolbarButton("Italic", { kind: "wrap", before: "_", after: "_", placeholder: "italic text" }, "M10 4V7H12.21L8.79 15H6V18H14V15H11.79L15.21 7H18V4H10Z")}
+								{@render toolbarButton("Strikethrough", { kind: "wrap", before: "~~", after: "~~", placeholder: "strikethrough text" }, "M6.85 7.08C6.85 4.37 9.45 3 12.24 3C13.64 3 14.89 3.36 15.83 4.07C16.77 4.77 17.28 5.75 17.28 6.96H14.7C14.7 6.43 14.44 5.99 13.92 5.65C13.4 5.31 12.87 5.11 12.23 5.11C11.34 5.11 10.62 5.35 10.09 5.82C9.56 6.29 9.29 6.84 9.29 7.49C9.29 8.04 9.49 8.5 9.91 8.76C10.13 8.9 10.86 9.13 11.31 9.2L12.17 9.33C12.89 9.44 13.49 9.62 14 9.8H17.67C17.91 9.23 18.03 8.62 18.03 8H20.62C20.62 9.66 19.99 11.12 18.88 12.17C18.83 12.22 18.75 12.26 18.7 12.31H22V14H2V12.31H12.23C11.99 12.26 11.73 12.2 11.43 12.14C10.26 11.97 9.38 11.56 8.71 10.95C7.91 10.22 7.44 9.24 7.44 8H9.09C9.09 8.36 9.27 8.71 9.54 8.99C9.85 9.3 10.27 9.5 10.77 9.63C11.12 9.73 11.66 9.84 12.17 9.97V9.5C12.08 9.5 11.98 9.46 11.88 9.44C11.47 9.36 10.78 9.16 10.36 8.91C9.78 8.55 9.49 8.06 9.49 7.49C9.49 6.78 9.77 6.23 10.32 5.84C10.87 5.45 11.56 5.25 12.38 5.25C13.19 5.25 13.84 5.45 14.33 5.84C14.83 6.24 15.07 6.74 15.07 7.33H17.65C17.65 6.09 17.09 5.09 15.98 4.36C14.86 3.63 13.62 3.25 12.24 3.25C10.65 3.25 9.28 3.65 8.17 4.44C7.07 5.24 6.52 6.29 6.52 7.59C6.52 8.56 6.85 9.38 7.52 10.05C7.68 10.21 7.85 10.35 8.04 10.48H6.85V7.08ZM14.7 17H12.1C11.08 17 10.27 16.74 9.69 16.21C9.11 15.68 8.83 14.98 8.83 14.12V14.09H6.22V14.12C6.22 15.47 6.79 16.58 7.94 17.44C9.09 18.3 10.51 18.75 12.24 18.75C13.82 18.75 15.1 18.38 16.1 17.63C17.1 16.88 17.59 15.9 17.59 14.67C17.59 14.21 17.52 13.78 17.38 13.38H14.7V17Z")}
+								<div class="w-px h-4 bg-zinc-800 mx-1"></div>
+								{@render toolbarButton("Inline Code", { kind: "wrap", before: "`", after: "`", placeholder: "code" }, "M9.4 16.6L4.8 12L9.4 7.4L8 6L2 12L8 18L9.4 16.6ZM14.6 16.6L19.2 12L14.6 7.4L16 6L22 12L16 18L14.6 16.6Z")}
+								{@render toolbarButton("Code Block", { kind: "block", before: "```\n", after: "\n```", placeholder: "code here"}, "", "```")}
+								<div class="w-px h-4 bg-zinc-800 mx-1"></div>
+								{@render toolbarButton("Heading 1", { kind: "prefix", prefix: "# ", placeholder: "Heading 1" }, "", "H1")}
+								{@render toolbarButton("Heading 2", { kind: "prefix", prefix: "## ", placeholder: "Heading 2" }, "", "H2")}
+								{@render toolbarButton("Heading 3", { kind: "prefix", prefix: "### ", placeholder: "Heading 3" }, "", "H3")}
+								<div class="w-px h-4 bg-zinc-800 mx-1"></div>
+								{@render toolbarButton("Blockquote", { kind: "prefix", prefix: "> ", placeholder: "quoted text" }, "M6 17h3l2-4V7H5v6h3zm8 0h3l2-4V7h-6v6h3z")}
+								{@render toolbarButton("Unordered List", { kind: "prefix", prefix: "- ", placeholder: "list item" }, "M4 10.5c-.83 0-1.5.67-1.5 1.5s.67 1.5 1.5 1.5 1.5-.67 1.5-1.5-.67-1.5-1.5-1.5zm0-6c-.83 0-1.5.67-1.5 1.5S3.17 7.5 4 7.5 5.5 6.83 5.5 6 4.83 4.5 4 4.5zm0 12c-.83 0-1.5.68-1.5 1.5s.68 1.5 1.5 1.5 1.5-.68 1.5-1.5-.67-1.5-1.5-1.5zM7 19h14v-2H7v2zm0-6h14v-2H7v2zm0-8v2h14V5H7zm0 14h14v-2H7v2zm0-6h14v-2H7v2z")}
+								{@render toolbarButton("Ordered List", { kind: "prefix", prefix: "1. ", placeholder: "list item" }, "M2 17h2v.5H3v1h1v.5H2v1h3v-4H2v1zm1-9h1V4H2v1h1v3zm-1 3h1.8L2 13.1v.9h3v-1H3.2L5 10.9V10H2v1zm5-6v2h14V5H7zm0 14h14v-2H7v2zm0-6h14v-2H7v2z")}
+								<div class="w-px h-4 bg-zinc-800 mx-1"></div>
+								{@render toolbarButton("Link", { kind: "wrap", before: "[", after: "](url)", placeholder: "link text" }, "M3.9 12c0-1.71 1.39-3.1 3.1-3.1h4V7H7c-2.76 0-5 2.24-5 5s2.24 5 5 5h4v-1.9H7c-1.71 0-3.1-1.39-3.1-3.1zM8 13h8v-2H8v2zm9-6h-4v1.9h4c1.71 0 3.1 1.39 3.1 3.1s-1.39 3.1-3.1 3.1h-4V17h4c2.76 0 5-2.24 5-5s-2.24-5-5-5z")}
+								<button
+									type="button"
+									title="Image"
+									onmousedown={(e) => e.preventDefault()} 
+									onclick={promptInsertImage}
+									class="p-1.5 rounded hover:bg-zinc-800 text-zinc-400 hover:text-zinc-100 transition-colors cursor-pointer"
+								>
+									<svg
+										class="w-3.5 h-3.5"
+										viewBox="0 0 24 24"
+										fill="currentColor"
+									>
+										<path d="M21 19V5a2 2 0 0 0-2-2H5a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2Zm-2 0H5V5h14v14Z" />
+										<path d="M8 14h2l1.5 2 2-3 2.5 3H18V8l-3.5 3-2-2L8 14Z" />
+									</svg>
+								</button>
+
+								<button
+									type="button"
+									title="Video"
+									onmousedown={(e) => e.preventDefault()} 
+									onclick={promptInsertVideo}
+									class="p-1.5 rounded hover:bg-zinc-800 text-zinc-400 hover:text-zinc-100 transition-colors cursor-pointer"
+								>
+									<svg
+										class="w-3.5 h-3.5"
+										viewBox="0 0 24 24"
+										fill="currentColor"
+									>
+										<path d="M10 8.64L15.27 12 10 15.36V8.64ZM4 6h16a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2Z" />
+									</svg>
+								</button>
+
+							{@render toolbarButton("Horizontal Rule", { kind: "block", before: "\n\n---\n\n", after: "", placeholder: "" }, "M19 13H5v-2h14v2z")}	
+							<label class="p-1.5 rounded hover:bg-zinc-800 text-zinc-400 hover:text-zinc-100 transition-colors cursor-pointer flex items-center justify-center min-w-[28px] h-[28px]" title="Upload Image to Content">
+								<svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+									<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12" />
+								</svg>
+								<input type="file" accept="image/*" onchange={handleContentUpload} class="hidden" />
+							</label>
+							{#if contentUploading}
+								<div class="flex items-center gap-1 px-1.5 text-xs text-zinc-500 self-center">
+									<div class="w-3 h-3 border border-zinc-700 border-t-accent-400 rounded-full animate-spin"></div>
+									Uploading...
+								</div>
+							{/if}
+							</div>
+
+							<textarea
+								id="journal-content"
+								bind:this={textareaRef}
+								bind:value={journalContent}
+								onkeydown={handleKeyDown}
+								required
+								rows="16"
+								placeholder="What's on your mind today? Markdown is supported."
+								class="w-full px-3.5 py-2.5 rounded-b-lg rounded-t-none bg-zinc-900 border border-zinc-700/60 border-t-zinc-800 text-zinc-100 text-sm placeholder-zinc-650 font-mono leading-relaxed resize-y focus:outline-none focus:border-accent-500 focus:ring-1 focus:ring-accent-500/30 transition-all duration-200"
+							></textarea>
+							{#if contentUploadError}
+								<p class="text-xs text-red-400">{contentUploadError}</p>
+							{/if}
+						{:else}
+							<div class="min-h-[300px] px-4 py-3 rounded-lg bg-zinc-900/40 border border-zinc-800/60 prose-custom text-zinc-400 text-sm leading-relaxed">
+								{#if journalContent}
+									<!-- eslint-disable-next-line svelte/no-at-html-tags -->
+									{@html renderMarkdown(journalContent, journalImageMeta)}
+								{:else}
+									<p class="text-zinc-600 italic text-sm">Nothing to preview yet…</p>
+								{/if}
+							</div>
+						{/if}
+					</div>
+
+					<div
+						class="space-y-3 p-4 rounded-xl bg-zinc-900/40 border border-zinc-800/60"
+					>
+						<div
+							class="flex justify-between items-center flex-wrap gap-2"
+						>
+							<div>
+								<span
+									class="block text-xs font-semibold text-zinc-400 tracking-wide uppercase"
+									>Content Images Helper</span
+								>
+								<p class="text-[10px] text-zinc-550 mt-0.5">
+									Upload new assets or reuse existing gallery
+									images.
+								</p>
+							</div>
+							<div class="flex items-center gap-2">
+								<button
+									type="button"
+									onclick={openMediaGallery}
+									class="px-2.5 py-1.5 rounded bg-zinc-800 hover:bg-zinc-700 text-zinc-300 text-xs font-medium border border-zinc-700/50 transition-colors cursor-pointer"
+								>
+									Manage Gallery
+								</button>
+								<label
+									class="px-2.5 py-1.5 rounded bg-accent-600/20 hover:bg-accent-600/30 text-accent-300 text-xs font-medium cursor-pointer transition-colors border border-accent-500/20 flex items-center gap-1.5"
+								>
+									<svg
+										class="w-3.5 h-3.5 text-accent-400"
+										fill="none"
+										stroke="currentColor"
+										viewBox="0 0 24 24"
+									>
+										<path
+											stroke-linecap="round"
+											stroke-linejoin="round"
+											stroke-width="2"
+											d="M12 4v16m8-8H4"
+										/>
+									</svg>
+									Upload New Image
+									<input
+										type="file"
+										accept="image/*"
+										onchange={handleContentUpload}
+										class="hidden"
+									/>
+								</label>
+							</div>
+						</div>
+
+						{#if contentUploading}
+							<div
+								class="flex items-center gap-1.5 text-xs text-zinc-500"
+							>
+								<div
+									class="w-3.5 h-3.5 border-2 border-zinc-700 border-t-accent-500 rounded-full animate-spin"
+								></div>
+								Uploading and indexing asset...
+							</div>
+						{/if}
+
+						{#if contentUploadError}
+							<p class="text-xs text-red-400">
+								{contentUploadError}
+							</p>
+						{/if}
+
+						{#if mediaLoadError}
+							<div
+								class="p-3 rounded-lg bg-red-950/20 border border-red-900/30 text-red-400 text-xs space-y-1"
+							>
+								<p class="font-semibold">
+									Gallery Load Failed:
+								</p>
+								<p class="text-zinc-405 leading-normal">
+									{mediaLoadError}
+								</p>
+							</div>
+						{/if}
+
+						{#if mediaItems.length > 0}
+							<div class="space-y-2 mt-2">
+								<p
+									class="text-[10px] font-mono text-zinc-500 uppercase tracking-wider"
+								>
+									Recent Gallery Images
+								</p>
+								<div
+									class="grid grid-cols-1 sm:grid-cols-2 gap-2 max-h-[220px] overflow-y-auto pr-1"
+								>
+									{#each mediaItems.slice(0, 4) as img (img.id)}
+										<div
+											class="flex items-center justify-between gap-3 p-2 rounded bg-zinc-950 border border-zinc-850 text-xs hover:border-zinc-800 transition-colors"
+										>
+											<div
+												class="flex items-center gap-2 min-w-0"
+											>
+												<img
+													src={img.url}
+													alt=""
+													class="w-8 h-8 object-cover rounded bg-zinc-900 border border-zinc-800 shrink-0"
+												/>
+												<span
+													class="text-zinc-300 truncate font-mono text-[11px]"
+													title={img.name}
+													>{img.name}</span
+												>
+											</div>
+											<div
+												class="flex items-center gap-1 shrink-0"
+											>
+												<button
+													type="button"
+													onclick={() =>
+														insertMarkdownAtCursor(
+															img.url,
+															img.name.split(
+																".",
+															)[0],
+															{
+																width: img.width,
+																height: img.height,
+															},
+														)}
+													class="px-2 py-1 rounded bg-accent-600/10 hover:bg-accent-600/20 text-accent-300 font-medium transition-colors text-[10px] cursor-pointer"
+													title="Insert image into editor content"
+												>
+													Insert
+												</button>
+												<button
+													type="button"
+													onclick={() => {
+														setEditorCoverImage(img.url);
+														alert(
+															"Set cover image successfully!",
+														);
+													}}
+													class="px-2 py-1 rounded bg-zinc-800 hover:bg-zinc-700 text-zinc-300 font-medium transition-colors text-[10px] cursor-pointer"
+												>
+													Cover
+												</button>
+											</div>
+										</div>
+									{/each}
+								</div>
+							</div>
+						{:else}
+							<p class="text-xs text-zinc-650 py-2">
+								No images found in your media gallery. Upload
+								one to get started!
+							</p>
+						{/if}
+					</div>
+
+					{#if journalFormError}
+						<div
+							class="flex items-center gap-2 px-3.5 py-2.5 rounded-lg bg-red-500/10 border border-red-500/20 text-red-400 text-sm"
+						>
+							<svg
+								class="w-4 h-4 shrink-0"
+								fill="none"
+								stroke="currentColor"
+								viewBox="0 0 24 24"
+							>
+								<path
+									stroke-linecap="round"
+									stroke-linejoin="round"
+									stroke-width="2"
+									d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
+								/>
+							</svg>
+							{journalFormError}
+						</div>
+					{/if}
+
+					{#if journalSuccessMsg}
+						<div
+							class="flex items-center gap-2 px-3.5 py-2.5 rounded-lg bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 text-sm"
+						>
+							<svg
+								class="w-4 h-4 shrink-0"
+								fill="none"
+								stroke="currentColor"
+								viewBox="0 0 24 24"
+							>
+								<path
+									stroke-linecap="round"
+									stroke-linejoin="round"
+									stroke-width="2"
+									d="M5 13l4 4L19 7"
+								/>
+							</svg>
+							{journalSuccessMsg}
+						</div>
+					{/if}
+
+					<div class="flex justify-end gap-3">
+						{#if editingJournalEntryId}
+							<button
+								type="button"
+								onclick={resetJournalForm}
+								class="px-6 py-2.5 rounded-lg border border-zinc-700/60 text-zinc-300 hover:text-zinc-100 hover:border-zinc-500 text-sm font-semibold transition-all duration-200"
+							>
+								Cancel Edit
+							</button>
+						{/if}
+
+						<button
+							type="submit"
+							disabled={journalSubmitting}
+							class="px-6 py-2.5 rounded-lg bg-accent-600 hover:bg-accent-500 disabled:opacity-50 disabled:cursor-not-allowed text-white text-sm font-semibold transition-all duration-200 flex items-center gap-2 shadow-lg shadow-accent-600/20"
+						>
+							{#if journalSubmitting}
+								<div
+									class="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin"
+								></div>
+								Saving…
+							{:else}
+								<svg
+									class="w-4 h-4"
+									fill="none"
+									stroke="currentColor"
+									viewBox="0 0 24 24"
+								>
+									{#if editingJournalEntryId}
+										<path
+											stroke-linecap="round"
+											stroke-linejoin="round"
+											stroke-width="2"
+											d="M8 7H5a2 2 0 00-2 2v9a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-3m-1 4l-3 3m0 0l-3-3m3 3V4"
+										/>
+									{:else}
+										<path
+											stroke-linecap="round"
+											stroke-linejoin="round"
+											stroke-width="2"
+											d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12"
+										/>
+									{/if}
+								</svg>
+								{#if editingJournalEntryId}Save Changes{:else}Save Entry{/if}
+							{/if}
+						</button>
+					</div>
+				</form>
+			</section>
+
+			<section
+				class="bg-surface-900/80 backdrop-blur-md border border-zinc-800/60 rounded-2xl p-6 md:p-8 shadow-2xl shadow-black/40"
+			>
+				<h2
+					class="text-lg font-semibold text-zinc-100 mb-6 flex items-center gap-2"
+				>
+					<svg
+						class="w-4 h-4 text-accent-400"
+						fill="none"
+						stroke="currentColor"
+						viewBox="0 0 24 24"
+					>
+						<path
+							stroke-linecap="round"
+							stroke-linejoin="round"
+							stroke-width="2"
+							d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253"
+						/>
+					</svg>
+					Journal Entries
+					{#if !journalEntriesLoading}
+						<span class="ml-auto text-xs font-normal text-zinc-500"
+							>{journalEntries.length} total</span
+						>
+					{/if}
+				</h2>
+
+				{#if journalEntriesLoading}
+					<div
+						class="flex items-center justify-center py-10 gap-3 text-zinc-500 text-sm"
+					>
+						<div
+							class="w-4 h-4 border-2 border-zinc-700 border-t-zinc-400 rounded-full animate-spin"
+						></div>
+						Loading journal entries…
+					</div>
+				{:else if journalEntriesLoadError}
+					<div
+						class="p-4 rounded-lg bg-red-950/20 border border-red-900/30 text-red-400 text-xs space-y-1"
+					>
+						<p class="font-semibold">
+							Journal Load Failed:
+						</p>
+						<p class="text-zinc-405 leading-normal">
+							{journalEntriesLoadError}
+						</p>
+						<p
+							class="text-[10px] text-zinc-500 leading-normal pt-1"
+						>
+							Please ensure your Firestore Security Rules
+							permit authenticated read access to the <code
+								class="bg-zinc-900 px-1 py-0.5 rounded text-red-300"
+								>journal</code
+							>
+							collection for your Owner UID.
+						</p>
+					</div>
+				{:else if journalEntries.length === 0}
+					<p class="text-center py-10 text-zinc-650 text-sm">
+						No journal entries found. Write your first entry above!
+					</p>
+				{:else}
+					<div class="space-y-2">
+						{#each journalEntries as entry (entry.id)}
+							<div
+								class="flex items-center gap-4 px-4 py-3 rounded-lg bg-zinc-900/60 border border-zinc-800/40 hover:border-zinc-700/60 transition-all duration-200 group"
+							>
+								<div class="flex-1 min-w-0">
+									<p
+										class="text-sm font-medium text-zinc-200 truncate"
+									>
+										{entry.title || "Untitled Entry"}
+									</p>
+									<p
+										class="text-xs text-zinc-500 font-mono mt-0.5 truncate"
+									>
+										{entry.excerpt || entry.content.substring(0, 80)}{!entry.excerpt && entry.content.length > 80 ? '...' : ''}
+									</p>
+								</div>
+								<span class="text-xs text-zinc-600 shrink-0"
+									>{formatDate(entry.createdAt)}</span
+								>
+
+								<div
+									class="flex items-center gap-3 opacity-0 group-hover:opacity-100 transition-opacity duration-200 shrink-0"
+								>
+									<button
+										type="button"
+										onclick={() => startEditJournal(entry)}
+										class="text-xs text-accent-400 hover:text-accent-300 transition-colors font-medium cursor-pointer"
+									>
+										Edit
+									</button>
+									<button
+										type="button"
+										onclick={() => handleDeleteJournal(entry)}
+										class="text-xs text-red-400 hover:text-red-300 transition-colors font-medium cursor-pointer"
+									>
+										Delete
+									</button>
+								</div>
+							</div>
+						{/each}
+					</div>
+				{/if}
+			</section>
+			{/if}
 		</div>
 	</div>
 
@@ -1540,6 +2353,10 @@ import {
 													insertMarkdownAtCursor(
 														item.url,
 														item.name.split(".")[0],
+														{
+															width: item.width,
+															height: item.height,
+														},
 													)}
 												class="w-full py-1 px-2 rounded bg-accent-600 hover:bg-accent-500 text-white text-[11px] font-semibold transition-colors flex items-center justify-center gap-1 cursor-pointer"
 											>
@@ -1561,7 +2378,7 @@ import {
 											<button
 												type="button"
 												onclick={() => {
-													coverImage = item.url;
+													setEditorCoverImage(item.url);
 													alert(
 														"Set cover image successfully!",
 													);
