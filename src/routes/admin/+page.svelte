@@ -33,7 +33,6 @@
 		resolveMissingImageMeta,
 	} from "$lib/utils/imageMeta";
 	import { uploadImage, deleteImage } from "$lib/firebase/storage";
-	import { renderMarkdown } from "$lib/utils/renderMarkdown";
 	import type { User } from "firebase/auth";
 	import MediaGalleryDialog from "$lib/components/MediaGalleryDialog.svelte";
 	import ContentImagesHelper from "$lib/components/ContentImagesHelper.svelte";
@@ -42,17 +41,18 @@
 	let user = $state<User | null>(null);
 	let authReady = $state(false);
 
+	$effect(() => {
 	const unsub = subscribeToAuth((u) => {
 		user = u;
 		authReady = true;
 		if (!u) goto("/admin/login/");
 	});
-	onDestroy(unsub);
+		return unsub;
+	});
 
 	let posts = $state<BlogPost[]>([]);
 	let postsLoading = $state(false);
 
-	// Unified Blog Form State
 	let blogForm = $state({
 		id: null as string | null,
 		title: "",
@@ -70,7 +70,6 @@
 		coverError: "",
 	});
 
-	// Unified Journal Form State
 	let journalForm = $state({
 		id: null as string | null,
 		title: "",
@@ -571,114 +570,6 @@
 			textareaRef.focus();
 			textareaRef.selectionStart = textareaRef.selectionEnd =
 				start + tag.length;
-		}
-	}
-
-	async function promptInsertImage() {
-		const url = window.prompt("Image URL");
-		if (!url) return;
-		const trimmed = url.trim();
-		const alt = window.prompt("Alt text", "Image")?.trim() || "Image";
-		const meta = getEditorImageMeta();
-
-		if (!meta[trimmed]) {
-			try {
-				const dims = await getImageDimensionsFromUrl(trimmed);
-				setEditorImageMeta({ ...meta, [trimmed]: dims });
-			} catch {
-				// Insert without dimensions when probing fails.
-			}
-		}
-
-		await insertMarkdownAtCursor(trimmed, alt);
-	}
-
-	async function promptInsertVideo() {
-		const url = window.prompt(
-			"Video URL (YouTube, Vimeo, or direct .mp4/.webm/.ogg)",
-		);
-		if (!url) return;
-		const title =
-			window
-				.prompt(
-					"Video title",
-					textareaRef
-						? textareaRef.value.substring(
-								textareaRef.selectionStart,
-								textareaRef.selectionEnd,
-							)
-						: "Video",
-				)
-				?.trim() || "Video";
-		await insertVideoEmbedAtCursor(url.trim(), title);
-	}
-
-	async function applyFormat(action: FormatAction) {
-		activeTab = "write";
-		await tick();
-		if (!textareaRef) return;
-
-		const start = textareaRef.selectionStart;
-		const end = textareaRef.selectionEnd;
-
-		const { newContent, cursorStart, cursorEnd } =
-			computeFormattedSelection(getEditorContent(), start, end, action);
-
-		setEditorContent(newContent);
-
-		await tick();
-
-		if (textareaRef) {
-			textareaRef.focus();
-			textareaRef.selectionStart = cursorStart;
-			textareaRef.selectionEnd = cursorEnd;
-		}
-	}
-
-	async function handleKeyDown(e: KeyboardEvent) {
-		const isModifier = e.ctrlKey || e.metaKey;
-
-		if (!isModifier) return;
-
-		switch (e.key.toLowerCase()) {
-			case "b":
-				e.preventDefault();
-				await applyFormat({
-					kind: "wrap",
-					before: "**",
-					after: "**",
-					placeholder: "bold text",
-				});
-				break;
-
-			case "i":
-				e.preventDefault();
-				await applyFormat({
-					kind: "wrap",
-					before: "_",
-					after: "_",
-					placeholder: "italic text",
-				});
-				break;
-
-			case "k":
-				e.preventDefault();
-				await applyFormat({
-					kind: "wrap",
-					before: "[",
-					after: "](url)",
-					placeholder: "link text",
-				});
-				break;
-
-			case "q":
-				e.preventDefault();
-				await applyFormat({
-					kind: "prefix",
-					prefix: "> ",
-					placeholder: "quoted text",
-				});
-				break;
 		}
 	}
 
