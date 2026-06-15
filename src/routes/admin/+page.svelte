@@ -1,10 +1,6 @@
 <script lang="ts">
-	import { onMount, onDestroy, tick } from "svelte";
+	import { onMount, tick } from "svelte";
 	import { goto } from "$app/navigation";
-	import {
-		computeFormattedSelection,
-		type FormatAction,
-	} from "$lib/utils/markdownEditor";
 	import CoverImage from "$lib/components/CoverImage.svelte";
 	import { subscribeToAuth, logout } from "$lib/firebase/auth";
 	import {
@@ -29,7 +25,6 @@
 		sanitizeImageMetaFromMarkdown,
 		removeImageReferencesFromMarkdown,
 		compressAndGetMeta,
-		getImageDimensionsFromUrl,
 		resolveMissingImageMeta,
 	} from "$lib/utils/imageMeta";
 	import { uploadImage, deleteImage } from "$lib/firebase/storage";
@@ -42,11 +37,11 @@
 	let authReady = $state(false);
 
 	$effect(() => {
-	const unsub = subscribeToAuth((u) => {
-		user = u;
-		authReady = true;
-		if (!u) goto("/admin/login/");
-	});
+		const unsub = subscribeToAuth((u) => {
+			user = u;
+			authReady = true;
+			if (!u) goto("/admin/login/");
+		});
 		return unsub;
 	});
 
@@ -539,30 +534,14 @@
 		const before = text.substring(0, start);
 		const after = text.substring(end, text.length);
 		const tag = `![${altText}](${url})`;
+		const newValue = before + tag + after;
 
-		setEditorContent(before + tag + after);
+		textareaRef.value = newValue;
+		setEditorContent(newValue);
 
-		await tick();
-
-		if (textareaRef) {
-			textareaRef.focus();
-			textareaRef.selectionStart = textareaRef.selectionEnd =
-				start + tag.length;
-		}
-	}
-
-	async function insertVideoEmbedAtCursor(url: string, title: string) {
-		activeTab = "write";
-		await tick();
-		if (!textareaRef) return;
-
-		const start = textareaRef.selectionStart;
-		const end = textareaRef.selectionEnd;
-		const text = getEditorContent();
-		const before = text.substring(0, start);
-		const after = text.substring(end, text.length);
-		const tag = `!video[${title}](${url})`;
-		setEditorContent(before + tag + after);
+		textareaRef.focus();
+		textareaRef.selectionStart = textareaRef.selectionEnd =
+			start + tag.length;
 
 		await tick();
 
@@ -888,8 +867,8 @@
 								bind:imageMeta={blogForm.imageMeta}
 								bind:textareaRef
 								bind:activeTab
+								bind:showMediaGallery
 								placeholderText="Write your post content here…&#10;&#10;## Heading&#10;&#10;Markdown is supported."
-								{openMediaGallery}
 							/>
 						</div>
 
@@ -1225,8 +1204,8 @@
 								bind:imageMeta={journalForm.imageMeta}
 								bind:textareaRef
 								bind:activeTab
+								bind:showMediaGallery
 								placeholderText="What's on your mind today? Markdown is supported."
-								{openMediaGallery}
 							/>
 						</div>
 

@@ -17,7 +17,7 @@
         activeTab = $bindable<"write" | "preview">("write"),
         id,
         placeholderText = "Write content here… Markdown is supported.",
-        openMediaGallery,
+        showMediaGallery = $bindable<boolean>(false),
     } = $props<{
         content: string;
         imageMeta: Record<string, ImageMeta>;
@@ -25,7 +25,7 @@
         activeTab?: "write" | "preview";
         id: string;
         placeholderText?: string;
-        openMediaGallery: () => void;
+        showMediaGallery?: boolean;
     }>();
 
     async function applyFormat(action: FormatAction) {
@@ -216,7 +216,8 @@
         <div class="flex items-center gap-3">
             <button
                 type="button"
-                onclick={openMediaGallery}
+                onmousedown={(e) => e.preventDefault()}
+                onclick={() => (showMediaGallery = true)}
                 class="px-2.5 py-1 text-xs font-medium text-accent-400 hover:text-accent-300 hover:bg-accent-500/10 rounded-md border border-accent-500/20 transition-all duration-150 flex items-center gap-1.5 cursor-pointer"
             >
                 <svg

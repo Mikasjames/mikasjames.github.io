@@ -207,6 +207,8 @@
                                     <div class="flex flex-col gap-1.5">
                                         <button
                                             type="button"
+                                            onmousedown={(e) =>
+                                                e.preventDefault()}
                                             onclick={() =>
                                                 insertMarkdownAtCursor(
                                                     item.url,

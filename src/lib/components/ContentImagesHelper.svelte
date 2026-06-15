@@ -40,6 +40,7 @@
         <div class="flex items-center gap-2">
             <button
                 type="button"
+                onmousedown={(e) => e.preventDefault()}
                 onclick={() => (showMediaGallery = true)}
                 class="px-2.5 py-1.5 rounded bg-zinc-800 hover:bg-zinc-700 text-zinc-300 text-xs font-medium border border-zinc-700/50 transition-colors cursor-pointer"
             >
@@ -126,6 +127,7 @@
                         <div class="flex items-center gap-1 shrink-0">
                             <button
                                 type="button"
+                                onmousedown={(e) => e.preventDefault()}
                                 onclick={() =>
                                     insertMarkdownAtCursor(
                                         img.url,
