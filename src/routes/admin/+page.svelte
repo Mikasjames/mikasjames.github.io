@@ -101,6 +101,65 @@
 	let journalEntriesLoading = $state(false);
 	let journalEntriesLoadError = $state("");
 
+	let blogSearch = $state("");
+	let blogStatusFilter = $state<"all" | "published" | "unlisted" | "draft">(
+		"all",
+	);
+	let blogSort = $state<"newest" | "oldest">("newest");
+
+	let journalSearch = $state("");
+	let journalSort = $state<"newest" | "oldest">("newest");
+
+	let filteredPosts = $derived.by(() => {
+		let result = posts;
+		if (blogSearch.trim()) {
+			const q = blogSearch.toLowerCase();
+			const primaryMatches = result.filter(
+				(p) =>
+					p.title.toLowerCase().includes(q) ||
+					p.slug.toLowerCase().includes(q) ||
+					p.excerpt.toLowerCase().includes(q),
+			);
+			result =
+				primaryMatches.length > 0
+					? primaryMatches
+					: result.filter((p) => p.content.toLowerCase().includes(q));
+		}
+		if (blogStatusFilter !== "all") {
+			result = result.filter((p) => p.status === blogStatusFilter);
+		}
+		return blogSort === "oldest"
+			? [...result].sort(
+					(a, b) =>
+						(a.createdAt?.getTime() ?? 0) -
+						(b.createdAt?.getTime() ?? 0),
+				)
+			: result;
+	});
+
+	let filteredJournals = $derived.by(() => {
+		let result = journalEntries;
+		if (journalSearch.trim()) {
+			const q = journalSearch.toLowerCase();
+			const primaryMatches = result.filter(
+				(e) =>
+					e.title.toLowerCase().includes(q) ||
+					(e.excerpt ?? "").toLowerCase().includes(q),
+			);
+			result =
+				primaryMatches.length > 0
+					? primaryMatches
+					: result.filter((e) => e.content.toLowerCase().includes(q));
+		}
+		return journalSort === "oldest"
+			? [...result].sort(
+					(a, b) =>
+						(a.createdAt?.getTime() ?? 0) -
+						(b.createdAt?.getTime() ?? 0),
+				)
+			: result;
+	});
+
 	function getEditorContent(): string {
 		return currentSection === "journal"
 			? journalForm.content
@@ -1002,30 +1061,52 @@
 				<section
 					class="bg-surface-900/80 backdrop-blur-md border border-zinc-800/60 rounded-2xl p-6 md:p-8 shadow-2xl shadow-black/40"
 				>
-					<h2
-						class="text-lg font-semibold text-zinc-100 mb-6 flex items-center gap-2"
-					>
-						<svg
-							class="w-4 h-4 text-accent-400"
-							fill="none"
-							stroke="currentColor"
-							viewBox="0 0 24 24"
-						>
-							<path
-								stroke-linecap="round"
-								stroke-linejoin="round"
-								stroke-width="2"
-								d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"
-							/>
-						</svg>
-						Published Posts
-						{#if !postsLoading}
-							<span
-								class="ml-auto text-xs font-normal text-zinc-500"
-								>{posts.length} total</span
+					<div class="flex flex-wrap gap-3 mb-5">
+						<div class="relative flex-1 min-w-[180px]">
+							<svg
+								class="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-zinc-500"
+								fill="none"
+								stroke="currentColor"
+								viewBox="0 0 24 24"
 							>
-						{/if}
-					</h2>
+								<path
+									stroke-linecap="round"
+									stroke-linejoin="round"
+									stroke-width="2"
+									d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"
+								/>
+							</svg>
+							<input
+								type="text"
+								bind:value={blogSearch}
+								placeholder="Search posts…"
+								class="w-full pl-9 pr-3.5 py-2 rounded-lg bg-zinc-900 border border-zinc-700/60 text-zinc-100 text-sm placeholder-zinc-600 focus:outline-none focus:border-accent-500 focus:ring-1 focus:ring-accent-500/30 transition-all"
+							/>
+						</div>
+						<select
+							bind:value={blogStatusFilter}
+							class="px-3 py-2 rounded-lg bg-zinc-900 border border-zinc-700/60 text-zinc-300 text-sm focus:outline-none focus:border-accent-500 transition-all"
+						>
+							<option value="all">All statuses</option>
+							<option value="published">Published</option>
+							<option value="unlisted">Unlisted</option>
+							<option value="draft">Draft</option>
+						</select>
+						<select
+							bind:value={blogSort}
+							class="px-3 py-2 rounded-lg bg-zinc-900 border border-zinc-700/60 text-zinc-300 text-sm focus:outline-none focus:border-accent-500 transition-all"
+						>
+							<option value="newest">Newest first</option>
+							<option value="oldest">Oldest first</option>
+						</select>
+					</div>
+
+					<!-- Result count -->
+					{#if blogSearch || blogStatusFilter !== "all"}
+						<p class="text-xs text-zinc-500 mb-3">
+							{filteredPosts.length} of {posts.length} posts
+						</p>
+					{/if}
 
 					{#if postsLoading}
 						<div
@@ -1036,13 +1117,13 @@
 							></div>
 							Loading posts…
 						</div>
-					{:else if posts.length === 0}
+					{:else if filteredPosts.length === 0}
 						<p class="text-center py-10 text-zinc-600 text-sm">
 							No posts yet. Publish your first one above!
 						</p>
 					{:else}
 						<div class="space-y-2">
-							{#each posts as post (post.id)}
+							{#each filteredPosts as post (post.id)}
 								<div
 									class="flex items-center gap-4 px-4 py-3 rounded-lg bg-zinc-900/60 border border-zinc-800/40 hover:border-zinc-700/60 transition-all duration-200 group"
 								>
@@ -1338,30 +1419,43 @@
 				<section
 					class="bg-surface-900/80 backdrop-blur-md border border-zinc-800/60 rounded-2xl p-6 md:p-8 shadow-2xl shadow-black/40"
 				>
-					<h2
-						class="text-lg font-semibold text-zinc-100 mb-6 flex items-center gap-2"
-					>
-						<svg
-							class="w-4 h-4 text-accent-400"
-							fill="none"
-							stroke="currentColor"
-							viewBox="0 0 24 24"
-						>
-							<path
-								stroke-linecap="round"
-								stroke-linejoin="round"
-								stroke-width="2"
-								d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253"
-							/>
-						</svg>
-						Journal Entries
-						{#if !journalEntriesLoading}
-							<span
-								class="ml-auto text-xs font-normal text-zinc-500"
-								>{journalEntries.length} total</span
+					<div class="flex flex-wrap gap-3 mb-5">
+						<div class="relative flex-1 min-w-[180px]">
+							<svg
+								class="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-zinc-500"
+								fill="none"
+								stroke="currentColor"
+								viewBox="0 0 24 24"
 							>
-						{/if}
-					</h2>
+								<path
+									stroke-linecap="round"
+									stroke-linejoin="round"
+									stroke-width="2"
+									d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"
+								/>
+							</svg>
+							<input
+								type="text"
+								bind:value={journalSearch}
+								placeholder="Search entries…"
+								class="w-full pl-9 pr-3.5 py-2 rounded-lg bg-zinc-900 border border-zinc-700/60 text-zinc-100 text-sm placeholder-zinc-600 focus:outline-none focus:border-accent-500 focus:ring-1 focus:ring-accent-500/30 transition-all"
+							/>
+						</div>
+						<select
+							bind:value={journalSort}
+							class="px-3 py-2 rounded-lg bg-zinc-900 border border-zinc-700/60 text-zinc-300 text-sm focus:outline-none focus:border-accent-500 transition-all"
+						>
+							<option value="newest">Newest first</option>
+							<option value="oldest">Oldest first</option>
+						</select>
+					</div>
+
+					{#if journalSearch}
+						<p class="text-xs text-zinc-500 mb-3">
+							{filteredJournals.length} of {journalEntries.length}
+							entries
+						</p>
+					{/if}
 
 					{#if journalEntriesLoading}
 						<div
@@ -1391,14 +1485,14 @@
 								collection for your Owner UID.
 							</p>
 						</div>
-					{:else if journalEntries.length === 0}
+					{:else if filteredJournals.length === 0}
 						<p class="text-center py-10 text-zinc-650 text-sm">
 							No journal entries found. Write your first entry
 							above!
 						</p>
 					{:else}
 						<div class="space-y-2">
-							{#each journalEntries as entry (entry.id)}
+							{#each filteredJournals as entry (entry.id)}
 								<div
 									class="flex items-center gap-4 px-4 py-3 rounded-lg bg-zinc-900/60 border border-zinc-800/40 hover:border-zinc-700/60 transition-all duration-200 group"
 								>
