@@ -40,7 +40,7 @@
 	<div class="relative mx-auto max-w-2xl">
 		<a
 			href="/blogs/"
-			class="inline-flex items-center gap-1.5 text-sm text-zinc-500 hover:text-zinc-300 transition-colors duration-200 mb-10 group"
+			class="inline-flex items-center gap-1.5 text-sm text-zinc-400 hover:text-zinc-300 transition-colors duration-200 mb-10 group"
 		>
 			<svg
 				class="w-4 h-4 group-hover:-translate-x-0.5 transition-transform duration-200"
@@ -115,7 +115,7 @@
 			>
 				<a
 					href="/blogs/"
-					class="inline-flex items-center gap-1.5 text-sm text-zinc-500 hover:text-zinc-300 transition-colors duration-200 group"
+					class="inline-flex items-center gap-1.5 text-sm text-zinc-400 hover:text-zinc-300 transition-colors duration-200 group"
 				>
 					<svg
 						class="w-4 h-4 group-hover:-translate-x-0.5 transition-transform duration-200"
