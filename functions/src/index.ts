@@ -44,6 +44,22 @@ export const deployOnPostChange = onDocumentWritten(
   },
   async (event) => {
     try {
+      const newStatus = event.data?.after?.data()?.status;
+      const oldStatus = event.data?.before?.data()?.status;
+
+      if (!event.data?.after?.exists) {
+        console.log("Post deleted - triggering deploy to remove from site");
+      }
+
+      if (newStatus === 'draft') {
+        console.log('Post is draft - skipping deploy');
+        return;
+      }
+
+      if (oldStatus === 'published' && newStatus === 'draft') {
+        console.log('Post unpublished - triggering deploy to remove from site');
+      }
+
       const token = process.env.GITHUB_PAT;
       const githubOwner = process.env.GITHUB_OWNER;
       const githubRepo = process.env.GITHUB_REPO;
@@ -56,7 +72,7 @@ export const deployOnPostChange = onDocumentWritten(
         throw new Error('GCLOUD_PROJECT environment variable not set');
       }
 
-      
+
       if (!githubOwner || !githubRepo) {
         throw new Error('GITHUB_OWNER or GITHUB_REPO environment variable not set');
       }
