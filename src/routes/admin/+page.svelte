@@ -742,52 +742,52 @@
 		></div>
 	</div>
 {:else if user}
-	<div class="min-h-screen bg-[#09090b] pt-20 pb-16 px-4">
+	<div class="min-h-screen bg-[#09090b] px-3 pt-16 pb-12 sm:px-4 sm:pt-20 sm:pb-16 lg:px-6">
 		<div
 			class="fixed inset-0 bg-[linear-gradient(rgba(99,102,241,0.03)_1px,transparent_1px),linear-gradient(90deg,rgba(99,102,241,0.03)_1px,transparent_1px)] bg-[size:64px_64px] pointer-events-none"
 		></div>
 
-		<div class="relative mx-auto max-w-4xl space-y-10">
+		<div class="relative mx-auto w-full max-w-5xl space-y-8 sm:space-y-10">
 			<div
 				class="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between"
 			>
-				<div>
+				<div class="min-w-0">
 					<p
 						class="font-mono text-xs text-accent-400 tracking-widest uppercase mb-1"
 					>
 						&gt;_ admin
 					</p>
 					<h1 class="text-2xl font-bold text-zinc-100">Dashboard</h1>
-					<p class="text-sm text-zinc-500 mt-0.5">
+					<p class="mt-0.5 break-words text-sm text-zinc-500">
 						Signed in as <span class="text-zinc-300"
 							>{user.email}</span
 						>
 					</p>
 				</div>
-				<div class="flex gap-3 self-start sm:self-auto">
+				<div class="grid w-full grid-cols-2 gap-2 sm:flex sm:w-auto sm:gap-3 sm:self-auto">
 					<a
 						href={currentSection === "blogs"
 							? "/blogs/"
 							: "/journal/"}
-						class="px-4 py-2 rounded-lg border border-zinc-700/60 text-zinc-400 hover:text-zinc-200 hover:border-zinc-600 text-sm font-medium transition-all duration-200"
+						class="rounded-lg border border-zinc-700/60 px-3 py-2 text-center text-sm font-medium text-zinc-400 transition-all duration-200 hover:border-zinc-600 hover:text-zinc-200 sm:px-4"
 					>
 						View {currentSection === "blogs" ? "Blog" : "Journal"}
 					</a>
 					<button
 						id="admin-logout-btn"
 						onclick={handleLogout}
-						class="px-4 py-2 rounded-lg bg-zinc-800 hover:bg-zinc-700 text-zinc-300 text-sm font-medium transition-all duration-200"
+						class="rounded-lg bg-zinc-800 px-3 py-2 text-sm font-medium text-zinc-300 transition-all duration-200 hover:bg-zinc-700 sm:px-4"
 					>
 						Sign Out
 					</button>
 				</div>
 			</div>
 
-			<div class="flex border-b border-zinc-800/40 gap-6">
+			<div class="flex gap-5 overflow-x-auto border-b border-zinc-800/40 sm:gap-6">
 				<button
 					type="button"
 					onclick={() => (currentSection = "blogs")}
-					class="pb-3 text-sm font-semibold tracking-wide transition-all duration-200 relative {currentSection ===
+					class="relative shrink-0 pb-3 text-sm font-semibold tracking-wide transition-all duration-200 {currentSection ===
 					'blogs'
 						? 'text-accent-400'
 						: 'text-zinc-400 hover:text-zinc-200'}"
@@ -802,7 +802,7 @@
 				<button
 					type="button"
 					onclick={() => (currentSection = "journal")}
-					class="pb-3 text-sm font-semibold tracking-wide transition-all duration-200 relative {currentSection ===
+					class="relative shrink-0 pb-3 text-sm font-semibold tracking-wide transition-all duration-200 {currentSection ===
 					'journal'
 						? 'text-accent-400'
 						: 'text-zinc-400 hover:text-zinc-200'}"
@@ -818,7 +818,7 @@
 
 			{#if currentSection === "blogs"}
 				<section
-					class="bg-surface-900/80 backdrop-blur-md border border-zinc-800/60 rounded-2xl p-5 md:p-8 shadow-2xl shadow-black/40"
+					class="bg-surface-900/80 rounded-xl border border-zinc-800/60 p-4 shadow-2xl shadow-black/40 backdrop-blur-md sm:rounded-2xl sm:p-5 md:p-8"
 				>
 					<h2
 						class="text-lg font-semibold text-zinc-100 mb-6 flex items-center gap-2"
@@ -877,7 +877,7 @@
 							/>
 						</div>
 
-						<div class="grid grid-cols-1 sm:grid-cols-2 gap-5">
+						<div class="grid grid-cols-1 gap-5 sm:grid-cols-2">
 							<div class="space-y-1.5">
 								<label
 									for="post-slug"
@@ -1006,12 +1006,12 @@
 							</div>
 						{/if}
 
-						<div class="flex justify-end gap-3">
+						<div class="flex flex-col-reverse gap-3 sm:flex-row sm:justify-end">
 							{#if blogForm.id}
 								<button
 									type="button"
 									onclick={resetForm}
-									class="px-6 py-2.5 rounded-lg border border-zinc-700/60 text-zinc-300 hover:text-zinc-100 hover:border-zinc-500 text-sm font-semibold transition-all duration-200"
+									class="w-full rounded-lg border border-zinc-700/60 px-6 py-2.5 text-sm font-semibold text-zinc-300 transition-all duration-200 hover:border-zinc-500 hover:text-zinc-100 sm:w-auto"
 								>
 									Cancel Edit
 								</button>
@@ -1021,7 +1021,7 @@
 								id="publish-btn"
 								type="submit"
 								disabled={blogForm.submitting}
-								class="px-6 py-2.5 rounded-lg bg-accent-600 hover:bg-accent-500 disabled:opacity-50 disabled:cursor-not-allowed text-white text-sm font-semibold transition-all duration-200 flex items-center gap-2 shadow-lg shadow-accent-600/20"
+								class="flex w-full items-center justify-center gap-2 rounded-lg bg-accent-600 px-6 py-2.5 text-sm font-semibold text-white shadow-lg shadow-accent-600/20 transition-all duration-200 hover:bg-accent-500 disabled:cursor-not-allowed disabled:opacity-50 sm:w-auto"
 							>
 								{#if blogForm.submitting}
 									<div
@@ -1060,9 +1060,9 @@
 				</section>
 
 				<section
-					class="bg-surface-900/80 backdrop-blur-md border border-zinc-800/60 rounded-2xl p-5 md:p-8 shadow-2xl shadow-black/40"
+					class="bg-surface-900/80 rounded-xl border border-zinc-800/60 p-4 shadow-2xl shadow-black/40 backdrop-blur-md sm:rounded-2xl sm:p-5 md:p-8"
 				>
-					<div class="flex flex-wrap gap-3 mb-5">
+					<div class="mb-5 grid gap-3 md:grid-cols-[minmax(0,1fr)_auto]">
 						<div class="relative w-full sm:flex-1 sm:min-w-[180px]">
 							<svg
 								class="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-zinc-500"
@@ -1084,10 +1084,10 @@
 								class="w-full pl-9 pr-3.5 py-2 rounded-lg bg-zinc-900 border border-zinc-700/60 text-zinc-100 text-sm placeholder-zinc-600 focus:outline-none focus:border-accent-500 focus:ring-1 focus:ring-accent-500/30 transition-all"
 							/>
 						</div>
-						<div class="flex gap-3 w-full sm:w-auto">
+						<div class="grid w-full grid-cols-1 gap-3 min-[420px]:grid-cols-2 md:w-auto">
 							<select
 								bind:value={blogStatusFilter}
-								class="flex-1 sm:flex-none px-3 py-2 rounded-lg bg-zinc-900 border border-zinc-700/60 text-zinc-300 text-sm focus:outline-none focus:border-accent-500 transition-all"
+								class="w-full rounded-lg border border-zinc-700/60 bg-zinc-900 px-3 py-2 text-sm text-zinc-300 transition-all focus:border-accent-500 focus:outline-none md:w-auto"
 							>
 								<option value="all">All statuses</option>
 								<option value="published">Published</option>
@@ -1096,7 +1096,7 @@
 							</select>
 							<select
 								bind:value={blogSort}
-								class="flex-1 sm:flex-none px-3 py-2 rounded-lg bg-zinc-900 border border-zinc-700/60 text-zinc-300 text-sm focus:outline-none focus:border-accent-500 transition-all"
+								class="w-full rounded-lg border border-zinc-700/60 bg-zinc-900 px-3 py-2 text-sm text-zinc-300 transition-all focus:border-accent-500 focus:outline-none md:w-auto"
 							>
 								<option value="newest">Newest first</option>
 								<option value="oldest">Oldest first</option>
@@ -1127,10 +1127,10 @@
 						<div class="space-y-2">
 							{#each filteredPosts as post (post.id)}
 								<div
-									class="flex flex-col gap-2 px-4 py-3 rounded-lg bg-zinc-900/60 border border-zinc-800/40 hover:border-zinc-700/60 transition-all duration-200 sm:flex-row sm:items-center sm:gap-4"
+									class="flex flex-col gap-3 rounded-lg border border-zinc-800/40 bg-zinc-900/60 px-3 py-3 transition-all duration-200 hover:border-zinc-700/60 sm:flex-row sm:items-center sm:gap-4 sm:px-4"
 								>
 									<div
-										class="flex items-center gap-3 min-w-0"
+										class="flex min-w-0 flex-1 items-center gap-3"
 									>
 										{#if post.coverImage}
 											<img
@@ -1193,14 +1193,14 @@
 									</div>
 
 									<div
-										class="flex items-center justify-between sm:contents"
+										class="flex flex-wrap items-center justify-between gap-2 pl-[3.25rem] sm:ml-auto sm:flex-col sm:items-end sm:justify-center sm:gap-1 sm:pl-0"
 									>
 										<span
-											class="text-xs text-zinc-600 sm:shrink-0"
+											class="text-xs text-zinc-600 whitespace-nowrap"
 											>{formatDate(post.createdAt)}</span
 										>
 										<div
-											class="flex items-center gap-3 sm:shrink-0"
+											class="flex flex-wrap items-center justify-end gap-x-3 gap-y-1 sm:shrink-0"
 										>
 											<a
 												href="/blogs/{post.slug}/"
@@ -1233,7 +1233,7 @@
 				</section>
 			{:else if currentSection === "journal"}
 				<section
-					class="bg-surface-900/80 backdrop-blur-md border border-zinc-800/60 rounded-2xl p-5 md:p-8 shadow-2xl shadow-black/40"
+					class="bg-surface-900/80 rounded-xl border border-zinc-800/60 p-4 shadow-2xl shadow-black/40 backdrop-blur-md sm:rounded-2xl sm:p-5 md:p-8"
 				>
 					<h2
 						class="text-lg font-semibold text-zinc-100 mb-6 flex items-center gap-2"
@@ -1272,7 +1272,7 @@
 					</h2>
 
 					<form onsubmit={handleJournalSubmit} class="space-y-5">
-						<div class="grid grid-cols-1 sm:grid-cols-2 gap-5">
+						<div class="grid grid-cols-1 gap-5 sm:grid-cols-2">
 							<div class="space-y-1.5">
 								<label
 									for="journal-title"
@@ -1378,12 +1378,12 @@
 							</div>
 						{/if}
 
-						<div class="flex justify-end gap-3">
+						<div class="flex flex-col-reverse gap-3 sm:flex-row sm:justify-end">
 							{#if journalForm.id}
 								<button
 									type="button"
 									onclick={resetJournalForm}
-									class="px-6 py-2.5 rounded-lg border border-zinc-700/60 text-zinc-300 hover:text-zinc-100 hover:border-zinc-500 text-sm font-semibold transition-all duration-200"
+									class="w-full rounded-lg border border-zinc-700/60 px-6 py-2.5 text-sm font-semibold text-zinc-300 transition-all duration-200 hover:border-zinc-500 hover:text-zinc-100 sm:w-auto"
 								>
 									Cancel Edit
 								</button>
@@ -1392,7 +1392,7 @@
 							<button
 								type="submit"
 								disabled={journalForm.submitting}
-								class="px-6 py-2.5 rounded-lg bg-accent-600 hover:bg-accent-500 disabled:opacity-50 disabled:cursor-not-allowed text-white text-sm font-semibold transition-all duration-200 flex items-center gap-2 shadow-lg shadow-accent-600/20"
+								class="flex w-full items-center justify-center gap-2 rounded-lg bg-accent-600 px-6 py-2.5 text-sm font-semibold text-white shadow-lg shadow-accent-600/20 transition-all duration-200 hover:bg-accent-500 disabled:cursor-not-allowed disabled:opacity-50 sm:w-auto"
 							>
 								{#if journalForm.submitting}
 									<div
@@ -1431,9 +1431,9 @@
 				</section>
 
 				<section
-					class="bg-surface-900/80 backdrop-blur-md border border-zinc-800/60 rounded-2xl p-5 md:p-8 shadow-2xl shadow-black/40"
+					class="bg-surface-900/80 rounded-xl border border-zinc-800/60 p-4 shadow-2xl shadow-black/40 backdrop-blur-md sm:rounded-2xl sm:p-5 md:p-8"
 				>
-					<div class="flex flex-wrap gap-3 mb-5">
+					<div class="mb-5 grid gap-3 sm:grid-cols-[minmax(0,1fr)_auto]">
 						<div class="relative w-full sm:flex-1 sm:min-w-[180px]">
 							<svg
 								class="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-zinc-500"
@@ -1457,7 +1457,7 @@
 						</div>
 						<select
 							bind:value={journalSort}
-							class="w-full sm:w-auto px-3 py-2 rounded-lg bg-zinc-900 border border-zinc-700/60 text-zinc-300 text-sm focus:outline-none focus:border-accent-500 transition-all"
+							class="w-full rounded-lg border border-zinc-700/60 bg-zinc-900 px-3 py-2 text-sm text-zinc-300 transition-all focus:border-accent-500 focus:outline-none sm:w-auto"
 						>
 							<option value="newest">Newest first</option>
 							<option value="oldest">Oldest first</option>
@@ -1508,7 +1508,7 @@
 						<div class="space-y-2">
 							{#each filteredJournals as entry (entry.id)}
 								<div
-									class="flex flex-col gap-2 px-4 py-3 rounded-lg bg-zinc-900/60 border border-zinc-800/40 hover:border-zinc-700/60 transition-all duration-200 sm:flex-row sm:items-center sm:gap-4"
+									class="flex flex-col gap-3 rounded-lg border border-zinc-800/40 bg-zinc-900/60 px-3 py-3 transition-all duration-200 hover:border-zinc-700/60 sm:flex-row sm:items-center sm:gap-4 sm:px-4"
 								>
 									<div class="flex-1 min-w-0">
 										<p
@@ -1531,14 +1531,14 @@
 									</div>
 
 									<div
-										class="flex items-center justify-between sm:contents"
+										class="flex flex-wrap items-center justify-between gap-2 sm:ml-auto sm:flex-col sm:items-end sm:justify-center sm:gap-1"
 									>
 										<span
-											class="text-xs text-zinc-600 sm:shrink-0"
+											class="text-xs text-zinc-600 whitespace-nowrap"
 											>{formatDate(entry.createdAt)}</span
 										>
 										<div
-											class="flex items-center gap-3 sm:shrink-0"
+											class="flex flex-wrap items-center justify-end gap-x-3 gap-y-1 sm:shrink-0"
 										>
 											<button
 												type="button"
