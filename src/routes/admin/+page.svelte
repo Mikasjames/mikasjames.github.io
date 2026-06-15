@@ -748,7 +748,9 @@
 		></div>
 
 		<div class="relative mx-auto max-w-4xl space-y-10">
-			<div class="flex items-center justify-between">
+			<div
+				class="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between"
+			>
 				<div>
 					<p
 						class="font-mono text-xs text-accent-400 tracking-widest uppercase mb-1"
@@ -762,7 +764,7 @@
 						>
 					</p>
 				</div>
-				<div class="flex gap-3">
+				<div class="flex gap-3 self-start sm:self-auto">
 					<a
 						href={currentSection === "blogs"
 							? "/blogs/"
@@ -781,7 +783,6 @@
 				</div>
 			</div>
 
-			<!-- Tab switcher -->
 			<div class="flex border-b border-zinc-800/40 gap-6">
 				<button
 					type="button"
@@ -817,7 +818,7 @@
 
 			{#if currentSection === "blogs"}
 				<section
-					class="bg-surface-900/80 backdrop-blur-md border border-zinc-800/60 rounded-2xl p-6 md:p-8 shadow-2xl shadow-black/40"
+					class="bg-surface-900/80 backdrop-blur-md border border-zinc-800/60 rounded-2xl p-5 md:p-8 shadow-2xl shadow-black/40"
 				>
 					<h2
 						class="text-lg font-semibold text-zinc-100 mb-6 flex items-center gap-2"
@@ -860,23 +861,23 @@
 						onsubmit={handlePublish}
 						class="space-y-5"
 					>
-						<div class="grid md:grid-cols-3 gap-5">
-							<div class="space-y-1.5">
-								<label
-									for="post-title"
-									class="block text-xs font-medium text-zinc-400 tracking-wide uppercase"
-									>Title</label
-								>
-								<input
-									id="post-title"
-									type="text"
-									bind:value={blogForm.title}
-									required
-									placeholder="My Awesome Post"
-									class="w-full px-3.5 py-2.5 rounded-lg bg-zinc-900 border border-zinc-700/60 text-zinc-100 text-sm placeholder-zinc-600 focus:outline-none focus:border-accent-500 focus:ring-1 focus:ring-accent-500/30 transition-all duration-200"
-								/>
-							</div>
+						<div class="space-y-1.5">
+							<label
+								for="post-title"
+								class="block text-xs font-medium text-zinc-400 tracking-wide uppercase"
+								>Title</label
+							>
+							<input
+								id="post-title"
+								type="text"
+								bind:value={blogForm.title}
+								required
+								placeholder="My Awesome Post"
+								class="w-full px-3.5 py-2.5 rounded-lg bg-zinc-900 border border-zinc-700/60 text-zinc-100 text-sm placeholder-zinc-600 focus:outline-none focus:border-accent-500 focus:ring-1 focus:ring-accent-500/30 transition-all duration-200"
+							/>
+						</div>
 
+						<div class="grid grid-cols-1 sm:grid-cols-2 gap-5">
 							<div class="space-y-1.5">
 								<label
 									for="post-slug"
@@ -1059,10 +1060,10 @@
 				</section>
 
 				<section
-					class="bg-surface-900/80 backdrop-blur-md border border-zinc-800/60 rounded-2xl p-6 md:p-8 shadow-2xl shadow-black/40"
+					class="bg-surface-900/80 backdrop-blur-md border border-zinc-800/60 rounded-2xl p-5 md:p-8 shadow-2xl shadow-black/40"
 				>
 					<div class="flex flex-wrap gap-3 mb-5">
-						<div class="relative flex-1 min-w-[180px]">
+						<div class="relative w-full sm:flex-1 sm:min-w-[180px]">
 							<svg
 								class="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-zinc-500"
 								fill="none"
@@ -1083,25 +1084,26 @@
 								class="w-full pl-9 pr-3.5 py-2 rounded-lg bg-zinc-900 border border-zinc-700/60 text-zinc-100 text-sm placeholder-zinc-600 focus:outline-none focus:border-accent-500 focus:ring-1 focus:ring-accent-500/30 transition-all"
 							/>
 						</div>
-						<select
-							bind:value={blogStatusFilter}
-							class="px-3 py-2 rounded-lg bg-zinc-900 border border-zinc-700/60 text-zinc-300 text-sm focus:outline-none focus:border-accent-500 transition-all"
-						>
-							<option value="all">All statuses</option>
-							<option value="published">Published</option>
-							<option value="unlisted">Unlisted</option>
-							<option value="draft">Draft</option>
-						</select>
-						<select
-							bind:value={blogSort}
-							class="px-3 py-2 rounded-lg bg-zinc-900 border border-zinc-700/60 text-zinc-300 text-sm focus:outline-none focus:border-accent-500 transition-all"
-						>
-							<option value="newest">Newest first</option>
-							<option value="oldest">Oldest first</option>
-						</select>
+						<div class="flex gap-3 w-full sm:w-auto">
+							<select
+								bind:value={blogStatusFilter}
+								class="flex-1 sm:flex-none px-3 py-2 rounded-lg bg-zinc-900 border border-zinc-700/60 text-zinc-300 text-sm focus:outline-none focus:border-accent-500 transition-all"
+							>
+								<option value="all">All statuses</option>
+								<option value="published">Published</option>
+								<option value="unlisted">Unlisted</option>
+								<option value="draft">Draft</option>
+							</select>
+							<select
+								bind:value={blogSort}
+								class="flex-1 sm:flex-none px-3 py-2 rounded-lg bg-zinc-900 border border-zinc-700/60 text-zinc-300 text-sm focus:outline-none focus:border-accent-500 transition-all"
+							>
+								<option value="newest">Newest first</option>
+								<option value="oldest">Oldest first</option>
+							</select>
+						</div>
 					</div>
 
-					<!-- Result count -->
 					{#if blogSearch || blogStatusFilter !== "all"}
 						<p class="text-xs text-zinc-500 mb-3">
 							{filteredPosts.length} of {posts.length} posts
@@ -1125,92 +1127,104 @@
 						<div class="space-y-2">
 							{#each filteredPosts as post (post.id)}
 								<div
-									class="flex items-center gap-4 px-4 py-3 rounded-lg bg-zinc-900/60 border border-zinc-800/40 hover:border-zinc-700/60 transition-all duration-200 group"
+									class="flex flex-col gap-2 px-4 py-3 rounded-lg bg-zinc-900/60 border border-zinc-800/40 hover:border-zinc-700/60 transition-all duration-200 sm:flex-row sm:items-center sm:gap-4"
 								>
-									{#if post.coverImage}
-										<img
-											src={post.coverImage}
-											alt=""
-											class="w-10 h-7 object-cover rounded bg-zinc-950 border border-zinc-800 shrink-0"
-										/>
-									{:else}
-										<div
-											class="w-10 h-7 rounded bg-zinc-850 border border-zinc-800 flex items-center justify-center shrink-0"
-										>
-											<svg
-												class="w-3.5 h-3.5 text-zinc-600"
-												fill="none"
-												stroke="currentColor"
-												viewBox="0 0 24 24"
-											>
-												<path
-													stroke-linecap="round"
-													stroke-linejoin="round"
-													stroke-width="2"
-													d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"
-												/>
-											</svg>
-										</div>
-									{/if}
-
-									<div class="flex-1 min-w-0">
-										<div class="flex items-center gap-2">
-											<p
-												class="text-sm font-medium text-zinc-200 truncate"
-											>
-												{post.title}
-											</p>
-											{#if post.status === "draft"}
-												<span
-													class="px-1.5 py-0.5 rounded bg-zinc-800 text-[10px] font-medium text-zinc-450 border border-zinc-700/50 uppercase tracking-wider font-mono"
-													>Draft</span
-												>
-											{:else if post.status === "unlisted"}
-												<span
-													class="px-1.5 py-0.5 rounded bg-amber-500/10 text-[10px] font-medium text-amber-400 border border-amber-500/20 uppercase tracking-wider font-mono"
-													>Unlisted</span
-												>
-											{:else}
-												<span
-													class="px-1.5 py-0.5 rounded bg-emerald-500/10 text-[10px] font-medium text-emerald-400 border border-emerald-500/20 uppercase tracking-wider font-mono"
-													>Published</span
-												>
-											{/if}
-										</div>
-										<p
-											class="text-xs text-zinc-650 font-mono mt-0.5 truncate"
-										>
-											/blogs/{post.slug}
-										</p>
-									</div>
-									<span class="text-xs text-zinc-600 shrink-0"
-										>{formatDate(post.createdAt)}</span
+									<div
+										class="flex items-center gap-3 min-w-0"
 									>
+										{#if post.coverImage}
+											<img
+												src={post.coverImage}
+												alt=""
+												class="w-10 h-7 object-cover rounded bg-zinc-950 border border-zinc-800 shrink-0"
+											/>
+										{:else}
+											<div
+												class="w-10 h-7 rounded bg-zinc-850 border border-zinc-800 flex items-center justify-center shrink-0"
+											>
+												<svg
+													class="w-3.5 h-3.5 text-zinc-600"
+													fill="none"
+													stroke="currentColor"
+													viewBox="0 0 24 24"
+												>
+													<path
+														stroke-linecap="round"
+														stroke-linejoin="round"
+														stroke-width="2"
+														d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"
+													/>
+												</svg>
+											</div>
+										{/if}
+
+										<div class="flex-1 min-w-0">
+											<div
+												class="flex items-center gap-2 flex-wrap"
+											>
+												<p
+													class="text-sm font-medium text-zinc-200 truncate"
+												>
+													{post.title}
+												</p>
+												{#if post.status === "draft"}
+													<span
+														class="px-1.5 py-0.5 rounded bg-zinc-800 text-[10px] font-medium text-zinc-450 border border-zinc-700/50 uppercase tracking-wider font-mono shrink-0"
+														>Draft</span
+													>
+												{:else if post.status === "unlisted"}
+													<span
+														class="px-1.5 py-0.5 rounded bg-amber-500/10 text-[10px] font-medium text-amber-400 border border-amber-500/20 uppercase tracking-wider font-mono shrink-0"
+														>Unlisted</span
+													>
+												{:else}
+													<span
+														class="px-1.5 py-0.5 rounded bg-emerald-500/10 text-[10px] font-medium text-emerald-400 border border-emerald-500/20 uppercase tracking-wider font-mono shrink-0"
+														>Published</span
+													>
+												{/if}
+											</div>
+											<p
+												class="text-xs text-zinc-650 font-mono mt-0.5 truncate"
+											>
+												/blogs/{post.slug}
+											</p>
+										</div>
+									</div>
 
 									<div
-										class="flex items-center gap-3 opacity-0 group-hover:opacity-100 transition-opacity duration-200 shrink-0"
+										class="flex items-center justify-between sm:contents"
 									>
-										<a
-											href="/blogs/{post.slug}/"
-											target="_blank"
-											class="text-xs text-zinc-400 hover:text-zinc-200 transition-colors font-medium"
+										<span
+											class="text-xs text-zinc-600 sm:shrink-0"
+											>{formatDate(post.createdAt)}</span
 										>
-											View
-										</a>
-										<button
-											type="button"
-											onclick={() => startEdit(post)}
-											class="text-xs text-accent-400 hover:text-accent-300 transition-colors font-medium"
+										<div
+											class="flex items-center gap-3 sm:shrink-0"
 										>
-											Edit
-										</button>
-										<button
-											type="button"
-											onclick={() => handleDelete(post)}
-											class="text-xs text-red-400 hover:text-red-300 transition-colors font-medium"
-										>
-											Delete
-										</button>
+											<a
+												href="/blogs/{post.slug}/"
+												target="_blank"
+												class="text-xs text-zinc-400 hover:text-zinc-200 transition-colors font-medium"
+											>
+												View
+											</a>
+											<button
+												type="button"
+												onclick={() => startEdit(post)}
+												class="text-xs text-accent-400 hover:text-accent-300 transition-colors font-medium"
+											>
+												Edit
+											</button>
+											<button
+												type="button"
+												onclick={() =>
+													handleDelete(post)}
+												class="text-xs text-red-400 hover:text-red-300 transition-colors font-medium"
+											>
+												Delete
+											</button>
+										</div>
 									</div>
 								</div>
 							{/each}
@@ -1219,7 +1233,7 @@
 				</section>
 			{:else if currentSection === "journal"}
 				<section
-					class="bg-surface-900/80 backdrop-blur-md border border-zinc-800/60 rounded-2xl p-6 md:p-8 shadow-2xl shadow-black/40"
+					class="bg-surface-900/80 backdrop-blur-md border border-zinc-800/60 rounded-2xl p-5 md:p-8 shadow-2xl shadow-black/40"
 				>
 					<h2
 						class="text-lg font-semibold text-zinc-100 mb-6 flex items-center gap-2"
@@ -1258,7 +1272,7 @@
 					</h2>
 
 					<form onsubmit={handleJournalSubmit} class="space-y-5">
-						<div class="grid md:grid-cols-2 gap-5">
+						<div class="grid grid-cols-1 sm:grid-cols-2 gap-5">
 							<div class="space-y-1.5">
 								<label
 									for="journal-title"
@@ -1417,10 +1431,10 @@
 				</section>
 
 				<section
-					class="bg-surface-900/80 backdrop-blur-md border border-zinc-800/60 rounded-2xl p-6 md:p-8 shadow-2xl shadow-black/40"
+					class="bg-surface-900/80 backdrop-blur-md border border-zinc-800/60 rounded-2xl p-5 md:p-8 shadow-2xl shadow-black/40"
 				>
 					<div class="flex flex-wrap gap-3 mb-5">
-						<div class="relative flex-1 min-w-[180px]">
+						<div class="relative w-full sm:flex-1 sm:min-w-[180px]">
 							<svg
 								class="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-zinc-500"
 								fill="none"
@@ -1443,7 +1457,7 @@
 						</div>
 						<select
 							bind:value={journalSort}
-							class="px-3 py-2 rounded-lg bg-zinc-900 border border-zinc-700/60 text-zinc-300 text-sm focus:outline-none focus:border-accent-500 transition-all"
+							class="w-full sm:w-auto px-3 py-2 rounded-lg bg-zinc-900 border border-zinc-700/60 text-zinc-300 text-sm focus:outline-none focus:border-accent-500 transition-all"
 						>
 							<option value="newest">Newest first</option>
 							<option value="oldest">Oldest first</option>
@@ -1494,7 +1508,7 @@
 						<div class="space-y-2">
 							{#each filteredJournals as entry (entry.id)}
 								<div
-									class="flex items-center gap-4 px-4 py-3 rounded-lg bg-zinc-900/60 border border-zinc-800/40 hover:border-zinc-700/60 transition-all duration-200 group"
+									class="flex flex-col gap-2 px-4 py-3 rounded-lg bg-zinc-900/60 border border-zinc-800/40 hover:border-zinc-700/60 transition-all duration-200 sm:flex-row sm:items-center sm:gap-4"
 								>
 									<div class="flex-1 min-w-0">
 										<p
@@ -1515,29 +1529,34 @@
 												: ""}
 										</p>
 									</div>
-									<span class="text-xs text-zinc-600 shrink-0"
-										>{formatDate(entry.createdAt)}</span
-									>
 
 									<div
-										class="flex items-center gap-3 opacity-0 group-hover:opacity-100 transition-opacity duration-200 shrink-0"
+										class="flex items-center justify-between sm:contents"
 									>
-										<button
-											type="button"
-											onclick={() =>
-												startEditJournal(entry)}
-											class="text-xs text-accent-400 hover:text-accent-300 transition-colors font-medium cursor-pointer"
+										<span
+											class="text-xs text-zinc-600 sm:shrink-0"
+											>{formatDate(entry.createdAt)}</span
 										>
-											Edit
-										</button>
-										<button
-											type="button"
-											onclick={() =>
-												handleDeleteJournal(entry)}
-											class="text-xs text-red-400 hover:text-red-300 transition-colors font-medium cursor-pointer"
+										<div
+											class="flex items-center gap-3 sm:shrink-0"
 										>
-											Delete
-										</button>
+											<button
+												type="button"
+												onclick={() =>
+													startEditJournal(entry)}
+												class="text-xs text-accent-400 hover:text-accent-300 transition-colors font-medium cursor-pointer"
+											>
+												Edit
+											</button>
+											<button
+												type="button"
+												onclick={() =>
+													handleDeleteJournal(entry)}
+												class="text-xs text-red-400 hover:text-red-300 transition-colors font-medium cursor-pointer"
+											>
+												Delete
+											</button>
+										</div>
 									</div>
 								</div>
 							{/each}
