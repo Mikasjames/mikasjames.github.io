@@ -705,10 +705,12 @@
 				</div>
 				<div class="flex gap-3">
 					<a
-						href="/blogs/"
+						href={currentSection === "blogs"
+							? "/blogs/"
+							: "/journal/"}
 						class="px-4 py-2 rounded-lg border border-zinc-700/60 text-zinc-400 hover:text-zinc-200 hover:border-zinc-600 text-sm font-medium transition-all duration-200"
 					>
-						View Blog
+						View {currentSection === "blogs" ? "Blog" : "Journal"}
 					</a>
 					<button
 						id="admin-logout-btn"
