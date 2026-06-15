@@ -89,6 +89,14 @@
 		return entry.content.replace(/[#*`~_]/g, "");
 	}
 
+	function happinessLabel(rating: number) {
+		if (rating <= 1) return "Very low";
+		if (rating === 2) return "Low";
+		if (rating === 3) return "Steady";
+		if (rating === 4) return "Good";
+		return "Great";
+	}
+
 	async function handleLogout() {
 		await logout();
 		goto("/admin/login/");
@@ -228,9 +236,16 @@
 													<span class="text-[10px] text-zinc-600 font-mono">
 														{formatTime(entry.createdAt)}
 													</span>
-													<span class="text-[10px] text-accent-400/80 hover:text-accent-300 font-medium">
-														Read entry &rarr;
-													</span>
+													<div class="flex items-center gap-2">
+														{#if entry.happinessRating}
+															<span class="rounded-full border border-accent-500/20 bg-accent-500/10 px-2 py-0.5 text-[10px] font-semibold text-accent-300">
+																{entry.happinessRating}/5
+															</span>
+														{/if}
+														<span class="text-[10px] text-accent-400/80 hover:text-accent-300 font-medium">
+															Read entry &rarr;
+														</span>
+													</div>
 												</div>
 											</div>
 										</div>
@@ -275,6 +290,29 @@
 										{/if}
 									</div>
 									<h2 class="text-2xl font-bold text-zinc-100 tracking-tight">{selectedEntry.title || "Untitled Entry"}</h2>
+									{#if selectedEntry.happinessRating}
+										<div
+											class="mt-4 flex flex-wrap items-center gap-3 rounded-xl border border-accent-500/20 bg-accent-500/10 px-4 py-3"
+										>
+											<div
+												class="flex h-10 w-10 items-center justify-center rounded-lg bg-accent-500/20 text-lg font-bold text-accent-200"
+											>
+												{selectedEntry.happinessRating}
+											</div>
+											<div>
+												<p
+													class="text-xs font-semibold uppercase tracking-wide text-accent-300"
+												>
+													Overall Happiness
+												</p>
+												<p class="text-sm text-zinc-300">
+													{happinessLabel(
+														selectedEntry.happinessRating,
+													)} for the day
+												</p>
+											</div>
+										</div>
+									{/if}
 									{#if selectedEntry.excerpt}
 										<p class="mt-3 text-zinc-450 text-base leading-relaxed">
 											{selectedEntry.excerpt}

@@ -73,6 +73,7 @@
 		content: "",
 		coverImage: null as string | null,
 		imageMeta: {} as Record<string, ImageMeta>,
+		happinessRating: 3,
 		submitting: false,
 		successMsg: "",
 		error: "",
@@ -172,6 +173,14 @@
 		} else {
 			blogForm.content = value;
 		}
+	}
+
+	function getHappinessLabel(rating: number) {
+		if (rating <= 1) return "Very low";
+		if (rating === 2) return "Low";
+		if (rating === 3) return "Steady";
+		if (rating === 4) return "Good";
+		return "Great";
 	}
 
 	function getEditorImageMeta(): Record<string, ImageMeta> {
@@ -381,6 +390,8 @@
 				content: journalForm.content,
 				coverImage: journalForm.coverImage,
 				imageMeta: sanitizedImageMeta,
+				happinessRating: journalForm.happinessRating,
+				ownerUid: user?.uid,
 			};
 
 			if (journalForm.id) {
@@ -408,6 +419,7 @@
 		journalForm.excerpt = entry.excerpt || "";
 		journalForm.content = entry.content;
 		journalForm.coverImage = entry.coverImage || null;
+		journalForm.happinessRating = entry.happinessRating ?? 3;
 		journalForm.imageMeta = sanitizeImageMetaFromMarkdown(
 			entry.content,
 			enrichImageMetaFromGallery(entry.content, entry.imageMeta ?? {}),
@@ -424,6 +436,7 @@
 		journalForm.content = "";
 		journalForm.coverImage = null;
 		journalForm.imageMeta = {};
+		journalForm.happinessRating = 3;
 		journalForm.successMsg = "";
 		journalForm.error = "";
 	}
@@ -624,6 +637,43 @@
 			textareaRef.selectionStart = textareaRef.selectionEnd =
 				start + tag.length;
 		}
+	}
+
+	async function insertTextAtCursor(textToInsert: string) {
+		activeTab = "write";
+		await tick();
+		if (!textareaRef) return;
+
+		const start = textareaRef.selectionStart;
+		const end = textareaRef.selectionEnd;
+		const text = getEditorContent();
+		const before = text.substring(0, start);
+		const after = text.substring(end, text.length);
+		const newValue = before + textToInsert + after;
+
+		textareaRef.value = newValue;
+		setEditorContent(newValue);
+
+		await tick();
+
+		if (textareaRef) {
+			textareaRef.focus();
+			textareaRef.selectionStart = textareaRef.selectionEnd =
+				start + textToInsert.length;
+		}
+	}
+
+	async function insertCurrentJournalTimestamp() {
+		const now = new Date();
+		const stamp = now.toLocaleString("en-US", {
+			weekday: "long",
+			year: "numeric",
+			month: "long",
+			day: "numeric",
+			hour: "numeric",
+			minute: "2-digit",
+		});
+		await insertTextAtCursor(`\n\n### ${stamp}\n\n`);
 	}
 
 	async function loadMediaItems() {
@@ -1306,6 +1356,58 @@
 							</div>
 						</div>
 
+						<div
+							class="rounded-xl border border-zinc-800/60 bg-zinc-900/40 p-4"
+						>
+							<div
+								class="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between"
+							>
+								<div>
+									<label
+										for="journal-happiness"
+										class="block text-xs font-semibold text-zinc-400 tracking-wide uppercase"
+										>Overall Happiness</label
+									>
+									<p class="mt-1 text-xs text-zinc-550">
+										Daily rating for monthly and yearly
+										insights.
+									</p>
+								</div>
+								<div
+									class="flex items-center gap-2 rounded-lg border border-accent-500/20 bg-accent-500/10 px-3 py-2"
+								>
+									<span
+										class="text-2xl font-bold text-accent-300"
+										>{journalForm.happinessRating}</span
+									>
+									<span
+										class="text-xs font-medium text-accent-200"
+										>{getHappinessLabel(
+											journalForm.happinessRating,
+										)}</span
+									>
+								</div>
+							</div>
+							<div class="mt-4">
+								<input
+									id="journal-happiness"
+									type="range"
+									min="1"
+									max="5"
+									step="1"
+									bind:value={journalForm.happinessRating}
+									class="h-2 w-full cursor-pointer appearance-none rounded-full bg-gradient-to-r from-red-500 via-amber-400 to-emerald-400 accent-accent-500"
+								/>
+								<div
+									class="mt-2 flex justify-between text-[10px] font-mono uppercase tracking-wider text-zinc-600"
+								>
+									<span>1 Low</span>
+									<span>3 Steady</span>
+									<span>5 High</span>
+								</div>
+							</div>
+						</div>
+
 						<CoverImage
 							bind:coverImage={journalForm.coverImage}
 							onCoverUpload={handleJournalCoverUpload}
@@ -1314,6 +1416,28 @@
 						/>
 
 						<div class="space-y-2">
+							<div class="flex justify-end">
+								<button
+									type="button"
+									onclick={insertCurrentJournalTimestamp}
+									class="inline-flex items-center gap-2 rounded-lg border border-zinc-700/60 bg-zinc-900 px-3 py-2 text-xs font-semibold text-zinc-300 transition-all duration-200 hover:border-accent-500/50 hover:text-accent-300"
+								>
+									<svg
+										class="h-3.5 w-3.5"
+										fill="none"
+										stroke="currentColor"
+										viewBox="0 0 24 24"
+									>
+										<path
+											stroke-linecap="round"
+											stroke-linejoin="round"
+											stroke-width="2"
+											d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"
+										/>
+									</svg>
+									Insert Date & Time
+								</button>
+							</div>
 							<MarkdownEditor
 								id="journal-content"
 								bind:content={journalForm.content}
