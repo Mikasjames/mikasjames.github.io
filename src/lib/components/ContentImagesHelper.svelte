@@ -2,20 +2,20 @@
     import type { MediaItem } from "$lib/firebase/firestore.svelte";
 
     let {
-        showMediaGallery = $bindable(),
+        onOpenMediaGallery,
         handleContentUpload,
         contentUploading,
         contentUploadError,
-        mediaItems,
+        recentMediaItems,
         mediaLoadError,
         insertMarkdownAtCursor,
         setEditorCoverImage,
     } = $props<{
-        showMediaGallery: boolean;
+        onOpenMediaGallery: () => void;
         handleContentUpload: (e: Event) => void;
         contentUploading: boolean;
         contentUploadError: string;
-        mediaItems: MediaItem[];
+        recentMediaItems: MediaItem[];
         mediaLoadError: string;
         insertMarkdownAtCursor: (
             url: string,
@@ -40,8 +40,7 @@
         <div class="flex items-center gap-2">
             <button
                 type="button"
-                onmousedown={(e) => e.preventDefault()}
-                onclick={() => (showMediaGallery = true)}
+                onclick={onOpenMediaGallery}
                 class="px-2.5 py-1.5 rounded bg-zinc-800 hover:bg-zinc-700 text-zinc-300 text-xs font-medium border border-zinc-700/50 transition-colors cursor-pointer"
             >
                 Manage Gallery
@@ -99,7 +98,7 @@
         </div>
     {/if}
 
-    {#if mediaItems.length > 0}
+    {#if recentMediaItems.length > 0}
         <div class="space-y-2 mt-2">
             <p
                 class="text-[10px] font-mono text-zinc-500 uppercase tracking-wider"
@@ -109,7 +108,7 @@
             <div
                 class="grid grid-cols-1 sm:grid-cols-2 gap-2 max-h-[220px] overflow-y-auto pr-1"
             >
-                {#each mediaItems.slice(0, 4) as img (img.id)}
+                {#each recentMediaItems as img (img.id)}
                     <div
                         class="flex items-center justify-between gap-3 p-2 rounded bg-zinc-950 border border-zinc-850 text-xs hover:border-zinc-800 transition-colors"
                     >

@@ -9,7 +9,8 @@ import {
     serverTimestamp,
     updateDoc,
     deleteDoc,
-    type DocumentData
+    type DocumentData,
+    limit
 } from 'firebase/firestore';
 import { db } from './firebase';
 
@@ -119,6 +120,12 @@ const MEDIA_COLLECTION = 'media_gallery';
 
 export async function getMediaItems(): Promise<MediaItem[]> {
     const q = query(collection(db, MEDIA_COLLECTION), orderBy('uploadedAt', 'desc'));
+    const snapshot = await getDocs(q);
+    return snapshot.docs.map((d) => docToMediaItem(d.id, d.data()));
+}
+
+export async function getRecentMediaItems(limitCount = 4): Promise<MediaItem[]> {
+    const q = query(collection(db, MEDIA_COLLECTION), orderBy('uploadedAt', 'desc'), limit(limitCount));
     const snapshot = await getDocs(q);
     return snapshot.docs.map((d) => docToMediaItem(d.id, d.data()));
 }

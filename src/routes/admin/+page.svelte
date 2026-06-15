@@ -19,6 +19,7 @@
 		updateJournalEntry,
 		deleteJournalEntry,
 		type JournalEntry,
+		getRecentMediaItems,
 	} from "$lib/firebase/firestore.svelte";
 	import {
 		extractImageUrlsFromMarkdown,
@@ -79,7 +80,6 @@
 		coverError: "",
 	});
 
-	// Content uploading state is shared by whichever editor panel is active
 	let contentUploading = $state(false);
 	let contentUploadError = $state("");
 
@@ -87,14 +87,15 @@
 	let textareaRef = $state<HTMLTextAreaElement | null>(null);
 
 	let showMediaGallery = $state(false);
+	let mediaLoaded = $state(false);
 	let mediaItems = $state<MediaItem[]>([]);
+	let recentMediaItems = $state<MediaItem[]>([]);
 	let mediaLoading = $state(false);
 	let mediaUploading = $state(false);
 	let mediaUploadError = $state("");
 	let mediaLoadError = $state("");
 	let deletingMediaIds = $state<Set<string>>(new Set());
 
-	// Journal list states
 	let currentSection = $state<"blogs" | "journal">("blogs");
 	let journalEntries = $state<JournalEntry[]>([]);
 	let journalEntriesLoading = $state(false);
@@ -181,6 +182,13 @@
 			journalEntriesLoading = false;
 		}
 	}
+	async function loadRecentMedia() {
+		try {
+			recentMediaItems = await getRecentMediaItems(4);
+		} catch (err) {
+			console.error("Failed to load recent media:", err);
+		}
+	}
 
 	onMount(async () => {
 		await new Promise<void>((res) => {
@@ -193,7 +201,7 @@
 		});
 		if (user) {
 			await loadPosts();
-			await loadMediaItems();
+			await loadRecentMedia();
 			await loadJournalEntries();
 		}
 	});
@@ -274,6 +282,9 @@
 			});
 			if (showMediaGallery) {
 				await loadMediaItems();
+			} else {
+				await loadRecentMedia();
+				mediaLoaded = false;
 			}
 		} catch (err: unknown) {
 			journalForm.coverError =
@@ -470,6 +481,9 @@
 			});
 			if (showMediaGallery) {
 				await loadMediaItems();
+			} else {
+				await loadRecentMedia();
+				mediaLoaded = false;
 			}
 		} catch (err: unknown) {
 			blogForm.coverError =
@@ -497,7 +511,8 @@
 				height,
 			});
 			mergeEditorImageMeta(url, { width, height });
-			await loadMediaItems();
+			await loadRecentMedia();
+			mediaLoaded = false;
 			await insertMarkdownAtCursor(url, file.name.split(".")[0], {
 				width,
 				height,
@@ -557,6 +572,7 @@
 		mediaLoadError = "";
 		try {
 			mediaItems = await getMediaItems();
+			mediaLoaded = true;
 		} catch (err) {
 			console.error("Failed to load media items:", err);
 			mediaLoadError =
@@ -570,7 +586,9 @@
 
 	async function openMediaGallery() {
 		showMediaGallery = true;
-		await loadMediaItems();
+		if (!mediaLoaded) {
+			await loadMediaItems();
+		}
 	}
 
 	async function handleGalleryUpload(e: Event) {
@@ -621,6 +639,7 @@
 				item.url,
 			);
 			await loadMediaItems();
+			await loadRecentMedia();
 		} catch (err: unknown) {
 			alert(
 				err instanceof Error ? err.message : "Failed to delete image.",
@@ -867,17 +886,17 @@
 								bind:imageMeta={blogForm.imageMeta}
 								bind:textareaRef
 								bind:activeTab
-								bind:showMediaGallery
+								onOpenMediaGallery={openMediaGallery}
 								placeholderText="Write your post content here…&#10;&#10;## Heading&#10;&#10;Markdown is supported."
 							/>
 						</div>
 
 						<ContentImagesHelper
-							bind:showMediaGallery
+							onOpenMediaGallery={openMediaGallery}
 							{handleContentUpload}
 							{contentUploading}
 							{contentUploadError}
-							{mediaItems}
+							{recentMediaItems}
 							{mediaLoadError}
 							{insertMarkdownAtCursor}
 							{setEditorCoverImage}
@@ -1204,17 +1223,17 @@
 								bind:imageMeta={journalForm.imageMeta}
 								bind:textareaRef
 								bind:activeTab
-								bind:showMediaGallery
+								onOpenMediaGallery={openMediaGallery}
 								placeholderText="What's on your mind today? Markdown is supported."
 							/>
 						</div>
 
 						<ContentImagesHelper
-							bind:showMediaGallery
+							onOpenMediaGallery={openMediaGallery}
 							{handleContentUpload}
 							{contentUploading}
 							{contentUploadError}
-							{mediaItems}
+							{recentMediaItems}
 							{mediaLoadError}
 							{insertMarkdownAtCursor}
 							{setEditorCoverImage}
