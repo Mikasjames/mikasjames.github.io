@@ -361,8 +361,14 @@
 
 	async function handleDeleteHabit(habit: Habit) {
 		if (!confirm(`Delete "${habit.name}" from habits?`)) return;
-		await deleteHabit(habit.id);
-		await loadHabits();
+		habitsError = "";
+		try {
+			await deleteHabit(habit.id);
+			await loadHabits();
+		} catch (err: unknown) {
+			habitsError =
+				err instanceof Error ? err.message : "Failed to delete habit.";
+		}
 	}
 
 	async function moveHabit(index: number, direction: -1 | 1) {
@@ -372,16 +378,27 @@
 		const [moved] = reordered.splice(index, 1);
 		reordered.splice(targetIndex, 0, moved);
 		habits = reordered.map((habit, order) => ({ ...habit, order }));
-		await Promise.all(
-			habits.map((habit, order) => updateHabitOrder(habit.id, order)),
-		);
-		await loadHabits();
+		try {
+			await Promise.all(
+				habits.map((habit, order) => updateHabitOrder(habit.id, order)),
+			);
+			await loadHabits();
+		} catch (err: unknown) {
+			habitsError =
+				err instanceof Error
+					? err.message
+					: "Failed to reorder habits.";
+			await loadHabits(); // reload to restore server state
+		}
 	}
 
 	async function loadSelectedHabitLogs(journalEntryId: string) {
 		if (!user) return;
 		try {
-			const logs = await getHabitLogsForJournalEntry(user.uid, journalEntryId);
+			const logs = await getHabitLogsForJournalEntry(
+				user.uid,
+				journalEntryId,
+			);
 			if (journalForm.id === journalEntryId) {
 				selectedHabitIds = new Set(logs.map((log) => log.habitId));
 			}
@@ -514,8 +531,7 @@
 						: pad +
 							((point.time - minTime) / (maxTime - minTime)) *
 								(width - pad * 2);
-				const y =
-					pad + ((5 - point.rating) / 4) * (height - pad * 2);
+				const y = pad + ((5 - point.rating) / 4) * (height - pad * 2);
 				return `${index === 0 ? "M" : "L"} ${x.toFixed(1)} ${y.toFixed(
 					1,
 				)}`;
@@ -1082,7 +1098,9 @@
 		></div>
 	</div>
 {:else if user}
-	<div class="min-h-screen bg-[#09090b] px-3 pt-16 pb-12 sm:px-4 sm:pt-20 sm:pb-16 lg:px-6">
+	<div
+		class="min-h-screen bg-[#09090b] px-3 pt-16 pb-12 sm:px-4 sm:pt-20 sm:pb-16 lg:px-6"
+	>
 		<div
 			class="fixed inset-0 bg-[linear-gradient(rgba(99,102,241,0.03)_1px,transparent_1px),linear-gradient(90deg,rgba(99,102,241,0.03)_1px,transparent_1px)] bg-[size:64px_64px] pointer-events-none"
 		></div>
@@ -1104,9 +1122,13 @@
 						>
 					</p>
 				</div>
-				<div class="grid w-full grid-cols-2 gap-2 sm:flex sm:w-auto sm:gap-3 sm:self-auto">
+				<div
+					class="grid w-full grid-cols-2 gap-2 sm:flex sm:w-auto sm:gap-3 sm:self-auto"
+				>
 					<a
-						href={currentSection === "blogs" ? "/blogs/" : "/journal/"}
+						href={currentSection === "blogs"
+							? "/blogs/"
+							: "/journal/"}
 						class="rounded-lg border border-zinc-700/60 px-3 py-2 text-center text-sm font-medium text-zinc-400 transition-all duration-200 hover:border-zinc-600 hover:text-zinc-200 sm:px-4"
 					>
 						View {currentSection === "blogs" ? "Blog" : "Journal"}
@@ -1121,7 +1143,9 @@
 				</div>
 			</div>
 
-			<div class="flex gap-5 overflow-x-auto border-b border-zinc-800/40 sm:gap-6">
+			<div
+				class="flex gap-5 overflow-x-auto border-b border-zinc-800/40 sm:gap-6"
+			>
 				<button
 					type="button"
 					onclick={() => (currentSection = "blogs")}
@@ -1359,7 +1383,9 @@
 							</div>
 						{/if}
 
-						<div class="flex flex-col-reverse gap-3 sm:flex-row sm:justify-end">
+						<div
+							class="flex flex-col-reverse gap-3 sm:flex-row sm:justify-end"
+						>
 							{#if blogForm.id}
 								<button
 									type="button"
@@ -1415,7 +1441,9 @@
 				<section
 					class="bg-surface-900/80 rounded-xl border border-zinc-800/60 p-4 shadow-2xl shadow-black/40 backdrop-blur-md sm:rounded-2xl sm:p-5 md:p-8"
 				>
-					<div class="mb-5 grid gap-3 md:grid-cols-[minmax(0,1fr)_auto]">
+					<div
+						class="mb-5 grid gap-3 md:grid-cols-[minmax(0,1fr)_auto]"
+					>
 						<div class="relative w-full sm:flex-1 sm:min-w-[180px]">
 							<svg
 								class="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-zinc-500"
@@ -1437,7 +1465,9 @@
 								class="w-full pl-9 pr-3.5 py-2 rounded-lg bg-zinc-900 border border-zinc-700/60 text-zinc-100 text-sm placeholder-zinc-600 focus:outline-none focus:border-accent-500 focus:ring-1 focus:ring-accent-500/30 transition-all"
 							/>
 						</div>
-						<div class="grid w-full grid-cols-1 gap-3 min-[420px]:grid-cols-2 md:w-auto">
+						<div
+							class="grid w-full grid-cols-1 gap-3 min-[420px]:grid-cols-2 md:w-auto"
+						>
 							<select
 								bind:value={blogStatusFilter}
 								class="w-full rounded-lg border border-zinc-700/60 bg-zinc-900 px-3 py-2 text-sm text-zinc-300 transition-all focus:border-accent-500 focus:outline-none md:w-auto"
@@ -1718,19 +1748,30 @@
 							coverError={journalForm.coverError}
 						/>
 
-						<div class="space-y-3 rounded-xl border border-zinc-800/60 bg-zinc-900/40 p-4">
-							<div class="flex flex-wrap items-center justify-between gap-3">
+						<div
+							class="space-y-3 rounded-xl border border-zinc-800/60 bg-zinc-900/40 p-4"
+						>
+							<div
+								class="flex flex-wrap items-center justify-between gap-3"
+							>
 								<div>
-									<p class="text-xs font-semibold uppercase tracking-wide text-zinc-400">
-										{journalForm.id ? "Habits for Entry" : "Habits Today"}
+									<p
+										class="text-xs font-semibold uppercase tracking-wide text-zinc-400"
+									>
+										{journalForm.id
+											? "Habits for Entry"
+											: "Habits Today"}
 									</p>
 									{#if habitsError}
-										<p class="mt-1 text-xs text-red-400">{habitsError}</p>
+										<p class="mt-1 text-xs text-red-400">
+											{habitsError}
+										</p>
 									{/if}
 								</div>
 								<button
 									type="button"
-									onclick={() => (showHabitManager = !showHabitManager)}
+									onclick={() =>
+										(showHabitManager = !showHabitManager)}
 									class="text-xs font-semibold text-accent-400 transition-colors hover:text-accent-300"
 								>
 									Manage Habits
@@ -1739,41 +1780,59 @@
 
 							{#if habitsLoading}
 								<div class="flex flex-wrap gap-2">
-									<div class="h-9 w-24 animate-pulse rounded-lg bg-zinc-800/70"></div>
-									<div class="h-9 w-28 animate-pulse rounded-lg bg-zinc-800/70"></div>
-									<div class="h-9 w-20 animate-pulse rounded-lg bg-zinc-800/70"></div>
+									<div
+										class="h-9 w-24 animate-pulse rounded-lg bg-zinc-800/70"
+									></div>
+									<div
+										class="h-9 w-28 animate-pulse rounded-lg bg-zinc-800/70"
+									></div>
+									<div
+										class="h-9 w-20 animate-pulse rounded-lg bg-zinc-800/70"
+									></div>
 								</div>
 							{:else if habits.length === 0}
-								<p class="text-xs text-zinc-550">No habits yet.</p>
+								<p class="text-xs text-zinc-550">
+									No habits yet.
+								</p>
 							{:else}
 								<div class="flex flex-wrap gap-2">
 									{#each habits as habit (habit.id)}
 										<button
 											type="button"
-											onclick={() => toggleHabit(habit.id)}
+											onclick={() =>
+												toggleHabit(habit.id)}
 											class="rounded-lg border px-3 py-2 text-sm font-medium transition-all {selectedHabitIds.has(
 												habit.id,
 											)
 												? 'border-accent-500/50 bg-accent-600/20 text-accent-200 shadow-lg shadow-accent-600/10'
 												: 'border-zinc-700/60 bg-zinc-900 text-zinc-300 hover:border-zinc-600 hover:text-zinc-100'}"
 										>
-											{habit.emoji} {habit.name}
+											{habit.emoji}
+											{habit.name}
 										</button>
 									{/each}
 								</div>
 							{/if}
 
 							{#if showHabitManager}
-								<div class="space-y-3 border-t border-zinc-800/60 pt-4">
+								<div
+									class="space-y-3 border-t border-zinc-800/60 pt-4"
+								>
 									<div class="space-y-2">
 										{#each habits as habit, index (habit.id)}
-											<div class="flex flex-wrap items-center gap-2 rounded-lg border border-zinc-800/50 bg-zinc-950/30 px-3 py-2">
-												<span class="min-w-0 flex-1 truncate text-sm text-zinc-300">
-													{habit.emoji} {habit.name}
+											<div
+												class="flex flex-wrap items-center gap-2 rounded-lg border border-zinc-800/50 bg-zinc-950/30 px-3 py-2"
+											>
+												<span
+													class="min-w-0 flex-1 truncate text-sm text-zinc-300"
+												>
+													{habit.emoji}
+													{habit.name}
 												</span>
 												<button
 													type="button"
-													onclick={() => moveHabit(index, -1)}
+													onclick={() =>
+														moveHabit(index, -1)}
 													disabled={index === 0}
 													class="rounded border border-zinc-700/60 px-2 py-1 text-xs text-zinc-400 transition hover:border-accent-500/50 hover:text-accent-300 disabled:cursor-not-allowed disabled:opacity-40"
 												>
@@ -1781,15 +1840,20 @@
 												</button>
 												<button
 													type="button"
-													onclick={() => moveHabit(index, 1)}
-													disabled={index === habits.length - 1}
+													onclick={() =>
+														moveHabit(index, 1)}
+													disabled={index ===
+														habits.length - 1}
 													class="rounded border border-zinc-700/60 px-2 py-1 text-xs text-zinc-400 transition hover:border-accent-500/50 hover:text-accent-300 disabled:cursor-not-allowed disabled:opacity-40"
 												>
 													Down
 												</button>
 												<button
 													type="button"
-													onclick={() => handleDeleteHabit(habit)}
+													onclick={() =>
+														handleDeleteHabit(
+															habit,
+														)}
 													class="rounded border border-red-500/20 px-2 py-1 text-xs text-red-400 transition hover:border-red-500/40 hover:text-red-300"
 												>
 													Delete
@@ -1798,7 +1862,9 @@
 										{/each}
 									</div>
 
-									<div class="grid gap-2 sm:grid-cols-[5rem_minmax(0,1fr)_auto]">
+									<div
+										class="grid gap-2 sm:grid-cols-[5rem_minmax(0,1fr)_auto]"
+									>
 										<input
 											type="text"
 											bind:value={habitForm.emoji}
@@ -1821,7 +1887,9 @@
 										</button>
 									</div>
 									{#if habitForm.error}
-										<p class="text-xs text-red-400">{habitForm.error}</p>
+										<p class="text-xs text-red-400">
+											{habitForm.error}
+										</p>
 									{/if}
 								</div>
 							{/if}
@@ -1914,7 +1982,9 @@
 							</div>
 						{/if}
 
-						<div class="flex flex-col-reverse gap-3 sm:flex-row sm:justify-end">
+						<div
+							class="flex flex-col-reverse gap-3 sm:flex-row sm:justify-end"
+						>
 							{#if journalForm.id}
 								<button
 									type="button"
@@ -1969,7 +2039,9 @@
 				<section
 					class="bg-surface-900/80 rounded-xl border border-zinc-800/60 p-4 shadow-2xl shadow-black/40 backdrop-blur-md sm:rounded-2xl sm:p-5 md:p-8"
 				>
-					<div class="mb-5 grid gap-3 sm:grid-cols-[minmax(0,1fr)_auto]">
+					<div
+						class="mb-5 grid gap-3 sm:grid-cols-[minmax(0,1fr)_auto]"
+					>
 						<div class="relative w-full sm:flex-1 sm:min-w-[180px]">
 							<svg
 								class="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-zinc-500"
@@ -2101,28 +2173,55 @@
 				</section>
 			{:else if currentSection === "insights"}
 				<section class="space-y-5">
-					<div class="rounded-xl border border-zinc-800/60 bg-surface-900/80 p-4 shadow-2xl shadow-black/40 backdrop-blur-md sm:rounded-2xl sm:p-5 md:p-8">
-						<div class="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-							<div class="flex items-center justify-center gap-3 sm:justify-start">
+					<div
+						class="rounded-xl border border-zinc-800/60 bg-surface-900/80 p-4 shadow-2xl shadow-black/40 backdrop-blur-md sm:rounded-2xl sm:p-5 md:p-8"
+					>
+						<div
+							class="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between"
+						>
+							<div
+								class="flex items-center justify-center gap-3 sm:justify-start"
+							>
 								<button
 									type="button"
-									onclick={() => loadInsightPeriod(shiftPeriod(selectedInsightPeriod || currentPeriodKey(), -1))}
+									onclick={() =>
+										loadInsightPeriod(
+											shiftPeriod(
+												selectedInsightPeriod ||
+													currentPeriodKey(),
+												-1,
+											),
+										)}
 									class="rounded-lg border border-zinc-700/60 bg-zinc-900 px-3 py-2 text-sm text-zinc-300 transition hover:border-accent-500/50 hover:text-accent-300"
 								>
 									←
 								</button>
-								<p class="min-w-40 text-center text-sm font-semibold text-zinc-100">
-									{formatInsightPeriod(selectedInsightPeriod || currentPeriodKey())}
+								<p
+									class="min-w-40 text-center text-sm font-semibold text-zinc-100"
+								>
+									{formatInsightPeriod(
+										selectedInsightPeriod ||
+											currentPeriodKey(),
+									)}
 								</p>
 								<button
 									type="button"
-									onclick={() => loadInsightPeriod(shiftPeriod(selectedInsightPeriod || currentPeriodKey(), 1))}
+									onclick={() =>
+										loadInsightPeriod(
+											shiftPeriod(
+												selectedInsightPeriod ||
+													currentPeriodKey(),
+												1,
+											),
+										)}
 									class="rounded-lg border border-zinc-700/60 bg-zinc-900 px-3 py-2 text-sm text-zinc-300 transition hover:border-accent-500/50 hover:text-accent-300"
 								>
 									→
 								</button>
 							</div>
-							<div class="grid grid-cols-2 rounded-lg border border-zinc-800/70 bg-zinc-950/40 p-1">
+							<div
+								class="grid grid-cols-2 rounded-lg border border-zinc-800/70 bg-zinc-950/40 p-1"
+							>
 								<button
 									type="button"
 									onclick={() => (insightsTab = "monthly")}
@@ -2147,58 +2246,156 @@
 						</div>
 
 						{#if selectedInsightPeriod === currentPeriodKey()}
-							<div class="mt-4 rounded-lg border border-accent-500/20 bg-accent-500/10 px-4 py-3 text-sm text-accent-200">
+							<div
+								class="mt-4 rounded-lg border border-accent-500/20 bg-accent-500/10 px-4 py-3 text-sm text-accent-200"
+							>
 								This month's insights will be ready on {nextMonthReadyLabel()}.
 							</div>
 						{/if}
 
 						{#if insightsLoading}
-							<div class="mt-6 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+							<div
+								class="mt-6 grid gap-3 sm:grid-cols-2 lg:grid-cols-4"
+							>
 								{#each Array(4) as _}
-									<div class="h-24 animate-pulse rounded-xl border border-zinc-800/60 bg-zinc-900/60"></div>
+									<div
+										class="h-24 animate-pulse rounded-xl border border-zinc-800/60 bg-zinc-900/60"
+									></div>
 								{/each}
 							</div>
 						{:else if insightsError}
-							<p class="mt-6 rounded-lg border border-red-500/20 bg-red-500/10 px-4 py-3 text-sm text-red-400">{insightsError}</p>
+							<p
+								class="mt-6 rounded-lg border border-red-500/20 bg-red-500/10 px-4 py-3 text-sm text-red-400"
+							>
+								{insightsError}
+							</p>
 						{:else if !insight || !selectedInsightScope}
-							<p class="mt-6 rounded-lg border border-zinc-800/60 bg-zinc-900/40 px-4 py-6 text-center text-sm text-zinc-500">
-								No insights yet for this period — they're generated on the 1st of each month.
+							<p
+								class="mt-6 rounded-lg border border-zinc-800/60 bg-zinc-900/40 px-4 py-6 text-center text-sm text-zinc-500"
+							>
+								No insights yet for this period — they're
+								generated on the 1st of each month.
 							</p>
 						{:else}
-							<div class="mt-6 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
-								<div class="rounded-xl border border-zinc-800/60 bg-zinc-900/60 p-4">
+							<div
+								class="mt-6 grid gap-3 sm:grid-cols-2 lg:grid-cols-4"
+							>
+								<div
+									class="rounded-xl border border-zinc-800/60 bg-zinc-900/60 p-4"
+								>
 									<p class="text-2xl font-bold text-zinc-100">
-										{typeof selectedInsightScope.averageRating === "number"
+										{typeof selectedInsightScope.averageRating ===
+										"number"
 											? `${selectedInsightScope.averageRating.toFixed(1)} / 5`
 											: "—"}
 									</p>
-									<p class="mt-1 text-xs uppercase tracking-wide text-zinc-500">Avg Happiness</p>
-									<p class="mt-2 text-xs text-accent-300">{trendLabel(selectedInsightScope.trendSlopePerDay)}</p>
+									<p
+										class="mt-1 text-xs uppercase tracking-wide text-zinc-500"
+									>
+										Avg Happiness
+									</p>
+									<p class="mt-2 text-xs text-accent-300">
+										{trendLabel(
+											selectedInsightScope.trendSlopePerDay,
+										)}
+									</p>
 								</div>
-								<div class="rounded-xl border border-zinc-800/60 bg-zinc-900/60 p-4">
-									<p class="text-2xl font-bold text-zinc-100">{selectedInsightScope.entryCount}</p>
-									<p class="mt-1 text-xs uppercase tracking-wide text-zinc-500">Total Entries</p>
+								<div
+									class="rounded-xl border border-zinc-800/60 bg-zinc-900/60 p-4"
+								>
+									<p class="text-2xl font-bold text-zinc-100">
+										{selectedInsightScope.entryCount}
+									</p>
+									<p
+										class="mt-1 text-xs uppercase tracking-wide text-zinc-500"
+									>
+										Total Entries
+									</p>
 								</div>
-								<div class="rounded-xl border border-zinc-800/60 bg-zinc-900/60 p-4">
-									<p class="text-2xl font-bold text-zinc-100">{selectedInsightScope.streaks.longestHighDays}</p>
-									<p class="mt-1 text-xs uppercase tracking-wide text-zinc-500">Longest High Streak</p>
+								<div
+									class="rounded-xl border border-zinc-800/60 bg-zinc-900/60 p-4"
+								>
+									<p class="text-2xl font-bold text-zinc-100">
+										{selectedInsightScope.streaks
+											.longestHighDays}
+									</p>
+									<p
+										class="mt-1 text-xs uppercase tracking-wide text-zinc-500"
+									>
+										Longest High Streak
+									</p>
 								</div>
-								<div class="rounded-xl border border-zinc-800/60 bg-zinc-900/60 p-4">
-									<p class="text-2xl font-bold text-zinc-100">{selectedInsightScope.streaks.longestLowDays}</p>
-									<p class="mt-1 text-xs uppercase tracking-wide text-zinc-500">Longest Low Streak</p>
+								<div
+									class="rounded-xl border border-zinc-800/60 bg-zinc-900/60 p-4"
+								>
+									<p class="text-2xl font-bold text-zinc-100">
+										{selectedInsightScope.streaks
+											.longestLowDays}
+									</p>
+									<p
+										class="mt-1 text-xs uppercase tracking-wide text-zinc-500"
+									>
+										Longest Low Streak
+									</p>
 								</div>
 							</div>
 
-							<div class="mt-5 rounded-xl border border-zinc-800/60 bg-zinc-900/50 p-4">
-								<p class="mb-3 text-sm font-semibold text-zinc-200">Daily Ratings</p>
+							<div
+								class="mt-5 rounded-xl border border-zinc-800/60 bg-zinc-900/50 p-4"
+							>
+								<p
+									class="mb-3 text-sm font-semibold text-zinc-200"
+								>
+									Daily Ratings
+								</p>
 								{#if selectedInsightScope.dailyRatings?.length}
-									<svg viewBox="0 0 640 220" class="h-56 w-full overflow-visible">
-										<line x1="24" x2="616" y1="122" y2="122" stroke="currentColor" class="text-zinc-700" stroke-dasharray="4 6" />
-										<path d={chartPoints(selectedInsightScope.dailyRatings)} fill="none" stroke="currentColor" class="text-accent-500" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" />
+									<svg
+										viewBox="0 0 640 220"
+										class="h-56 w-full overflow-visible"
+									>
+										<line
+											x1="24"
+											x2="616"
+											y1="122"
+											y2="122"
+											stroke="currentColor"
+											class="text-zinc-700"
+											stroke-dasharray="4 6"
+										/>
+										<path
+											d={chartPoints(
+												selectedInsightScope.dailyRatings,
+											)}
+											fill="none"
+											stroke="currentColor"
+											class="text-accent-500"
+											stroke-width="3"
+											stroke-linecap="round"
+											stroke-linejoin="round"
+										/>
 										{#each selectedInsightScope.dailyRatings as point}
 											<circle
-												cx={selectedInsightScope.dailyRatings.length === 1 ? 320 : 24 + ((point.time - selectedInsightScope.dailyRatings[0].time) / (selectedInsightScope.dailyRatings[selectedInsightScope.dailyRatings.length - 1].time - selectedInsightScope.dailyRatings[0].time)) * 592}
-												cy={24 + ((5 - point.rating) / 4) * 172}
+												cx={selectedInsightScope
+													.dailyRatings.length === 1
+													? 320
+													: 24 +
+														((point.time -
+															selectedInsightScope
+																.dailyRatings[0]
+																.time) /
+															(selectedInsightScope
+																.dailyRatings[
+																selectedInsightScope
+																	.dailyRatings
+																	.length - 1
+															].time -
+																selectedInsightScope
+																	.dailyRatings[0]
+																	.time)) *
+															592}
+												cy={24 +
+													((5 - point.rating) / 4) *
+														172}
 												r="3"
 												fill="currentColor"
 												class="text-accent-300"
@@ -2206,35 +2403,58 @@
 										{/each}
 									</svg>
 								{:else}
-									<p class="py-8 text-center text-sm text-zinc-550">No daily ratings for this scope.</p>
+									<p
+										class="py-8 text-center text-sm text-zinc-550"
+									>
+										No daily ratings for this scope.
+									</p>
 								{/if}
 							</div>
 
-							<div class="mt-5 rounded-xl border border-zinc-800/60 bg-zinc-900/50 p-4">
-								<p class="mb-3 text-sm font-semibold text-zinc-200">Groq Insights</p>
+							<div
+								class="mt-5 rounded-xl border border-zinc-800/60 bg-zinc-900/50 p-4"
+							>
+								<p
+									class="mb-3 text-sm font-semibold text-zinc-200"
+								>
+									Groq Insights
+								</p>
 								{#if selectedInsightScope.textAnalysis?.source === "groq-api" && selectedInsightResult}
 									{#if selectedInsightResult.briefSummary}
-										<blockquote class="rounded-lg border-l-2 border-accent-500 bg-accent-500/10 px-4 py-3 text-sm text-accent-100">
+										<blockquote
+											class="rounded-lg border-l-2 border-accent-500 bg-accent-500/10 px-4 py-3 text-sm text-accent-100"
+										>
 											"{selectedInsightResult.briefSummary}"
 										</blockquote>
 									{/if}
 									<div class="mt-4 flex flex-wrap gap-2">
 										{#if selectedInsightResult.overallSentiment}
-											<span class="rounded-full border border-zinc-700/60 bg-zinc-950/50 px-2.5 py-1 text-xs text-zinc-300">{selectedInsightResult.overallSentiment}</span>
+											<span
+												class="rounded-full border border-zinc-700/60 bg-zinc-950/50 px-2.5 py-1 text-xs text-zinc-300"
+												>{selectedInsightResult.overallSentiment}</span
+											>
 										{/if}
 										{#if selectedInsightResult.primaryEmotion}
-											<span class="rounded-full border border-accent-500/20 bg-accent-500/10 px-2.5 py-1 text-xs text-accent-300">{selectedInsightResult.primaryEmotion}</span>
+											<span
+												class="rounded-full border border-accent-500/20 bg-accent-500/10 px-2.5 py-1 text-xs text-accent-300"
+												>{selectedInsightResult.primaryEmotion}</span
+											>
 										{/if}
 									</div>
 									{#if selectedInsightResult.keyThemes?.length}
 										<div class="mt-4 flex flex-wrap gap-2">
 											{#each selectedInsightResult.keyThemes as theme}
-												<span class="rounded bg-zinc-800/80 px-2 py-1 text-xs text-zinc-300">{theme}</span>
+												<span
+													class="rounded bg-zinc-800/80 px-2 py-1 text-xs text-zinc-300"
+													>{theme}</span
+												>
 											{/each}
 										</div>
 									{/if}
 									{#if selectedInsightResult.patterns?.length}
-										<ul class="mt-4 list-disc space-y-1 pl-5 text-sm text-zinc-350">
+										<ul
+											class="mt-4 list-disc space-y-1 pl-5 text-sm text-zinc-350"
+										>
 											{#each selectedInsightResult.patterns as pattern}
 												<li>{pattern}</li>
 											{/each}
@@ -2242,70 +2462,164 @@
 									{/if}
 									{#if selectedInsightResult.ratingCorrelations?.length}
 										<div class="mt-4 overflow-x-auto">
-											<table class="w-full text-left text-xs">
+											<table
+												class="w-full text-left text-xs"
+											>
 												<thead class="text-zinc-500">
-													<tr><th class="py-2">Factor</th><th class="py-2">Impact</th><th class="py-2">Avg Rating</th></tr>
+													<tr
+														><th class="py-2"
+															>Factor</th
+														><th class="py-2"
+															>Impact</th
+														><th class="py-2"
+															>Avg Rating</th
+														></tr
+													>
 												</thead>
-												<tbody class="divide-y divide-zinc-800/70 text-zinc-300">
+												<tbody
+													class="divide-y divide-zinc-800/70 text-zinc-300"
+												>
 													{#each selectedInsightResult.ratingCorrelations as row}
-														<tr><td class="py-2">{row.factor}</td><td class="py-2">{row.impact}</td><td class="py-2">{row.averageRating}</td></tr>
+														<tr
+															><td class="py-2"
+																>{row.factor}</td
+															><td class="py-2"
+																>{row.impact}</td
+															><td class="py-2"
+																>{row.averageRating}</td
+															></tr
+														>
 													{/each}
 												</tbody>
 											</table>
 										</div>
 									{/if}
 								{:else if selectedLocalAnalysis}
-									<p class="rounded-lg border border-zinc-800/60 bg-zinc-950/40 px-4 py-3 text-sm text-zinc-500">
-										AI analysis unavailable for this period — showing keyword data only
+									<p
+										class="rounded-lg border border-zinc-800/60 bg-zinc-950/40 px-4 py-3 text-sm text-zinc-500"
+									>
+										AI analysis unavailable for this period
+										— showing keyword data only
 									</p>
 									<div class="mt-4 grid gap-4 md:grid-cols-2">
 										<div>
-											<p class="mb-2 text-xs font-semibold uppercase tracking-wide text-zinc-500">High-rated keywords</p>
+											<p
+												class="mb-2 text-xs font-semibold uppercase tracking-wide text-zinc-500"
+											>
+												High-rated keywords
+											</p>
 											<div class="flex flex-wrap gap-2">
 												{#each Object.entries(selectedLocalAnalysis.keywordFrequencyByRating?.highRated ?? {}) as [word, count]}
-													<span class="rounded bg-accent-500/10 px-2 py-1 text-xs text-accent-300">{word} {count}</span>
+													<span
+														class="rounded bg-accent-500/10 px-2 py-1 text-xs text-accent-300"
+														>{word} {count}</span
+													>
 												{/each}
 											</div>
 										</div>
 										<div>
-											<p class="mb-2 text-xs font-semibold uppercase tracking-wide text-zinc-500">Low-rated keywords</p>
+											<p
+												class="mb-2 text-xs font-semibold uppercase tracking-wide text-zinc-500"
+											>
+												Low-rated keywords
+											</p>
 											<div class="flex flex-wrap gap-2">
 												{#each Object.entries(selectedLocalAnalysis.keywordFrequencyByRating?.lowRated ?? {}) as [word, count]}
-													<span class="rounded bg-zinc-800 px-2 py-1 text-xs text-zinc-300">{word} {count}</span>
+													<span
+														class="rounded bg-zinc-800 px-2 py-1 text-xs text-zinc-300"
+														>{word} {count}</span
+													>
 												{/each}
 											</div>
 										</div>
 									</div>
 									<div class="mt-4">
-										<p class="mb-2 text-xs text-zinc-500">Lexical sentiment</p>
-										<div class="h-2 rounded-full bg-zinc-800">
-											<div class="h-2 rounded-full bg-accent-500" style={`width: ${Math.min(100, Math.max(0, 50 + (selectedLocalAnalysis.sentimentVsRating?.lexicalSentimentScore ?? 0) * 5))}%`}></div>
+										<p class="mb-2 text-xs text-zinc-500">
+											Lexical sentiment
+										</p>
+										<div
+											class="h-2 rounded-full bg-zinc-800"
+										>
+											<div
+												class="h-2 rounded-full bg-accent-500"
+												style={`width: ${Math.min(100, Math.max(0, 50 + (selectedLocalAnalysis.sentimentVsRating?.lexicalSentimentScore ?? 0) * 5))}%`}
+											></div>
 										</div>
 									</div>
 								{/if}
 							</div>
 
 							{#if selectedInsightResult?.habitCorrelations?.length}
-								<div class="mt-5 rounded-xl border border-zinc-800/60 bg-zinc-900/50 p-4">
-									<p class="mb-3 text-sm font-semibold text-zinc-200">Habit Correlations</p>
+								<div
+									class="mt-5 rounded-xl border border-zinc-800/60 bg-zinc-900/50 p-4"
+								>
+									<p
+										class="mb-3 text-sm font-semibold text-zinc-200"
+									>
+										Habit Correlations
+									</p>
 									<div class="grid gap-3 md:grid-cols-2">
 										{#each selectedInsightResult.habitCorrelations as correlation}
-											<div class="rounded-xl border border-zinc-800/60 bg-zinc-950/30 p-4">
-												<p class="font-semibold text-zinc-100">{correlation.habit}</p>
-												<div class="mt-3 space-y-2 text-xs text-zinc-400">
-													<div class="grid grid-cols-[8.5rem_minmax(0,1fr)_3rem] items-center gap-2">
-														<span>Completed days avg:</span>
-														<div class="h-2 rounded-full bg-zinc-800"><div class="h-2 rounded-full bg-accent-500" style={`width: ${ratingBarWidth(correlation.averageRatingOnCompletedDays)}`}></div></div>
-														<span class="text-zinc-300">{correlation.averageRatingOnCompletedDays?.toFixed?.(1) ?? "—"}</span>
+											<div
+												class="rounded-xl border border-zinc-800/60 bg-zinc-950/30 p-4"
+											>
+												<p
+													class="font-semibold text-zinc-100"
+												>
+													{correlation.habit}
+												</p>
+												<div
+													class="mt-3 space-y-2 text-xs text-zinc-400"
+												>
+													<div
+														class="grid grid-cols-[8.5rem_minmax(0,1fr)_3rem] items-center gap-2"
+													>
+														<span
+															>Completed days avg:</span
+														>
+														<div
+															class="h-2 rounded-full bg-zinc-800"
+														>
+															<div
+																class="h-2 rounded-full bg-accent-500"
+																style={`width: ${ratingBarWidth(correlation.averageRatingOnCompletedDays)}`}
+															></div>
+														</div>
+														<span
+															class="text-zinc-300"
+															>{correlation.averageRatingOnCompletedDays?.toFixed?.(
+																1,
+															) ?? "—"}</span
+														>
 													</div>
-													<div class="grid grid-cols-[8.5rem_minmax(0,1fr)_3rem] items-center gap-2">
-														<span>Missed days avg:</span>
-														<div class="h-2 rounded-full bg-zinc-800"><div class="h-2 rounded-full bg-zinc-500" style={`width: ${ratingBarWidth(correlation.averageRatingOnMissedDays)}`}></div></div>
-														<span class="text-zinc-300">{correlation.averageRatingOnMissedDays?.toFixed?.(1) ?? "—"}</span>
+													<div
+														class="grid grid-cols-[8.5rem_minmax(0,1fr)_3rem] items-center gap-2"
+													>
+														<span
+															>Missed days avg:</span
+														>
+														<div
+															class="h-2 rounded-full bg-zinc-800"
+														>
+															<div
+																class="h-2 rounded-full bg-zinc-500"
+																style={`width: ${ratingBarWidth(correlation.averageRatingOnMissedDays)}`}
+															></div>
+														</div>
+														<span
+															class="text-zinc-300"
+															>{correlation.averageRatingOnMissedDays?.toFixed?.(
+																1,
+															) ?? "—"}</span
+														>
 													</div>
 												</div>
 												{#if correlation.insight}
-													<p class="mt-3 text-sm text-zinc-350">"{correlation.insight}"</p>
+													<p
+														class="mt-3 text-sm text-zinc-350"
+													>
+														"{correlation.insight}"
+													</p>
 												{/if}
 											</div>
 										{/each}
@@ -2314,20 +2628,43 @@
 							{/if}
 
 							{#if selectedInsightScope.habitSummary?.byHabit}
-								<div class="mt-5 rounded-xl border border-zinc-800/60 bg-zinc-900/50 p-4">
-									<p class="mb-3 text-sm font-semibold text-zinc-200">Habit Overview</p>
+								<div
+									class="mt-5 rounded-xl border border-zinc-800/60 bg-zinc-900/50 p-4"
+								>
+									<p
+										class="mb-3 text-sm font-semibold text-zinc-200"
+									>
+										Habit Overview
+									</p>
 									<div class="space-y-4">
 										{#each Object.entries(selectedInsightScope.habitSummary.byHabit) as [habitId, habit]}
 											<div>
-												<div class="mb-2 flex items-center justify-between gap-3">
-													<p class="text-sm text-zinc-300">{habit.name}</p>
-													<p class="text-xs font-mono text-zinc-500">{habit.count} / {daysInPeriod(selectedInsightPeriod)} days</p>
+												<div
+													class="mb-2 flex items-center justify-between gap-3"
+												>
+													<p
+														class="text-sm text-zinc-300"
+													>
+														{habit.name}
+													</p>
+													<p
+														class="text-xs font-mono text-zinc-500"
+													>
+														{habit.count} / {daysInPeriod(
+															selectedInsightPeriod,
+														)} days
+													</p>
 												</div>
-												<div class="flex flex-wrap gap-1">
+												<div
+													class="flex flex-wrap gap-1"
+												>
 													{#each Array(daysInPeriod(selectedInsightPeriod)) as _, index}
 														<span
 															title={`${selectedInsightPeriod}-${String(index + 1).padStart(2, "0")}`}
-															class="h-2.5 w-2.5 rounded-full border {habitCompletedOnDate(habit.dates, index + 1)
+															class="h-2.5 w-2.5 rounded-full border {habitCompletedOnDate(
+																habit.dates,
+																index + 1,
+															)
 																? 'border-accent-500 bg-accent-500'
 																: 'border-zinc-700 bg-transparent'}"
 														></span>
