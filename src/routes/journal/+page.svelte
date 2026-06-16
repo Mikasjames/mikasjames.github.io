@@ -2,7 +2,12 @@
 	import { onMount, onDestroy } from "svelte";
 	import { goto } from "$app/navigation";
 	import { subscribeToAuth, logout } from "$lib/firebase/auth";
-	import { getJournalEntries, type JournalEntry } from "$lib/firebase/firestore.svelte";
+	import {
+		getJournalEntries,
+		getHabitLogsForDates,
+		type JournalEntry,
+		type HabitLog,
+	} from "$lib/firebase/firestore.svelte";
 	import { renderMarkdown } from "$lib/utils/renderMarkdown";
 	import type { User } from "firebase/auth";
 
@@ -13,6 +18,7 @@
 	let errorMsg = $state("");
 	let searchQuery = $state("");
 	let selectedEntryId = $state<string | null>(null);
+	let habitLogsByDate = $state<Record<string, HabitLog[]>>({});
 
 	const unsub = subscribeToAuth((u) => {
 		user = u;
@@ -28,6 +34,17 @@
 		errorMsg = "";
 		try {
 			entries = await getJournalEntries();
+			if (user) {
+				const dates = entries
+					.map((entry) => entryDateKey(entry))
+					.filter((date): date is string => Boolean(date));
+				try {
+					habitLogsByDate = await getHabitLogsForDates(user.uid, dates);
+				} catch (habitErr) {
+					console.warn("Habit logs unavailable:", habitErr);
+					habitLogsByDate = {};
+				}
+			}
 		} catch (err: unknown) {
 			console.error("Error loading journal entries:", err);
 			errorMsg = err instanceof Error ? err.message : "Failed to load journal entries. Check Firestore rules.";
@@ -82,6 +99,15 @@
 			hour: "2-digit",
 			minute: "2-digit"
 		});
+	}
+
+	function entryDateKey(entry: JournalEntry) {
+		if (!entry.createdAt) return "";
+		return entry.createdAt.toLocaleDateString("en-CA");
+	}
+
+	function entryHabitLogs(entry: JournalEntry) {
+		return habitLogsByDate[entryDateKey(entry)] ?? [];
 	}
 
 	function entryPreview(entry: JournalEntry) {
@@ -247,6 +273,15 @@
 														</span>
 													</div>
 												</div>
+												{#if entryHabitLogs(entry).length}
+													<div class="mt-2 flex flex-wrap gap-1.5">
+														{#each entryHabitLogs(entry) as log (log.id)}
+															<span class="rounded-full border border-zinc-800 bg-zinc-950/50 px-2 py-0.5 text-[10px] text-zinc-500">
+																{log.emoji} {log.habitName}
+															</span>
+														{/each}
+													</div>
+												{/if}
 											</div>
 										</div>
 									</button>
@@ -289,6 +324,15 @@
 											</span>
 										{/if}
 									</div>
+									{#if entryHabitLogs(selectedEntry).length}
+										<div class="mb-3 flex flex-wrap gap-1.5">
+											{#each entryHabitLogs(selectedEntry) as log (log.id)}
+												<span class="rounded-full border border-zinc-800 bg-zinc-950/40 px-2.5 py-1 text-xs text-zinc-500">
+													{log.emoji} {log.habitName}
+												</span>
+											{/each}
+										</div>
+									{/if}
 									<h2 class="text-2xl font-bold text-zinc-100 tracking-tight">{selectedEntry.title || "Untitled Entry"}</h2>
 									{#if selectedEntry.happinessRating}
 										<div

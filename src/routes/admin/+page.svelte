@@ -20,6 +20,18 @@
 		deleteJournalEntry,
 		type JournalEntry,
 		getRecentMediaItems,
+		getHabits,
+		addHabit,
+		deleteHabit,
+		updateHabitOrder,
+		getHabitLogsForDate,
+		upsertHabitLog,
+		getLatestMonthlyInsight,
+		getMonthlyInsightByPeriod,
+		type Habit,
+		type HabitLog,
+		type MonthlyInsight,
+		type InsightScope,
 	} from "$lib/firebase/firestore.svelte";
 	import {
 		extractImageUrlsFromMarkdown,
@@ -97,10 +109,27 @@
 	let mediaLoadError = $state("");
 	let deletingMediaIds = $state<Set<string>>(new Set());
 
-	let currentSection = $state<"blogs" | "journal">("blogs");
+	let currentSection = $state<"blogs" | "journal" | "insights">("blogs");
 	let journalEntries = $state<JournalEntry[]>([]);
 	let journalEntriesLoading = $state(false);
 	let journalEntriesLoadError = $state("");
+	let habits = $state<Habit[]>([]);
+	let todayHabitLogs = $state<HabitLog[]>([]);
+	let selectedHabitIds = $state<Set<string>>(new Set());
+	let habitsLoading = $state(false);
+	let habitsError = $state("");
+	let showHabitManager = $state(false);
+	let habitForm = $state({
+		name: "",
+		emoji: "",
+		submitting: false,
+		error: "",
+	});
+	let insight = $state<MonthlyInsight | null>(null);
+	let insightsLoading = $state(false);
+	let insightsError = $state("");
+	let insightsTab = $state<"monthly" | "yearToDate">("monthly");
+	let selectedInsightPeriod = $state("");
 
 	let blogSearch = $state("");
 	let blogStatusFilter = $state<"all" | "published" | "unlisted" | "draft">(
@@ -110,6 +139,26 @@
 
 	let journalSearch = $state("");
 	let journalSort = $state<"newest" | "oldest">("newest");
+
+	let selectedInsightScope = $derived<InsightScope | null>(
+		insight
+			? insightsTab === "monthly"
+				? (insight.monthly ?? null)
+				: (insight.yearToDate ?? null)
+			: null,
+	);
+
+	let selectedInsightResult = $derived<any>(
+		selectedInsightScope?.textAnalysis?.source === "groq-api"
+			? selectedInsightScope.textAnalysis.result
+			: null,
+	);
+
+	let selectedLocalAnalysis = $derived<any>(
+		selectedInsightScope?.textAnalysis?.source === "local-fallback"
+			? selectedInsightScope.textAnalysis
+			: selectedInsightScope?.textAnalysis?.fallback,
+	);
 
 	let filteredPosts = $derived.by(() => {
 		let result = posts;
@@ -250,6 +299,215 @@
 			journalEntriesLoading = false;
 		}
 	}
+
+	function todayDateKey() {
+		return new Date().toLocaleDateString("en-CA");
+	}
+
+	async function loadHabits() {
+		if (!user) return;
+		habitsLoading = true;
+		habitsError = "";
+		try {
+			habits = await getHabits(user.uid);
+			todayHabitLogs = await getHabitLogsForDate(user.uid, todayDateKey());
+			selectedHabitIds = new Set(todayHabitLogs.map((log) => log.habitId));
+		} catch (err: unknown) {
+			console.error("Failed to load habits:", err);
+			habitsError =
+				err instanceof Error ? err.message : "Failed to load habits.";
+		} finally {
+			habitsLoading = false;
+		}
+	}
+
+	function toggleHabit(habitId: string) {
+		const next = new Set(selectedHabitIds);
+		if (next.has(habitId)) {
+			next.delete(habitId);
+		} else {
+			next.add(habitId);
+		}
+		selectedHabitIds = next;
+	}
+
+	async function handleAddHabit() {
+		if (!user) return;
+		if (!habitForm.name.trim()) {
+			habitForm.error = "Habit name is required.";
+			return;
+		}
+		habitForm.submitting = true;
+		habitForm.error = "";
+		try {
+			await addHabit({
+				name: habitForm.name.trim(),
+				emoji: habitForm.emoji.trim() || "•",
+				ownerUid: user.uid,
+				order: habits.length,
+			});
+			habitForm.name = "";
+			habitForm.emoji = "";
+			await loadHabits();
+		} catch (err: unknown) {
+			habitForm.error =
+				err instanceof Error ? err.message : "Failed to add habit.";
+		} finally {
+			habitForm.submitting = false;
+		}
+	}
+
+	async function handleDeleteHabit(habit: Habit) {
+		if (!confirm(`Delete "${habit.name}" from habits?`)) return;
+		await deleteHabit(habit.id);
+		await loadHabits();
+	}
+
+	async function moveHabit(index: number, direction: -1 | 1) {
+		const targetIndex = index + direction;
+		if (targetIndex < 0 || targetIndex >= habits.length) return;
+		const reordered = [...habits];
+		const [moved] = reordered.splice(index, 1);
+		reordered.splice(targetIndex, 0, moved);
+		habits = reordered.map((habit, order) => ({ ...habit, order }));
+		await Promise.all(
+			habits.map((habit, order) => updateHabitOrder(habit.id, order)),
+		);
+		await loadHabits();
+	}
+
+	async function saveSelectedHabitLogs(journalEntryId: string | null) {
+		if (!user || selectedHabitIds.size === 0) return;
+		const date = todayDateKey();
+		const selectedHabits = habits.filter((habit) =>
+			selectedHabitIds.has(habit.id),
+		);
+		await Promise.all(
+			selectedHabits.map((habit) =>
+				upsertHabitLog({
+					habit,
+					ownerUid: user!.uid,
+					date,
+					journalEntryId,
+				}),
+			),
+		);
+	}
+
+	async function loadLatestInsight() {
+		if (!user) return;
+		insightsLoading = true;
+		insightsError = "";
+		try {
+			insight = await getLatestMonthlyInsight(user.uid);
+			selectedInsightPeriod = insight?.period ?? currentPeriodKey();
+		} catch (err: unknown) {
+			console.error("Failed to load insights:", err);
+			insightsError =
+				err instanceof Error ? err.message : "Failed to load insights.";
+		} finally {
+			insightsLoading = false;
+		}
+	}
+
+	async function loadInsightPeriod(period: string) {
+		if (!user) return;
+		insightsLoading = true;
+		insightsError = "";
+		try {
+			selectedInsightPeriod = period;
+			insight = await getMonthlyInsightByPeriod(user.uid, period);
+		} catch (err: unknown) {
+			console.error("Failed to load insight period:", err);
+			insightsError =
+				err instanceof Error ? err.message : "Failed to load insight.";
+		} finally {
+			insightsLoading = false;
+		}
+	}
+
+	function shiftPeriod(period: string, delta: number) {
+		const [year, month] = period.split("-").map(Number);
+		const next = new Date(Date.UTC(year, month - 1 + delta, 1));
+		return `${next.getUTCFullYear()}-${String(
+			next.getUTCMonth() + 1,
+		).padStart(2, "0")}`;
+	}
+
+	function currentPeriodKey() {
+		const now = new Date();
+		return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(
+			2,
+			"0",
+		)}`;
+	}
+
+	function nextMonthReadyLabel() {
+		const now = new Date();
+		const next = new Date(now.getFullYear(), now.getMonth() + 1, 1);
+		return next.toLocaleDateString("en-US", {
+			month: "long",
+			day: "numeric",
+			year: "numeric",
+		});
+	}
+
+	function formatInsightPeriod(period: string) {
+		const [year, month] = period.split("-").map(Number);
+		if (!year || !month) return period;
+		return new Date(year, month - 1, 1).toLocaleDateString("en-US", {
+			month: "long",
+			year: "numeric",
+		});
+	}
+
+	function daysInPeriod(period: string) {
+		const [year, month] = period.split("-").map(Number);
+		if (!year || !month) return 31;
+		return new Date(year, month, 0).getDate();
+	}
+
+	function ratingBarWidth(value: number | null | undefined) {
+		if (typeof value !== "number") return "0%";
+		return `${Math.max(0, Math.min(100, (value / 5) * 100))}%`;
+	}
+
+	function trendLabel(value: number | null | undefined) {
+		if (typeof value !== "number" || Math.abs(value) < 0.01) {
+			return "→ steady";
+		}
+		return value > 0 ? "↑ improving" : "↓ declining";
+	}
+
+	function chartPoints(points: InsightScope["dailyRatings"]) {
+		if (!points?.length) return "";
+		const width = 640;
+		const height = 220;
+		const pad = 24;
+		const sorted = [...points].sort((a, b) => a.time - b.time);
+		const minTime = sorted[0].time;
+		const maxTime = sorted[sorted.length - 1].time;
+		return sorted
+			.map((point, index) => {
+				const x =
+					maxTime === minTime
+						? width / 2
+						: pad +
+							((point.time - minTime) / (maxTime - minTime)) *
+								(width - pad * 2);
+				const y =
+					pad + ((5 - point.rating) / 4) * (height - pad * 2);
+				return `${index === 0 ? "M" : "L"} ${x.toFixed(1)} ${y.toFixed(
+					1,
+				)}`;
+			})
+			.join(" ");
+	}
+
+	function habitCompletedOnDate(dates: string[], day: number) {
+		const date = `${selectedInsightPeriod}-${String(day).padStart(2, "0")}`;
+		return dates.includes(date);
+	}
 	async function loadRecentMedia() {
 		try {
 			recentMediaItems = await getRecentMediaItems(4);
@@ -271,6 +529,8 @@
 			await loadPosts();
 			await loadRecentMedia();
 			await loadJournalEntries();
+			await loadHabits();
+			await loadLatestInsight();
 		}
 	});
 
@@ -396,13 +656,16 @@
 
 			if (journalForm.id) {
 				await updateJournalEntry(journalForm.id, payload);
+				await saveSelectedHabitLogs(journalForm.id);
 				journalForm.successMsg = "Journal entry updated successfully!";
 			} else {
-				await createJournalEntry(payload);
+				const entryId = await createJournalEntry(payload);
+				await saveSelectedHabitLogs(entryId);
 				journalForm.successMsg = "Journal entry added successfully!";
 			}
 			resetJournalForm();
 			await loadJournalEntries();
+			await loadHabits();
 		} catch (err: unknown) {
 			journalForm.error =
 				err instanceof Error
@@ -439,6 +702,7 @@
 		journalForm.happinessRating = 3;
 		journalForm.successMsg = "";
 		journalForm.error = "";
+		selectedHabitIds = new Set(todayHabitLogs.map((log) => log.habitId));
 	}
 
 	async function handleDeleteJournal(entry: JournalEntry) {
@@ -816,9 +1080,7 @@
 				</div>
 				<div class="grid w-full grid-cols-2 gap-2 sm:flex sm:w-auto sm:gap-3 sm:self-auto">
 					<a
-						href={currentSection === "blogs"
-							? "/blogs/"
-							: "/journal/"}
+						href={currentSection === "blogs" ? "/blogs/" : "/journal/"}
 						class="rounded-lg border border-zinc-700/60 px-3 py-2 text-center text-sm font-medium text-zinc-400 transition-all duration-200 hover:border-zinc-600 hover:text-zinc-200 sm:px-4"
 					>
 						View {currentSection === "blogs" ? "Blog" : "Journal"}
@@ -859,6 +1121,21 @@
 				>
 					Personal Journal
 					{#if currentSection === "journal"}
+						<span
+							class="absolute bottom-0 left-0 right-0 h-0.5 bg-accent-500 rounded-t-full"
+						></span>
+					{/if}
+				</button>
+				<button
+					type="button"
+					onclick={() => (currentSection = "insights")}
+					class="relative shrink-0 pb-3 text-sm font-semibold tracking-wide transition-all duration-200 {currentSection ===
+					'insights'
+						? 'text-accent-400'
+						: 'text-zinc-400 hover:text-zinc-200'}"
+				>
+					Insights
+					{#if currentSection === "insights"}
 						<span
 							class="absolute bottom-0 left-0 right-0 h-0.5 bg-accent-500 rounded-t-full"
 						></span>
@@ -1415,6 +1692,115 @@
 							coverError={journalForm.coverError}
 						/>
 
+						<div class="space-y-3 rounded-xl border border-zinc-800/60 bg-zinc-900/40 p-4">
+							<div class="flex flex-wrap items-center justify-between gap-3">
+								<div>
+									<p class="text-xs font-semibold uppercase tracking-wide text-zinc-400">
+										Habits Today
+									</p>
+									{#if habitsError}
+										<p class="mt-1 text-xs text-red-400">{habitsError}</p>
+									{/if}
+								</div>
+								<button
+									type="button"
+									onclick={() => (showHabitManager = !showHabitManager)}
+									class="text-xs font-semibold text-accent-400 transition-colors hover:text-accent-300"
+								>
+									Manage Habits
+								</button>
+							</div>
+
+							{#if habitsLoading}
+								<div class="flex flex-wrap gap-2">
+									<div class="h-9 w-24 animate-pulse rounded-lg bg-zinc-800/70"></div>
+									<div class="h-9 w-28 animate-pulse rounded-lg bg-zinc-800/70"></div>
+									<div class="h-9 w-20 animate-pulse rounded-lg bg-zinc-800/70"></div>
+								</div>
+							{:else if habits.length === 0}
+								<p class="text-xs text-zinc-550">No habits yet.</p>
+							{:else}
+								<div class="flex flex-wrap gap-2">
+									{#each habits as habit (habit.id)}
+										<button
+											type="button"
+											onclick={() => toggleHabit(habit.id)}
+											class="rounded-lg border px-3 py-2 text-sm font-medium transition-all {selectedHabitIds.has(
+												habit.id,
+											)
+												? 'border-accent-500/50 bg-accent-600/20 text-accent-200 shadow-lg shadow-accent-600/10'
+												: 'border-zinc-700/60 bg-zinc-900 text-zinc-300 hover:border-zinc-600 hover:text-zinc-100'}"
+										>
+											{habit.emoji} {habit.name}
+										</button>
+									{/each}
+								</div>
+							{/if}
+
+							{#if showHabitManager}
+								<div class="space-y-3 border-t border-zinc-800/60 pt-4">
+									<div class="space-y-2">
+										{#each habits as habit, index (habit.id)}
+											<div class="flex flex-wrap items-center gap-2 rounded-lg border border-zinc-800/50 bg-zinc-950/30 px-3 py-2">
+												<span class="min-w-0 flex-1 truncate text-sm text-zinc-300">
+													{habit.emoji} {habit.name}
+												</span>
+												<button
+													type="button"
+													onclick={() => moveHabit(index, -1)}
+													disabled={index === 0}
+													class="rounded border border-zinc-700/60 px-2 py-1 text-xs text-zinc-400 transition hover:border-accent-500/50 hover:text-accent-300 disabled:cursor-not-allowed disabled:opacity-40"
+												>
+													Up
+												</button>
+												<button
+													type="button"
+													onclick={() => moveHabit(index, 1)}
+													disabled={index === habits.length - 1}
+													class="rounded border border-zinc-700/60 px-2 py-1 text-xs text-zinc-400 transition hover:border-accent-500/50 hover:text-accent-300 disabled:cursor-not-allowed disabled:opacity-40"
+												>
+													Down
+												</button>
+												<button
+													type="button"
+													onclick={() => handleDeleteHabit(habit)}
+													class="rounded border border-red-500/20 px-2 py-1 text-xs text-red-400 transition hover:border-red-500/40 hover:text-red-300"
+												>
+													Delete
+												</button>
+											</div>
+										{/each}
+									</div>
+
+									<div class="grid gap-2 sm:grid-cols-[5rem_minmax(0,1fr)_auto]">
+										<input
+											type="text"
+											bind:value={habitForm.emoji}
+											placeholder="🙏"
+											class="w-full rounded-lg border border-zinc-700/60 bg-zinc-900 px-3 py-2 text-sm text-zinc-100 placeholder-zinc-600 focus:border-accent-500 focus:outline-none focus:ring-1 focus:ring-accent-500/30"
+										/>
+										<input
+											type="text"
+											bind:value={habitForm.name}
+											placeholder="Habit name"
+											class="w-full rounded-lg border border-zinc-700/60 bg-zinc-900 px-3 py-2 text-sm text-zinc-100 placeholder-zinc-600 focus:border-accent-500 focus:outline-none focus:ring-1 focus:ring-accent-500/30"
+										/>
+										<button
+											type="button"
+											onclick={handleAddHabit}
+											disabled={habitForm.submitting}
+											class="rounded-lg bg-accent-600 px-4 py-2 text-sm font-semibold text-white transition hover:bg-accent-500 disabled:cursor-not-allowed disabled:opacity-50"
+										>
+											Save
+										</button>
+									</div>
+									{#if habitForm.error}
+										<p class="text-xs text-red-400">{habitForm.error}</p>
+									{/if}
+								</div>
+							{/if}
+						</div>
+
 						<div class="space-y-2">
 							<div class="flex justify-end">
 								<button
@@ -1686,6 +2072,248 @@
 							{/each}
 						</div>
 					{/if}
+				</section>
+			{:else if currentSection === "insights"}
+				<section class="space-y-5">
+					<div class="rounded-xl border border-zinc-800/60 bg-surface-900/80 p-4 shadow-2xl shadow-black/40 backdrop-blur-md sm:rounded-2xl sm:p-5 md:p-8">
+						<div class="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+							<div class="flex items-center justify-center gap-3 sm:justify-start">
+								<button
+									type="button"
+									onclick={() => loadInsightPeriod(shiftPeriod(selectedInsightPeriod || currentPeriodKey(), -1))}
+									class="rounded-lg border border-zinc-700/60 bg-zinc-900 px-3 py-2 text-sm text-zinc-300 transition hover:border-accent-500/50 hover:text-accent-300"
+								>
+									←
+								</button>
+								<p class="min-w-40 text-center text-sm font-semibold text-zinc-100">
+									{formatInsightPeriod(selectedInsightPeriod || currentPeriodKey())}
+								</p>
+								<button
+									type="button"
+									onclick={() => loadInsightPeriod(shiftPeriod(selectedInsightPeriod || currentPeriodKey(), 1))}
+									class="rounded-lg border border-zinc-700/60 bg-zinc-900 px-3 py-2 text-sm text-zinc-300 transition hover:border-accent-500/50 hover:text-accent-300"
+								>
+									→
+								</button>
+							</div>
+							<div class="grid grid-cols-2 rounded-lg border border-zinc-800/70 bg-zinc-950/40 p-1">
+								<button
+									type="button"
+									onclick={() => (insightsTab = "monthly")}
+									class="rounded-md px-3 py-1.5 text-xs font-semibold transition {insightsTab ===
+									'monthly'
+										? 'bg-accent-600 text-white'
+										: 'text-zinc-400 hover:text-zinc-200'}"
+								>
+									This Month
+								</button>
+								<button
+									type="button"
+									onclick={() => (insightsTab = "yearToDate")}
+									class="rounded-md px-3 py-1.5 text-xs font-semibold transition {insightsTab ===
+									'yearToDate'
+										? 'bg-accent-600 text-white'
+										: 'text-zinc-400 hover:text-zinc-200'}"
+								>
+									Year to Date
+								</button>
+							</div>
+						</div>
+
+						{#if selectedInsightPeriod === currentPeriodKey()}
+							<div class="mt-4 rounded-lg border border-accent-500/20 bg-accent-500/10 px-4 py-3 text-sm text-accent-200">
+								This month's insights will be ready on {nextMonthReadyLabel()}.
+							</div>
+						{/if}
+
+						{#if insightsLoading}
+							<div class="mt-6 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+								{#each Array(4) as _}
+									<div class="h-24 animate-pulse rounded-xl border border-zinc-800/60 bg-zinc-900/60"></div>
+								{/each}
+							</div>
+						{:else if insightsError}
+							<p class="mt-6 rounded-lg border border-red-500/20 bg-red-500/10 px-4 py-3 text-sm text-red-400">{insightsError}</p>
+						{:else if !insight || !selectedInsightScope}
+							<p class="mt-6 rounded-lg border border-zinc-800/60 bg-zinc-900/40 px-4 py-6 text-center text-sm text-zinc-500">
+								No insights yet for this period — they're generated on the 1st of each month.
+							</p>
+						{:else}
+							<div class="mt-6 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+								<div class="rounded-xl border border-zinc-800/60 bg-zinc-900/60 p-4">
+									<p class="text-2xl font-bold text-zinc-100">
+										{typeof selectedInsightScope.averageRating === "number"
+											? `${selectedInsightScope.averageRating.toFixed(1)} / 5`
+											: "—"}
+									</p>
+									<p class="mt-1 text-xs uppercase tracking-wide text-zinc-500">Avg Happiness</p>
+									<p class="mt-2 text-xs text-accent-300">{trendLabel(selectedInsightScope.trendSlopePerDay)}</p>
+								</div>
+								<div class="rounded-xl border border-zinc-800/60 bg-zinc-900/60 p-4">
+									<p class="text-2xl font-bold text-zinc-100">{selectedInsightScope.entryCount}</p>
+									<p class="mt-1 text-xs uppercase tracking-wide text-zinc-500">Total Entries</p>
+								</div>
+								<div class="rounded-xl border border-zinc-800/60 bg-zinc-900/60 p-4">
+									<p class="text-2xl font-bold text-zinc-100">{selectedInsightScope.streaks.longestHighDays}</p>
+									<p class="mt-1 text-xs uppercase tracking-wide text-zinc-500">Longest High Streak</p>
+								</div>
+								<div class="rounded-xl border border-zinc-800/60 bg-zinc-900/60 p-4">
+									<p class="text-2xl font-bold text-zinc-100">{selectedInsightScope.streaks.longestLowDays}</p>
+									<p class="mt-1 text-xs uppercase tracking-wide text-zinc-500">Longest Low Streak</p>
+								</div>
+							</div>
+
+							<div class="mt-5 rounded-xl border border-zinc-800/60 bg-zinc-900/50 p-4">
+								<p class="mb-3 text-sm font-semibold text-zinc-200">Daily Ratings</p>
+								{#if selectedInsightScope.dailyRatings?.length}
+									<svg viewBox="0 0 640 220" class="h-56 w-full overflow-visible">
+										<line x1="24" x2="616" y1="122" y2="122" stroke="currentColor" class="text-zinc-700" stroke-dasharray="4 6" />
+										<path d={chartPoints(selectedInsightScope.dailyRatings)} fill="none" stroke="currentColor" class="text-accent-500" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" />
+										{#each selectedInsightScope.dailyRatings as point}
+											<circle
+												cx={selectedInsightScope.dailyRatings.length === 1 ? 320 : 24 + ((point.time - selectedInsightScope.dailyRatings[0].time) / (selectedInsightScope.dailyRatings[selectedInsightScope.dailyRatings.length - 1].time - selectedInsightScope.dailyRatings[0].time)) * 592}
+												cy={24 + ((5 - point.rating) / 4) * 172}
+												r="3"
+												fill="currentColor"
+												class="text-accent-300"
+											/>
+										{/each}
+									</svg>
+								{:else}
+									<p class="py-8 text-center text-sm text-zinc-550">No daily ratings for this scope.</p>
+								{/if}
+							</div>
+
+							<div class="mt-5 rounded-xl border border-zinc-800/60 bg-zinc-900/50 p-4">
+								<p class="mb-3 text-sm font-semibold text-zinc-200">Groq Insights</p>
+								{#if selectedInsightScope.textAnalysis?.source === "groq-api" && selectedInsightResult}
+									{#if selectedInsightResult.briefSummary}
+										<blockquote class="rounded-lg border-l-2 border-accent-500 bg-accent-500/10 px-4 py-3 text-sm text-accent-100">
+											"{selectedInsightResult.briefSummary}"
+										</blockquote>
+									{/if}
+									<div class="mt-4 flex flex-wrap gap-2">
+										{#if selectedInsightResult.overallSentiment}
+											<span class="rounded-full border border-zinc-700/60 bg-zinc-950/50 px-2.5 py-1 text-xs text-zinc-300">{selectedInsightResult.overallSentiment}</span>
+										{/if}
+										{#if selectedInsightResult.primaryEmotion}
+											<span class="rounded-full border border-accent-500/20 bg-accent-500/10 px-2.5 py-1 text-xs text-accent-300">{selectedInsightResult.primaryEmotion}</span>
+										{/if}
+									</div>
+									{#if selectedInsightResult.keyThemes?.length}
+										<div class="mt-4 flex flex-wrap gap-2">
+											{#each selectedInsightResult.keyThemes as theme}
+												<span class="rounded bg-zinc-800/80 px-2 py-1 text-xs text-zinc-300">{theme}</span>
+											{/each}
+										</div>
+									{/if}
+									{#if selectedInsightResult.patterns?.length}
+										<ul class="mt-4 list-disc space-y-1 pl-5 text-sm text-zinc-350">
+											{#each selectedInsightResult.patterns as pattern}
+												<li>{pattern}</li>
+											{/each}
+										</ul>
+									{/if}
+									{#if selectedInsightResult.ratingCorrelations?.length}
+										<div class="mt-4 overflow-x-auto">
+											<table class="w-full text-left text-xs">
+												<thead class="text-zinc-500">
+													<tr><th class="py-2">Factor</th><th class="py-2">Impact</th><th class="py-2">Avg Rating</th></tr>
+												</thead>
+												<tbody class="divide-y divide-zinc-800/70 text-zinc-300">
+													{#each selectedInsightResult.ratingCorrelations as row}
+														<tr><td class="py-2">{row.factor}</td><td class="py-2">{row.impact}</td><td class="py-2">{row.averageRating}</td></tr>
+													{/each}
+												</tbody>
+											</table>
+										</div>
+									{/if}
+								{:else if selectedLocalAnalysis}
+									<p class="rounded-lg border border-zinc-800/60 bg-zinc-950/40 px-4 py-3 text-sm text-zinc-500">
+										AI analysis unavailable for this period — showing keyword data only
+									</p>
+									<div class="mt-4 grid gap-4 md:grid-cols-2">
+										<div>
+											<p class="mb-2 text-xs font-semibold uppercase tracking-wide text-zinc-500">High-rated keywords</p>
+											<div class="flex flex-wrap gap-2">
+												{#each Object.entries(selectedLocalAnalysis.keywordFrequencyByRating?.highRated ?? {}) as [word, count]}
+													<span class="rounded bg-accent-500/10 px-2 py-1 text-xs text-accent-300">{word} {count}</span>
+												{/each}
+											</div>
+										</div>
+										<div>
+											<p class="mb-2 text-xs font-semibold uppercase tracking-wide text-zinc-500">Low-rated keywords</p>
+											<div class="flex flex-wrap gap-2">
+												{#each Object.entries(selectedLocalAnalysis.keywordFrequencyByRating?.lowRated ?? {}) as [word, count]}
+													<span class="rounded bg-zinc-800 px-2 py-1 text-xs text-zinc-300">{word} {count}</span>
+												{/each}
+											</div>
+										</div>
+									</div>
+									<div class="mt-4">
+										<p class="mb-2 text-xs text-zinc-500">Lexical sentiment</p>
+										<div class="h-2 rounded-full bg-zinc-800">
+											<div class="h-2 rounded-full bg-accent-500" style={`width: ${Math.min(100, Math.max(0, 50 + (selectedLocalAnalysis.sentimentVsRating?.lexicalSentimentScore ?? 0) * 5))}%`}></div>
+										</div>
+									</div>
+								{/if}
+							</div>
+
+							{#if selectedInsightResult?.habitCorrelations?.length}
+								<div class="mt-5 rounded-xl border border-zinc-800/60 bg-zinc-900/50 p-4">
+									<p class="mb-3 text-sm font-semibold text-zinc-200">Habit Correlations</p>
+									<div class="grid gap-3 md:grid-cols-2">
+										{#each selectedInsightResult.habitCorrelations as correlation}
+											<div class="rounded-xl border border-zinc-800/60 bg-zinc-950/30 p-4">
+												<p class="font-semibold text-zinc-100">{correlation.habit}</p>
+												<div class="mt-3 space-y-2 text-xs text-zinc-400">
+													<div class="grid grid-cols-[8.5rem_minmax(0,1fr)_3rem] items-center gap-2">
+														<span>Completed days avg:</span>
+														<div class="h-2 rounded-full bg-zinc-800"><div class="h-2 rounded-full bg-accent-500" style={`width: ${ratingBarWidth(correlation.averageRatingOnCompletedDays)}`}></div></div>
+														<span class="text-zinc-300">{correlation.averageRatingOnCompletedDays?.toFixed?.(1) ?? "—"}</span>
+													</div>
+													<div class="grid grid-cols-[8.5rem_minmax(0,1fr)_3rem] items-center gap-2">
+														<span>Missed days avg:</span>
+														<div class="h-2 rounded-full bg-zinc-800"><div class="h-2 rounded-full bg-zinc-500" style={`width: ${ratingBarWidth(correlation.averageRatingOnMissedDays)}`}></div></div>
+														<span class="text-zinc-300">{correlation.averageRatingOnMissedDays?.toFixed?.(1) ?? "—"}</span>
+													</div>
+												</div>
+												{#if correlation.insight}
+													<p class="mt-3 text-sm text-zinc-350">"{correlation.insight}"</p>
+												{/if}
+											</div>
+										{/each}
+									</div>
+								</div>
+							{/if}
+
+							{#if selectedInsightScope.habitSummary?.byHabit}
+								<div class="mt-5 rounded-xl border border-zinc-800/60 bg-zinc-900/50 p-4">
+									<p class="mb-3 text-sm font-semibold text-zinc-200">Habit Overview</p>
+									<div class="space-y-4">
+										{#each Object.entries(selectedInsightScope.habitSummary.byHabit) as [habitId, habit]}
+											<div>
+												<div class="mb-2 flex items-center justify-between gap-3">
+													<p class="text-sm text-zinc-300">{habit.name}</p>
+													<p class="text-xs font-mono text-zinc-500">{habit.count} / {daysInPeriod(selectedInsightPeriod)} days</p>
+												</div>
+												<div class="flex flex-wrap gap-1">
+													{#each Array(daysInPeriod(selectedInsightPeriod)) as _, index}
+														<span
+															title={`${selectedInsightPeriod}-${String(index + 1).padStart(2, "0")}`}
+															class="h-2.5 w-2.5 rounded-full border {habitCompletedOnDate(habit.dates, index + 1)
+																? 'border-accent-500 bg-accent-500'
+																: 'border-zinc-700 bg-transparent'}"
+														></span>
+													{/each}
+												</div>
+											</div>
+										{/each}
+									</div>
+								</div>
+							{/if}
+						{/if}
+					</div>
 				</section>
 			{/if}
 		</div>

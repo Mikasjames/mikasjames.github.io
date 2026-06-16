@@ -6,11 +6,13 @@ import {
     getDocs,
     query,
     orderBy,
+    where,
     serverTimestamp,
     updateDoc,
     deleteDoc,
     type DocumentData,
-    limit
+    limit,
+    setDoc
 } from 'firebase/firestore';
 import { db } from './firebase';
 
@@ -228,5 +230,197 @@ function docToJournalEntry(id: string, data: DocumentData): JournalEntry {
         ownerUid: data.ownerUid ?? '',
         createdAt: data.createdAt?.toDate?.() ?? null,
         updatedAt: data.updatedAt?.toDate?.() ?? null
+    };
+}
+
+export interface Habit {
+    id: string;
+    name: string;
+    emoji: string;
+    ownerUid: string;
+    createdAt: Date | null;
+    order: number;
+}
+
+export interface HabitLog {
+    id: string;
+    habitId: string;
+    habitName: string;
+    emoji?: string;
+    ownerUid: string;
+    completedAt: Date | null;
+    journalEntryId: string | null;
+    date: string;
+}
+
+export type HabitSummary = {
+    totalCheckIns: number;
+    byHabit: Record<string, { name: string; count: number; dates: string[] }>;
+};
+
+export type InsightScope = {
+    entryCount: number;
+    ratedDayCount?: number;
+    averageRating: number | null;
+    trendSlopePerDay: number | null;
+    variance: number | null;
+    streaks: {
+        longestHighDays: number;
+        longestLowDays: number;
+    };
+    dailyRatings: Array<{ date: string; time: number; rating: number }>;
+    textAnalysis?: any;
+    habitSummary?: HabitSummary;
+};
+
+export interface MonthlyInsight {
+    id: string;
+    period: string;
+    periodStart: Date | null;
+    periodEnd: Date | null;
+    generatedAt: Date | null;
+    monthly?: InsightScope;
+    yearToDate?: InsightScope;
+}
+
+const HABITS_COLLECTION = 'habits';
+const HABIT_LOGS_COLLECTION = 'habitLogs';
+
+export async function getHabits(ownerUid: string): Promise<Habit[]> {
+    const q = query(
+        collection(db, HABITS_COLLECTION),
+        where('ownerUid', '==', ownerUid),
+        orderBy('order', 'asc')
+    );
+    const snapshot = await getDocs(q);
+    return snapshot.docs.map((d) => docToHabit(d.id, d.data()));
+}
+
+export async function addHabit(data: {
+    name: string;
+    emoji: string;
+    ownerUid: string;
+    order: number;
+}): Promise<string> {
+    const ref = await addDoc(collection(db, HABITS_COLLECTION), {
+        ...data,
+        createdAt: serverTimestamp()
+    });
+    return ref.id;
+}
+
+export async function deleteHabit(id: string): Promise<void> {
+    await deleteDoc(doc(db, HABITS_COLLECTION, id));
+}
+
+export async function updateHabitOrder(id: string, order: number): Promise<void> {
+    await updateDoc(doc(db, HABITS_COLLECTION, id), { order });
+}
+
+export async function getHabitLogsForDate(ownerUid: string, date: string): Promise<HabitLog[]> {
+    const q = query(
+        collection(db, HABIT_LOGS_COLLECTION),
+        where('ownerUid', '==', ownerUid),
+        where('date', '==', date)
+    );
+    const snapshot = await getDocs(q);
+    return snapshot.docs.map((d) => docToHabitLog(d.id, d.data()));
+}
+
+export async function getHabitLogsForDates(
+    ownerUid: string,
+    dates: string[]
+): Promise<Record<string, HabitLog[]>> {
+    const uniqueDates = [...new Set(dates)].filter(Boolean);
+    const byDate: Record<string, HabitLog[]> = {};
+    for (let i = 0; i < uniqueDates.length; i += 10) {
+        const batch = uniqueDates.slice(i, i + 10);
+        const q = query(
+            collection(db, HABIT_LOGS_COLLECTION),
+            where('ownerUid', '==', ownerUid),
+            where('date', 'in', batch)
+        );
+        const snapshot = await getDocs(q);
+        for (const log of snapshot.docs.map((d) => docToHabitLog(d.id, d.data()))) {
+            byDate[log.date] = [...(byDate[log.date] ?? []), log];
+        }
+    }
+    return byDate;
+}
+
+export async function upsertHabitLog(data: {
+    habit: Habit;
+    ownerUid: string;
+    date: string;
+    journalEntryId: string | null;
+}): Promise<void> {
+    const logId = `${data.ownerUid}_${data.date}_${data.habit.id}`;
+    await setDoc(
+        doc(db, HABIT_LOGS_COLLECTION, logId),
+        {
+            habitId: data.habit.id,
+            habitName: data.habit.name,
+            emoji: data.habit.emoji,
+            ownerUid: data.ownerUid,
+            completedAt: serverTimestamp(),
+            journalEntryId: data.journalEntryId,
+            date: data.date
+        },
+        { merge: true }
+    );
+}
+
+export async function getLatestMonthlyInsight(ownerUid: string): Promise<MonthlyInsight | null> {
+    const q = query(
+        collection(db, 'insights', ownerUid, 'monthly'),
+        orderBy('period', 'desc'),
+        limit(1)
+    );
+    const snapshot = await getDocs(q);
+    const first = snapshot.docs[0];
+    return first ? docToMonthlyInsight(first.id, first.data()) : null;
+}
+
+export async function getMonthlyInsightByPeriod(
+    ownerUid: string,
+    period: string
+): Promise<MonthlyInsight | null> {
+    const snapshot = await getDoc(doc(db, 'insights', ownerUid, 'monthly', period));
+    return snapshot.exists() ? docToMonthlyInsight(snapshot.id, snapshot.data()) : null;
+}
+
+function docToHabit(id: string, data: DocumentData): Habit {
+    return {
+        id,
+        name: data.name ?? '',
+        emoji: data.emoji ?? '',
+        ownerUid: data.ownerUid ?? '',
+        createdAt: data.createdAt?.toDate?.() ?? null,
+        order: typeof data.order === 'number' ? data.order : 0
+    };
+}
+
+function docToHabitLog(id: string, data: DocumentData): HabitLog {
+    return {
+        id,
+        habitId: data.habitId ?? '',
+        habitName: data.habitName ?? '',
+        emoji: data.emoji ?? '',
+        ownerUid: data.ownerUid ?? '',
+        completedAt: data.completedAt?.toDate?.() ?? null,
+        journalEntryId: data.journalEntryId ?? null,
+        date: data.date ?? ''
+    };
+}
+
+function docToMonthlyInsight(id: string, data: DocumentData): MonthlyInsight {
+    return {
+        id,
+        period: data.period ?? id,
+        periodStart: data.periodStart?.toDate?.() ?? null,
+        periodEnd: data.periodEnd?.toDate?.() ?? null,
+        generatedAt: data.generatedAt?.toDate?.() ?? null,
+        monthly: data.monthly,
+        yearToDate: data.yearToDate
     };
 }
