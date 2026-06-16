@@ -24,12 +24,12 @@
 		addHabit,
 		deleteHabit,
 		updateHabitOrder,
-		getHabitLogsForDate,
+		getHabitLogsForJournalEntry,
+		deleteHabitLogsForJournalEntry,
 		upsertHabitLog,
 		getLatestMonthlyInsight,
 		getMonthlyInsightByPeriod,
 		type Habit,
-		type HabitLog,
 		type MonthlyInsight,
 		type InsightScope,
 	} from "$lib/firebase/firestore.svelte";
@@ -114,8 +114,8 @@
 	let journalEntriesLoading = $state(false);
 	let journalEntriesLoadError = $state("");
 	let habits = $state<Habit[]>([]);
-	let todayHabitLogs = $state<HabitLog[]>([]);
 	let selectedHabitIds = $state<Set<string>>(new Set());
+	let selectedJournalEntryDate = $state<string | null>(null);
 	let habitsLoading = $state(false);
 	let habitsError = $state("");
 	let showHabitManager = $state(false);
@@ -304,14 +304,16 @@
 		return new Date().toLocaleDateString("en-CA");
 	}
 
+	function dateKeyFromDate(date: Date | null | undefined) {
+		return date ? date.toLocaleDateString("en-CA") : todayDateKey();
+	}
+
 	async function loadHabits() {
 		if (!user) return;
 		habitsLoading = true;
 		habitsError = "";
 		try {
 			habits = await getHabits(user.uid);
-			todayHabitLogs = await getHabitLogsForDate(user.uid, todayDateKey());
-			selectedHabitIds = new Set(todayHabitLogs.map((log) => log.habitId));
 		} catch (err: unknown) {
 			console.error("Failed to load habits:", err);
 			habitsError =
@@ -376,9 +378,26 @@
 		await loadHabits();
 	}
 
-	async function saveSelectedHabitLogs(journalEntryId: string | null) {
-		if (!user || selectedHabitIds.size === 0) return;
-		const date = todayDateKey();
+	async function loadSelectedHabitLogs(journalEntryId: string) {
+		if (!user) return;
+		try {
+			const logs = await getHabitLogsForJournalEntry(user.uid, journalEntryId);
+			if (journalForm.id === journalEntryId) {
+				selectedHabitIds = new Set(logs.map((log) => log.habitId));
+			}
+		} catch (err: unknown) {
+			console.error("Failed to load habit logs for journal entry:", err);
+			habitsError =
+				err instanceof Error
+					? err.message
+					: "Failed to load habit logs for this entry.";
+			selectedHabitIds = new Set();
+		}
+	}
+
+	async function saveSelectedHabitLogs(journalEntryId: string, date: string) {
+		if (!user) return;
+		await deleteHabitLogsForJournalEntry(user.uid, journalEntryId);
 		const selectedHabits = habits.filter((habit) =>
 			selectedHabitIds.has(habit.id),
 		);
@@ -656,11 +675,14 @@
 
 			if (journalForm.id) {
 				await updateJournalEntry(journalForm.id, payload);
-				await saveSelectedHabitLogs(journalForm.id);
+				await saveSelectedHabitLogs(
+					journalForm.id,
+					selectedJournalEntryDate ?? todayDateKey(),
+				);
 				journalForm.successMsg = "Journal entry updated successfully!";
 			} else {
 				const entryId = await createJournalEntry(payload);
-				await saveSelectedHabitLogs(entryId);
+				await saveSelectedHabitLogs(entryId, todayDateKey());
 				journalForm.successMsg = "Journal entry added successfully!";
 			}
 			resetJournalForm();
@@ -676,19 +698,22 @@
 		}
 	}
 
-	function startEditJournal(entry: JournalEntry) {
+	async function startEditJournal(entry: JournalEntry) {
 		journalForm.id = entry.id;
 		journalForm.title = entry.title;
 		journalForm.excerpt = entry.excerpt || "";
 		journalForm.content = entry.content;
 		journalForm.coverImage = entry.coverImage || null;
 		journalForm.happinessRating = entry.happinessRating ?? 3;
+		selectedJournalEntryDate = dateKeyFromDate(entry.createdAt);
+		selectedHabitIds = new Set();
 		journalForm.imageMeta = sanitizeImageMetaFromMarkdown(
 			entry.content,
 			enrichImageMetaFromGallery(entry.content, entry.imageMeta ?? {}),
 		);
 		journalForm.successMsg = "";
 		journalForm.error = "";
+		await loadSelectedHabitLogs(entry.id);
 		window.scrollTo({ top: 0, behavior: "smooth" });
 	}
 
@@ -702,7 +727,8 @@
 		journalForm.happinessRating = 3;
 		journalForm.successMsg = "";
 		journalForm.error = "";
-		selectedHabitIds = new Set(todayHabitLogs.map((log) => log.habitId));
+		selectedJournalEntryDate = null;
+		selectedHabitIds = new Set();
 	}
 
 	async function handleDeleteJournal(entry: JournalEntry) {
@@ -1696,7 +1722,7 @@
 							<div class="flex flex-wrap items-center justify-between gap-3">
 								<div>
 									<p class="text-xs font-semibold uppercase tracking-wide text-zinc-400">
-										Habits Today
+										{journalForm.id ? "Habits for Entry" : "Habits Today"}
 									</p>
 									{#if habitsError}
 										<p class="mt-1 text-xs text-red-400">{habitsError}</p>

@@ -327,6 +327,27 @@ export async function getHabitLogsForDate(ownerUid: string, date: string): Promi
     return snapshot.docs.map((d) => docToHabitLog(d.id, d.data()));
 }
 
+export async function getHabitLogsForJournalEntry(
+    ownerUid: string,
+    journalEntryId: string
+): Promise<HabitLog[]> {
+    const q = query(
+        collection(db, HABIT_LOGS_COLLECTION),
+        where('ownerUid', '==', ownerUid),
+        where('journalEntryId', '==', journalEntryId)
+    );
+    const snapshot = await getDocs(q);
+    return snapshot.docs.map((d) => docToHabitLog(d.id, d.data()));
+}
+
+export async function deleteHabitLogsForJournalEntry(
+    ownerUid: string,
+    journalEntryId: string
+): Promise<void> {
+    const logs = await getHabitLogsForJournalEntry(ownerUid, journalEntryId);
+    await Promise.all(logs.map((log) => deleteDoc(doc(db, HABIT_LOGS_COLLECTION, log.id))));
+}
+
 export async function getHabitLogsForDates(
     ownerUid: string,
     dates: string[]
