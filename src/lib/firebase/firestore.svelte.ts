@@ -253,6 +253,16 @@ export interface HabitLog {
     date: string;
 }
 
+export interface CalculatedHabitCorrelation {
+    habitId: string;
+    habitName: string;
+    averageRatingOnCompletedDays: number | null;
+    averageRatingOnMissedDays: number | null;
+    completedDaysCount: number;
+    missedDaysCount: number;
+    insight?: string;
+}
+
 export type HabitSummary = {
     totalCheckIns: number;
     byHabit: Record<string, { name: string; count: number; dates: string[] }>;
@@ -271,6 +281,7 @@ export type InsightScope = {
     dailyRatings: Array<{ date: string; time: number; rating: number }>;
     textAnalysis?: any;
     habitSummary?: HabitSummary;
+    habitCorrelations?: CalculatedHabitCorrelation[];
 };
 
 export interface MonthlyInsight {

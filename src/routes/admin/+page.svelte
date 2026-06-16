@@ -2269,13 +2269,6 @@
 							>
 								{insightsError}
 							</p>
-						{:else if !insight || !selectedInsightScope}
-							<p
-								class="mt-6 rounded-lg border border-zinc-800/60 bg-zinc-900/40 px-4 py-6 text-center text-sm text-zinc-500"
-							>
-								No insights yet for this period — they're
-								generated on the 1st of each month.
-							</p>
 						{:else}
 							<div
 								class="mt-6 grid gap-3 sm:grid-cols-2 lg:grid-cols-4"
@@ -2284,7 +2277,7 @@
 									class="rounded-xl border border-zinc-800/60 bg-zinc-900/60 p-4"
 								>
 									<p class="text-2xl font-bold text-zinc-100">
-										{typeof selectedInsightScope.averageRating ===
+										{typeof selectedInsightScope?.averageRating ===
 										"number"
 											? `${selectedInsightScope.averageRating.toFixed(1)} / 5`
 											: "—"}
@@ -2296,7 +2289,7 @@
 									</p>
 									<p class="mt-2 text-xs text-accent-300">
 										{trendLabel(
-											selectedInsightScope.trendSlopePerDay,
+											selectedInsightScope?.trendSlopePerDay,
 										)}
 									</p>
 								</div>
@@ -2304,7 +2297,7 @@
 									class="rounded-xl border border-zinc-800/60 bg-zinc-900/60 p-4"
 								>
 									<p class="text-2xl font-bold text-zinc-100">
-										{selectedInsightScope.entryCount}
+										{selectedInsightScope?.entryCount ?? 0}
 									</p>
 									<p
 										class="mt-1 text-xs uppercase tracking-wide text-zinc-500"
@@ -2316,8 +2309,8 @@
 									class="rounded-xl border border-zinc-800/60 bg-zinc-900/60 p-4"
 								>
 									<p class="text-2xl font-bold text-zinc-100">
-										{selectedInsightScope.streaks
-											.longestHighDays}
+										{selectedInsightScope?.streaks
+											?.longestHighDays ?? 0}
 									</p>
 									<p
 										class="mt-1 text-xs uppercase tracking-wide text-zinc-500"
@@ -2329,8 +2322,8 @@
 									class="rounded-xl border border-zinc-800/60 bg-zinc-900/60 p-4"
 								>
 									<p class="text-2xl font-bold text-zinc-100">
-										{selectedInsightScope.streaks
-											.longestLowDays}
+										{selectedInsightScope?.streaks
+											?.longestLowDays ?? 0}
 									</p>
 									<p
 										class="mt-1 text-xs uppercase tracking-wide text-zinc-500"
@@ -2348,7 +2341,7 @@
 								>
 									Daily Ratings
 								</p>
-								{#if selectedInsightScope.dailyRatings?.length}
+								{#if selectedInsightScope?.dailyRatings?.length}
 									<svg
 										viewBox="0 0 640 220"
 										class="h-56 w-full overflow-visible"
@@ -2419,7 +2412,7 @@
 								>
 									Groq Insights
 								</p>
-								{#if selectedInsightScope.textAnalysis?.source === "groq-api" && selectedInsightResult}
+								{#if selectedInsightScope?.textAnalysis?.source === "groq-api" && selectedInsightResult}
 									{#if selectedInsightResult.briefSummary}
 										<blockquote
 											class="rounded-lg border-l-2 border-accent-500 bg-accent-500/10 px-4 py-3 text-sm text-accent-100"
@@ -2534,7 +2527,7 @@
 										</div>
 									</div>
 									<div class="mt-4">
-										<p class="mb-2 text-xs text-zinc-500">
+										<p class="mb-2 text-xs text-zinc-550">
 											Lexical sentiment
 										</p>
 										<div
@@ -2549,7 +2542,7 @@
 								{/if}
 							</div>
 
-							{#if selectedInsightResult?.habitCorrelations?.length}
+							{#if selectedInsightScope?.habitCorrelations?.length}
 								<div
 									class="mt-5 rounded-xl border border-zinc-800/60 bg-zinc-900/50 p-4"
 								>
@@ -2559,15 +2552,26 @@
 										Habit Correlations
 									</p>
 									<div class="grid gap-3 md:grid-cols-2">
-										{#each selectedInsightResult.habitCorrelations as correlation}
+										{#each selectedInsightScope.habitCorrelations as correlation}
 											<div
 												class="rounded-xl border border-zinc-800/60 bg-zinc-950/30 p-4"
 											>
-												<p
-													class="font-semibold text-zinc-100"
+												<div
+													class="flex items-center justify-between gap-2"
 												>
-													{correlation.habit}
-												</p>
+													<p
+														class="font-semibold text-zinc-100"
+													>
+														{correlation.habitName}
+													</p>
+													<span
+														class="text-[10px] font-mono text-zinc-500"
+													>
+														({correlation.completedDaysCount}
+														vs {correlation.missedDaysCount}
+														d)
+													</span>
+												</div>
 												<div
 													class="mt-3 space-y-2 text-xs text-zinc-400"
 												>
@@ -2616,7 +2620,7 @@
 												</div>
 												{#if correlation.insight}
 													<p
-														class="mt-3 text-sm text-zinc-350"
+														class="mt-3 text-sm text-zinc-350 italic"
 													>
 														"{correlation.insight}"
 													</p>
@@ -2627,7 +2631,7 @@
 								</div>
 							{/if}
 
-							{#if selectedInsightScope.habitSummary?.byHabit}
+							{#if selectedInsightScope?.habitSummary?.byHabit}
 								<div
 									class="mt-5 rounded-xl border border-zinc-800/60 bg-zinc-900/50 p-4"
 								>
