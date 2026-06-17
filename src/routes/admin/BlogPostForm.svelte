@@ -6,6 +6,23 @@
 	import { createPost, updatePost, type BlogPost, type ImageMeta } from "$lib/firebase/firestore.svelte";
 	import { resolveMissingImageMeta, sanitizeImageMetaFromMarkdown } from "$lib/utils/imageMeta";
 
+	interface BlogFormState {
+		id: string | null;
+		title: string;
+		slug: string;
+		excerpt: string;
+		content: string;
+		status: "draft" | "published" | "unlisted";
+		coverImage: string | null;
+		imageMeta: Record<string, ImageMeta>;
+		slugManuallyEdited: boolean;
+		submitting: boolean;
+		successMsg: string;
+		error: string;
+		coverUploading: boolean;
+		coverError: string;
+	}
+
 	let {
 		blogForm = $bindable(),
 		mediaStore,
@@ -13,11 +30,11 @@
 		resetForm,
 		openMediaGallery
 	} = $props<{
-		blogForm: any;
-		mediaStore: any;
+		blogForm: BlogFormState;
+		mediaStore: any; // Could be typed as ReturnType<typeof createMediaStore> if we exported it
 		loadPosts: () => Promise<void>;
 		resetForm: () => void;
-		openMediaGallery: () => Promise<void>;
+		openMediaGallery: (insertCb?: any, coverCb?: any) => Promise<void>;
 	}>();
 
 	let activeTab = $state<"write" | "preview">("write");

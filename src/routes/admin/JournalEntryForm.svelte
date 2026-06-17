@@ -6,10 +6,28 @@
 	import {
 		createJournalEntry,
 		updateJournalEntry,
-		type JournalEntry,
-		type Habit,
+		type ImageMeta,
 	} from "$lib/firebase/firestore.svelte";
-	import { resolveMissingImageMeta, sanitizeImageMetaFromMarkdown } from "$lib/utils/imageMeta";
+	import {
+		resolveMissingImageMeta,
+		sanitizeImageMetaFromMarkdown,
+	} from "$lib/utils/imageMeta";
+	import type { User } from "firebase/auth";
+
+	interface JournalFormState {
+		id: string | null;
+		title: string;
+		excerpt: string;
+		content: string;
+		coverImage: string | null;
+		imageMeta: Record<string, ImageMeta>;
+		happinessRating: number;
+		submitting: boolean;
+		successMsg: string;
+		error: string;
+		coverUploading: boolean;
+		coverError: string;
+	}
 
 	let {
 		journalForm = $bindable(),
@@ -21,15 +39,15 @@
 		openMediaGallery,
 		todayDateKey,
 		getHappinessLabel,
-		selectedJournalEntryDate = $bindable()
+		selectedJournalEntryDate = $bindable(),
 	} = $props<{
-		journalForm: any;
-		user: any;
+		journalForm: JournalFormState;
+		user: User | null;
 		mediaStore: any;
 		habitsStore: any;
 		loadJournalEntries: () => Promise<void>;
 		resetJournalForm: () => void;
-		openMediaGallery: () => Promise<void>;
+		openMediaGallery: (insertCb?: any, coverCb?: any) => Promise<void>;
 		todayDateKey: () => string;
 		getHappinessLabel: (rating: number) => string;
 		selectedJournalEntryDate: string | null;
@@ -79,7 +97,11 @@
 				journalForm.successMsg = "Journal entry updated successfully!";
 			} else {
 				const entryId = await createJournalEntry(payload);
-				await habitsStore.saveSelectedHabitLogs(user!.uid, entryId, todayDateKey());
+				await habitsStore.saveSelectedHabitLogs(
+					user!.uid,
+					entryId,
+					todayDateKey(),
+				);
 				journalForm.successMsg = "Journal entry added successfully!";
 			}
 			resetJournalForm();
@@ -99,10 +121,13 @@
 		const target = e.target as HTMLInputElement;
 		if (!target.files || target.files.length === 0) return;
 		try {
-			const result = await mediaStore.handleGalleryUpload(target.files[0]);
+			const result = await mediaStore.handleGalleryUpload(
+				target.files[0],
+			);
 			journalForm.coverImage = result.url;
 		} catch (err: unknown) {
-			journalForm.coverError = err instanceof Error ? err.message : "Upload failed.";
+			journalForm.coverError =
+				err instanceof Error ? err.message : "Upload failed.";
 		} finally {
 			target.value = "";
 		}
@@ -113,8 +138,12 @@
 		if (!target.files || target.files.length === 0) return;
 		const file = target.files[0];
 		try {
-			const { url, width, height, name } = await mediaStore.handleGalleryUpload(file);
-			journalForm.imageMeta = { ...journalForm.imageMeta, [url]: { width, height } };
+			const { url, width, height, name } =
+				await mediaStore.handleGalleryUpload(file);
+			journalForm.imageMeta = {
+				...journalForm.imageMeta,
+				[url]: { width, height },
+			};
 			await insertMarkdownAtCursor(url, name.split(".")[0], {
 				width,
 				height,
@@ -136,7 +165,10 @@
 		if (!textareaRef) return;
 
 		if (dims?.width && dims?.height) {
-			journalForm.imageMeta = { ...journalForm.imageMeta, [url]: { width: dims.width, height: dims.height } };
+			journalForm.imageMeta = {
+				...journalForm.imageMeta,
+				[url]: { width: dims.width, height: dims.height },
+			};
 		}
 
 		const start = textareaRef.selectionStart;
@@ -265,8 +297,7 @@
 				<label
 					for="journal-excerpt"
 					class="block text-xs font-medium text-zinc-400 tracking-wide uppercase"
-					>Excerpt <span
-						class="normal-case font-normal text-zinc-600"
+					>Excerpt <span class="normal-case font-normal text-zinc-600"
 						>(Optional)</span
 					></label
 				>
@@ -280,9 +311,7 @@
 			</div>
 		</div>
 
-		<div
-			class="rounded-xl border border-zinc-800/60 bg-zinc-900/40 p-4"
-		>
+		<div class="rounded-xl border border-zinc-800/60 bg-zinc-900/40 p-4">
 			<div
 				class="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between"
 			>
@@ -293,22 +322,17 @@
 						>Overall Happiness</label
 					>
 					<p class="mt-1 text-xs text-zinc-550">
-						Daily rating for monthly and yearly
-						insights.
+						Daily rating for monthly and yearly insights.
 					</p>
 				</div>
 				<div
 					class="flex items-center gap-2 rounded-lg border border-accent-500/20 bg-accent-500/10 px-3 py-2"
 				>
-					<span
-						class="text-2xl font-bold text-accent-300"
+					<span class="text-2xl font-bold text-accent-300"
 						>{journalForm.happinessRating}</span
 					>
-					<span
-						class="text-xs font-medium text-accent-200"
-						>{getHappinessLabel(
-							journalForm.happinessRating,
-						)}</span
+					<span class="text-xs font-medium text-accent-200"
+						>{getHappinessLabel(journalForm.happinessRating)}</span
 					>
 				</div>
 			</div>
@@ -342,16 +366,12 @@
 		<div
 			class="space-y-3 rounded-xl border border-zinc-800/60 bg-zinc-900/40 p-4"
 		>
-			<div
-				class="flex flex-wrap items-center justify-between gap-3"
-			>
+			<div class="flex flex-wrap items-center justify-between gap-3">
 				<div>
 					<p
 						class="text-xs font-semibold uppercase tracking-wide text-zinc-400"
 					>
-						{journalForm.id
-							? "Habits for Entry"
-							: "Habits Today"}
+						{journalForm.id ? "Habits for Entry" : "Habits Today"}
 					</p>
 					{#if habitsStore.habitsError}
 						<p class="mt-1 text-xs text-red-400">
@@ -362,7 +382,8 @@
 				<button
 					type="button"
 					onclick={() =>
-						(habitsStore.showHabitManager = !habitsStore.showHabitManager)}
+						(habitsStore.showHabitManager =
+							!habitsStore.showHabitManager)}
 					class="text-xs font-semibold text-accent-400 transition-colors hover:text-accent-300"
 				>
 					Manage Habits
@@ -382,16 +403,13 @@
 					></div>
 				</div>
 			{:else if habitsStore.habits.length === 0}
-				<p class="text-xs text-zinc-550">
-					No habits yet.
-				</p>
+				<p class="text-xs text-zinc-550">No habits yet.</p>
 			{:else}
 				<div class="flex flex-wrap gap-2">
 					{#each habitsStore.habits as habit (habit.id)}
 						<button
 							type="button"
-							onclick={() =>
-								habitsStore.toggleHabit(habit.id)}
+							onclick={() => habitsStore.toggleHabit(habit.id)}
 							class="rounded-lg border px-3 py-2 text-sm font-medium transition-all {habitsStore.selectedHabitIds.has(
 								habit.id,
 							)
@@ -406,9 +424,7 @@
 			{/if}
 
 			{#if habitsStore.showHabitManager}
-				<div
-					class="space-y-3 border-t border-zinc-800/60 pt-4"
-				>
+				<div class="space-y-3 border-t border-zinc-800/60 pt-4">
 					<div class="space-y-2">
 						{#each habitsStore.habits as habit, index (habit.id)}
 							<div
@@ -423,7 +439,11 @@
 								<button
 									type="button"
 									onclick={() =>
-										habitsStore.moveHabit(index, -1, user!.uid)}
+										habitsStore.moveHabit(
+											index,
+											-1,
+											user!.uid,
+										)}
 									disabled={index === 0}
 									class="rounded border border-zinc-700/60 px-2 py-1 text-xs text-zinc-400 transition hover:border-accent-500/50 hover:text-accent-300 disabled:cursor-not-allowed disabled:opacity-40"
 								>
@@ -432,7 +452,11 @@
 								<button
 									type="button"
 									onclick={() =>
-										habitsStore.moveHabit(index, 1, user!.uid)}
+										habitsStore.moveHabit(
+											index,
+											1,
+											user!.uid,
+										)}
 									disabled={index ===
 										habitsStore.habits.length - 1}
 									class="rounded border border-zinc-700/60 px-2 py-1 text-xs text-zinc-400 transition hover:border-accent-500/50 hover:text-accent-300 disabled:cursor-not-allowed disabled:opacity-40"
@@ -444,7 +468,7 @@
 									onclick={() =>
 										habitsStore.handleDeleteHabit(
 											habit,
-											user!.uid
+											user!.uid,
 										)}
 									class="rounded border border-red-500/20 px-2 py-1 text-xs text-red-400 transition hover:border-red-500/40 hover:text-red-300"
 								>
@@ -471,7 +495,8 @@
 						/>
 						<button
 							type="button"
-							onclick={() => habitsStore.handleAddHabit(user!.uid)}
+							onclick={() =>
+								habitsStore.handleAddHabit(user!.uid)}
 							disabled={habitsStore.habitForm.submitting}
 							class="rounded-lg bg-accent-600 px-4 py-2 text-sm font-semibold text-white transition hover:bg-accent-500 disabled:cursor-not-allowed disabled:opacity-50"
 						>
@@ -516,13 +541,18 @@
 				bind:imageMeta={journalForm.imageMeta}
 				bind:textareaRef
 				bind:activeTab
-				onOpenMediaGallery={() => openMediaGallery(insertMarkdownAtCursor, setEditorCoverImage)}
+				onOpenMediaGallery={() =>
+					openMediaGallery(
+						insertMarkdownAtCursor,
+						setEditorCoverImage,
+					)}
 				placeholderText="What's on your mind today? Markdown is supported."
 			/>
 		</div>
 
 		<ContentImagesHelper
-			onOpenMediaGallery={() => openMediaGallery(insertMarkdownAtCursor, setEditorCoverImage)}
+			onOpenMediaGallery={() =>
+				openMediaGallery(insertMarkdownAtCursor, setEditorCoverImage)}
 			{handleContentUpload}
 			contentUploading={mediaStore.mediaUploading}
 			contentUploadError={mediaStore.mediaUploadError}
@@ -574,9 +604,7 @@
 			</div>
 		{/if}
 
-		<div
-			class="flex flex-col-reverse gap-3 sm:flex-row sm:justify-end"
-		>
+		<div class="flex flex-col-reverse gap-3 sm:flex-row sm:justify-end">
 			{#if journalForm.id}
 				<button
 					type="button"
@@ -620,8 +648,7 @@
 							/>
 						{/if}
 					</svg>
-					{#if journalForm.id}Save Changes{:else}Save
-						Entry{/if}
+					{#if journalForm.id}Save Changes{:else}Save Entry{/if}
 				{/if}
 			</button>
 		</div>
