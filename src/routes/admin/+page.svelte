@@ -27,11 +27,7 @@
 		getHabitLogsForJournalEntry,
 		deleteHabitLogsForJournalEntry,
 		upsertHabitLog,
-		getLatestMonthlyInsight,
-		getMonthlyInsightByPeriod,
 		type Habit,
-		type MonthlyInsight,
-		type InsightScope,
 	} from "$lib/firebase/firestore.svelte";
 	import {
 		extractImageUrlsFromMarkdown,
@@ -45,9 +41,12 @@
 	import MediaGalleryDialog from "$lib/components/MediaGalleryDialog.svelte";
 	import ContentImagesHelper from "$lib/components/ContentImagesHelper.svelte";
 	import MarkdownEditor from "$lib/components/MarkdownEditor.svelte";
+	import { createInsightsStore } from "$lib/firebase/insights.svelte";
 
 	let user = $state<User | null>(null);
 	let authReady = $state(false);
+
+	const insightsStore = createInsightsStore();
 
 	$effect(() => {
 		const unsub = subscribeToAuth((u) => {
@@ -125,11 +124,6 @@
 		submitting: false,
 		error: "",
 	});
-	let insight = $state<MonthlyInsight | null>(null);
-	let insightsLoading = $state(false);
-	let insightsError = $state("");
-	let insightsTab = $state<"monthly" | "yearToDate">("monthly");
-	let selectedInsightPeriod = $state("");
 
 	let blogSearch = $state("");
 	let blogStatusFilter = $state<"all" | "published" | "unlisted" | "draft">(
@@ -140,25 +134,6 @@
 	let journalSearch = $state("");
 	let journalSort = $state<"newest" | "oldest">("newest");
 
-	let selectedInsightScope = $derived<InsightScope | null>(
-		insight
-			? insightsTab === "monthly"
-				? (insight.monthly ?? null)
-				: (insight.yearToDate ?? null)
-			: null,
-	);
-
-	let selectedInsightResult = $derived<any>(
-		selectedInsightScope?.textAnalysis?.source === "groq-api"
-			? selectedInsightScope.textAnalysis.result
-			: null,
-	);
-
-	let selectedLocalAnalysis = $derived<any>(
-		selectedInsightScope?.textAnalysis?.source === "local-fallback"
-			? selectedInsightScope.textAnalysis
-			: selectedInsightScope?.textAnalysis?.fallback,
-	);
 
 	let filteredPosts = $derived.by(() => {
 		let result = posts;
@@ -430,119 +405,6 @@
 		);
 	}
 
-	async function loadLatestInsight() {
-		if (!user) return;
-		insightsLoading = true;
-		insightsError = "";
-		try {
-			insight = await getLatestMonthlyInsight(user.uid);
-			selectedInsightPeriod = insight?.period ?? currentPeriodKey();
-		} catch (err: unknown) {
-			console.error("Failed to load insights:", err);
-			insightsError =
-				err instanceof Error ? err.message : "Failed to load insights.";
-		} finally {
-			insightsLoading = false;
-		}
-	}
-
-	async function loadInsightPeriod(period: string) {
-		if (!user) return;
-		insightsLoading = true;
-		insightsError = "";
-		try {
-			selectedInsightPeriod = period;
-			insight = await getMonthlyInsightByPeriod(user.uid, period);
-		} catch (err: unknown) {
-			console.error("Failed to load insight period:", err);
-			insightsError =
-				err instanceof Error ? err.message : "Failed to load insight.";
-		} finally {
-			insightsLoading = false;
-		}
-	}
-
-	function shiftPeriod(period: string, delta: number) {
-		const [year, month] = period.split("-").map(Number);
-		const next = new Date(Date.UTC(year, month - 1 + delta, 1));
-		return `${next.getUTCFullYear()}-${String(
-			next.getUTCMonth() + 1,
-		).padStart(2, "0")}`;
-	}
-
-	function currentPeriodKey() {
-		const now = new Date();
-		return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(
-			2,
-			"0",
-		)}`;
-	}
-
-	function nextMonthReadyLabel() {
-		const now = new Date();
-		const next = new Date(now.getFullYear(), now.getMonth() + 1, 1);
-		return next.toLocaleDateString("en-US", {
-			month: "long",
-			day: "numeric",
-			year: "numeric",
-		});
-	}
-
-	function formatInsightPeriod(period: string) {
-		const [year, month] = period.split("-").map(Number);
-		if (!year || !month) return period;
-		return new Date(year, month - 1, 1).toLocaleDateString("en-US", {
-			month: "long",
-			year: "numeric",
-		});
-	}
-
-	function daysInPeriod(period: string) {
-		const [year, month] = period.split("-").map(Number);
-		if (!year || !month) return 31;
-		return new Date(year, month, 0).getDate();
-	}
-
-	function ratingBarWidth(value: number | null | undefined) {
-		if (typeof value !== "number") return "0%";
-		return `${Math.max(0, Math.min(100, (value / 5) * 100))}%`;
-	}
-
-	function trendLabel(value: number | null | undefined) {
-		if (typeof value !== "number" || Math.abs(value) < 0.01) {
-			return "→ steady";
-		}
-		return value > 0 ? "↑ improving" : "↓ declining";
-	}
-
-	function chartPoints(points: InsightScope["dailyRatings"]) {
-		if (!points?.length) return "";
-		const width = 640;
-		const height = 220;
-		const pad = 24;
-		const sorted = [...points].sort((a, b) => a.time - b.time);
-		const minTime = sorted[0].time;
-		const maxTime = sorted[sorted.length - 1].time;
-		return sorted
-			.map((point, index) => {
-				const x =
-					maxTime === minTime
-						? width / 2
-						: pad +
-							((point.time - minTime) / (maxTime - minTime)) *
-								(width - pad * 2);
-				const y = pad + ((5 - point.rating) / 4) * (height - pad * 2);
-				return `${index === 0 ? "M" : "L"} ${x.toFixed(1)} ${y.toFixed(
-					1,
-				)}`;
-			})
-			.join(" ");
-	}
-
-	function habitCompletedOnDate(dates: string[], day: number) {
-		const date = `${selectedInsightPeriod}-${String(day).padStart(2, "0")}`;
-		return dates.includes(date);
-	}
 	async function loadRecentMedia() {
 		try {
 			recentMediaItems = await getRecentMediaItems(4);
@@ -565,7 +427,7 @@
 			await loadRecentMedia();
 			await loadJournalEntries();
 			await loadHabits();
-			await loadLatestInsight();
+			await insightsStore.loadLatest(user.uid);
 		}
 	});
 
@@ -2185,10 +2047,11 @@
 								<button
 									type="button"
 									onclick={() =>
-										loadInsightPeriod(
-											shiftPeriod(
-												selectedInsightPeriod ||
-													currentPeriodKey(),
+										insightsStore.loadPeriod(
+											user!.uid,
+											insightsStore.shiftPeriod(
+												insightsStore.selectedPeriod ||
+													insightsStore.currentPeriodKey(),
 												-1,
 											),
 										)}
@@ -2199,18 +2062,19 @@
 								<p
 									class="min-w-40 text-center text-sm font-semibold text-zinc-100"
 								>
-									{formatInsightPeriod(
-										selectedInsightPeriod ||
-											currentPeriodKey(),
+									{insightsStore.formatInsightPeriod(
+										insightsStore.selectedPeriod ||
+											insightsStore.currentPeriodKey(),
 									)}
 								</p>
 								<button
 									type="button"
 									onclick={() =>
-										loadInsightPeriod(
-											shiftPeriod(
-												selectedInsightPeriod ||
-													currentPeriodKey(),
+										insightsStore.loadPeriod(
+											user!.uid,
+											insightsStore.shiftPeriod(
+												insightsStore.selectedPeriod ||
+													insightsStore.currentPeriodKey(),
 												1,
 											),
 										)}
@@ -2224,8 +2088,8 @@
 							>
 								<button
 									type="button"
-									onclick={() => (insightsTab = "monthly")}
-									class="rounded-md px-3 py-1.5 text-xs font-semibold transition {insightsTab ===
+									onclick={() => (insightsStore.tab = "monthly")}
+									class="rounded-md px-3 py-1.5 text-xs font-semibold transition {insightsStore.tab ===
 									'monthly'
 										? 'bg-accent-600 text-white'
 										: 'text-zinc-400 hover:text-zinc-200'}"
@@ -2234,8 +2098,8 @@
 								</button>
 								<button
 									type="button"
-									onclick={() => (insightsTab = "yearToDate")}
-									class="rounded-md px-3 py-1.5 text-xs font-semibold transition {insightsTab ===
+									onclick={() => (insightsStore.tab = "yearToDate")}
+									class="rounded-md px-3 py-1.5 text-xs font-semibold transition {insightsStore.tab ===
 									'yearToDate'
 										? 'bg-accent-600 text-white'
 										: 'text-zinc-400 hover:text-zinc-200'}"
@@ -2245,15 +2109,15 @@
 							</div>
 						</div>
 
-						{#if selectedInsightPeriod === currentPeriodKey()}
+						{#if insightsStore.selectedPeriod === insightsStore.currentPeriodKey()}
 							<div
 								class="mt-4 rounded-lg border border-accent-500/20 bg-accent-500/10 px-4 py-3 text-sm text-accent-200"
 							>
-								This month's insights will be ready on {nextMonthReadyLabel()}.
+								This month's insights will be ready on {insightsStore.nextMonthReadyLabel()}.
 							</div>
 						{/if}
 
-						{#if insightsLoading}
+						{#if insightsStore.loading}
 							<div
 								class="mt-6 grid gap-3 sm:grid-cols-2 lg:grid-cols-4"
 							>
@@ -2263,11 +2127,11 @@
 									></div>
 								{/each}
 							</div>
-						{:else if insightsError}
+						{:else if insightsStore.error}
 							<p
 								class="mt-6 rounded-lg border border-red-500/20 bg-red-500/10 px-4 py-3 text-sm text-red-400"
 							>
-								{insightsError}
+								{insightsStore.error}
 							</p>
 						{:else}
 							<div
@@ -2277,9 +2141,9 @@
 									class="rounded-xl border border-zinc-800/60 bg-zinc-900/60 p-4"
 								>
 									<p class="text-2xl font-bold text-zinc-100">
-										{typeof selectedInsightScope?.averageRating ===
+										{typeof insightsStore.selectedScope?.averageRating ===
 										"number"
-											? `${selectedInsightScope.averageRating.toFixed(1)} / 5`
+											? `${insightsStore.selectedScope.averageRating.toFixed(1)} / 5`
 											: "—"}
 									</p>
 									<p
@@ -2288,8 +2152,8 @@
 										Avg Happiness
 									</p>
 									<p class="mt-2 text-xs text-accent-300">
-										{trendLabel(
-											selectedInsightScope?.trendSlopePerDay,
+										{insightsStore.trendLabel(
+											insightsStore.selectedScope?.trendSlopePerDay,
 										)}
 									</p>
 								</div>
@@ -2297,7 +2161,7 @@
 									class="rounded-xl border border-zinc-800/60 bg-zinc-900/60 p-4"
 								>
 									<p class="text-2xl font-bold text-zinc-100">
-										{selectedInsightScope?.entryCount ?? 0}
+										{insightsStore.selectedScope?.entryCount ?? 0}
 									</p>
 									<p
 										class="mt-1 text-xs uppercase tracking-wide text-zinc-500"
@@ -2309,7 +2173,7 @@
 									class="rounded-xl border border-zinc-800/60 bg-zinc-900/60 p-4"
 								>
 									<p class="text-2xl font-bold text-zinc-100">
-										{selectedInsightScope?.streaks
+										{insightsStore.selectedScope?.streaks
 											?.longestHighDays ?? 0}
 									</p>
 									<p
@@ -2322,7 +2186,7 @@
 									class="rounded-xl border border-zinc-800/60 bg-zinc-900/60 p-4"
 								>
 									<p class="text-2xl font-bold text-zinc-100">
-										{selectedInsightScope?.streaks
+										{insightsStore.selectedScope?.streaks
 											?.longestLowDays ?? 0}
 									</p>
 									<p
@@ -2341,7 +2205,7 @@
 								>
 									Daily Ratings
 								</p>
-								{#if selectedInsightScope?.dailyRatings?.length}
+								{#if insightsStore.selectedScope?.dailyRatings?.length}
 									<svg
 										viewBox="0 0 640 220"
 										class="h-56 w-full overflow-visible"
@@ -2356,8 +2220,8 @@
 											stroke-dasharray="4 6"
 										/>
 										<path
-											d={chartPoints(
-												selectedInsightScope.dailyRatings,
+											d={insightsStore.chartPoints(
+												insightsStore.selectedScope.dailyRatings,
 											)}
 											fill="none"
 											stroke="currentColor"
@@ -2366,23 +2230,23 @@
 											stroke-linecap="round"
 											stroke-linejoin="round"
 										/>
-										{#each selectedInsightScope.dailyRatings as point}
+										{#each insightsStore.selectedScope.dailyRatings as point}
 											<circle
-												cx={selectedInsightScope
+												cx={insightsStore.selectedScope
 													.dailyRatings.length === 1
 													? 320
 													: 24 +
 														((point.time -
-															selectedInsightScope
+															insightsStore.selectedScope
 																.dailyRatings[0]
 																.time) /
-															(selectedInsightScope
+															(insightsStore.selectedScope
 																.dailyRatings[
-																selectedInsightScope
+																insightsStore.selectedScope
 																	.dailyRatings
 																	.length - 1
 															].time -
-																selectedInsightScope
+																insightsStore.selectedScope
 																	.dailyRatings[0]
 																	.time)) *
 															592}
@@ -2412,31 +2276,31 @@
 								>
 									Groq Insights
 								</p>
-								{#if selectedInsightScope?.textAnalysis?.source === "groq-api" && selectedInsightResult}
-									{#if selectedInsightResult.briefSummary}
+								{#if insightsStore.selectedScope?.textAnalysis?.source === "groq-api" && insightsStore.selectedResult}
+									{#if insightsStore.selectedResult.briefSummary}
 										<blockquote
 											class="rounded-lg border-l-2 border-accent-500 bg-accent-500/10 px-4 py-3 text-sm text-accent-100"
 										>
-											"{selectedInsightResult.briefSummary}"
+											"{insightsStore.selectedResult.briefSummary}"
 										</blockquote>
 									{/if}
 									<div class="mt-4 flex flex-wrap gap-2">
-										{#if selectedInsightResult.overallSentiment}
+										{#if insightsStore.selectedResult.overallSentiment}
 											<span
 												class="rounded-full border border-zinc-700/60 bg-zinc-950/50 px-2.5 py-1 text-xs text-zinc-300"
-												>{selectedInsightResult.overallSentiment}</span
+												>{insightsStore.selectedResult.overallSentiment}</span
 											>
 										{/if}
-										{#if selectedInsightResult.primaryEmotion}
+										{#if insightsStore.selectedResult.primaryEmotion}
 											<span
 												class="rounded-full border border-accent-500/20 bg-accent-500/10 px-2.5 py-1 text-xs text-accent-300"
-												>{selectedInsightResult.primaryEmotion}</span
+												>{insightsStore.selectedResult.primaryEmotion}</span
 											>
 										{/if}
 									</div>
-									{#if selectedInsightResult.keyThemes?.length}
+									{#if insightsStore.selectedResult.keyThemes?.length}
 										<div class="mt-4 flex flex-wrap gap-2">
-											{#each selectedInsightResult.keyThemes as theme}
+											{#each insightsStore.selectedResult.keyThemes as theme}
 												<span
 													class="rounded bg-zinc-800/80 px-2 py-1 text-xs text-zinc-300"
 													>{theme}</span
@@ -2444,16 +2308,16 @@
 											{/each}
 										</div>
 									{/if}
-									{#if selectedInsightResult.patterns?.length}
+									{#if insightsStore.selectedResult.patterns?.length}
 										<ul
 											class="mt-4 list-disc space-y-1 pl-5 text-sm text-zinc-350"
 										>
-											{#each selectedInsightResult.patterns as pattern}
+											{#each insightsStore.selectedResult.patterns as pattern}
 												<li>{pattern}</li>
 											{/each}
 										</ul>
 									{/if}
-									{#if selectedInsightResult.ratingCorrelations?.length}
+									{#if insightsStore.selectedResult.ratingCorrelations?.length}
 										<div class="mt-4 overflow-x-auto">
 											<table
 												class="w-full text-left text-xs"
@@ -2472,7 +2336,7 @@
 												<tbody
 													class="divide-y divide-zinc-800/70 text-zinc-300"
 												>
-													{#each selectedInsightResult.ratingCorrelations as row}
+													{#each insightsStore.selectedResult.ratingCorrelations as row}
 														<tr
 															><td class="py-2"
 																>{row.factor}</td
@@ -2487,7 +2351,7 @@
 											</table>
 										</div>
 									{/if}
-								{:else if selectedLocalAnalysis}
+								{:else if insightsStore.selectedLocalAnalysis}
 									<p
 										class="rounded-lg border border-zinc-800/60 bg-zinc-950/40 px-4 py-3 text-sm text-zinc-500"
 									>
@@ -2502,7 +2366,7 @@
 												High-rated keywords
 											</p>
 											<div class="flex flex-wrap gap-2">
-												{#each Object.entries(selectedLocalAnalysis.keywordFrequencyByRating?.highRated ?? {}) as [word, count]}
+												{#each Object.entries(insightsStore.selectedLocalAnalysis.keywordFrequencyByRating?.highRated ?? {}) as [word, count]}
 													<span
 														class="rounded bg-accent-500/10 px-2 py-1 text-xs text-accent-300"
 														>{word} {count}</span
@@ -2517,7 +2381,7 @@
 												Low-rated keywords
 											</p>
 											<div class="flex flex-wrap gap-2">
-												{#each Object.entries(selectedLocalAnalysis.keywordFrequencyByRating?.lowRated ?? {}) as [word, count]}
+												{#each Object.entries(insightsStore.selectedLocalAnalysis.keywordFrequencyByRating?.lowRated ?? {}) as [word, count]}
 													<span
 														class="rounded bg-zinc-800 px-2 py-1 text-xs text-zinc-300"
 														>{word} {count}</span
@@ -2535,14 +2399,14 @@
 										>
 											<div
 												class="h-2 rounded-full bg-accent-500"
-												style={`width: ${Math.min(100, Math.max(0, 50 + (selectedLocalAnalysis.sentimentVsRating?.lexicalSentimentScore ?? 0) * 5))}%`}
+												style={`width: ${Math.min(100, Math.max(0, 50 + (insightsStore.selectedLocalAnalysis.sentimentVsRating?.lexicalSentimentScore ?? 0) * 5))}%`}
 											></div>
 										</div>
 									</div>
 								{/if}
 							</div>
 
-							{#if selectedInsightScope?.habitCorrelations?.length}
+							{#if insightsStore.selectedScope?.habitCorrelations?.length}
 								<div
 									class="mt-5 rounded-xl border border-zinc-800/60 bg-zinc-900/50 p-4"
 								>
@@ -2552,7 +2416,7 @@
 										Habit Correlations
 									</p>
 									<div class="grid gap-3 md:grid-cols-2">
-										{#each selectedInsightScope.habitCorrelations as correlation}
+										{#each insightsStore.selectedScope.habitCorrelations as correlation}
 											<div
 												class="rounded-xl border border-zinc-800/60 bg-zinc-950/30 p-4"
 											>
@@ -2586,7 +2450,7 @@
 														>
 															<div
 																class="h-2 rounded-full bg-accent-500"
-																style={`width: ${ratingBarWidth(correlation.averageRatingOnCompletedDays)}`}
+																style={`width: ${insightsStore.ratingBarWidth(correlation.averageRatingOnCompletedDays)}`}
 															></div>
 														</div>
 														<span
@@ -2607,7 +2471,7 @@
 														>
 															<div
 																class="h-2 rounded-full bg-zinc-500"
-																style={`width: ${ratingBarWidth(correlation.averageRatingOnMissedDays)}`}
+																style={`width: ${insightsStore.ratingBarWidth(correlation.averageRatingOnMissedDays)}`}
 															></div>
 														</div>
 														<span
@@ -2631,7 +2495,7 @@
 								</div>
 							{/if}
 
-							{#if selectedInsightScope?.habitSummary?.byHabit}
+							{#if insightsStore.selectedScope?.habitSummary?.byHabit}
 								<div
 									class="mt-5 rounded-xl border border-zinc-800/60 bg-zinc-900/50 p-4"
 								>
@@ -2641,7 +2505,7 @@
 										Habit Overview
 									</p>
 									<div class="space-y-4">
-										{#each Object.entries(selectedInsightScope.habitSummary.byHabit) as [habitId, habit]}
+										{#each Object.entries(insightsStore.selectedScope.habitSummary.byHabit) as [habitId, habit]}
 											<div>
 												<div
 													class="mb-2 flex items-center justify-between gap-3"
@@ -2654,18 +2518,18 @@
 													<p
 														class="text-xs font-mono text-zinc-500"
 													>
-														{habit.count} / {daysInPeriod(
-															selectedInsightPeriod,
+														{habit.count} / {insightsStore.daysInPeriod(
+															insightsStore.selectedPeriod,
 														)} days
 													</p>
 												</div>
 												<div
 													class="flex flex-wrap gap-1"
 												>
-													{#each Array(daysInPeriod(selectedInsightPeriod)) as _, index}
+													{#each Array(insightsStore.daysInPeriod(insightsStore.selectedPeriod)) as _, index}
 														<span
-															title={`${selectedInsightPeriod}-${String(index + 1).padStart(2, "0")}`}
-															class="h-2.5 w-2.5 rounded-full border {habitCompletedOnDate(
+															title={`${insightsStore.selectedPeriod}-${String(index + 1).padStart(2, "0")}`}
+															class="h-2.5 w-2.5 rounded-full border {insightsStore.habitCompletedOnDate(
 																habit.dates,
 																index + 1,
 															)
