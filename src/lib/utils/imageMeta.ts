@@ -1,4 +1,5 @@
 import imageCompression from "browser-image-compression";
+import { extractImageUrlsFromMarkdown } from "./mediaMeta";
 
 export type { MediaDimensions as ImageMeta } from "./mediaMeta";
 export {
@@ -7,6 +8,32 @@ export {
   getImageDimensionsFromUrl,
   resolveMissingImageMeta,
 } from "./mediaMeta";
+
+export function enrichImageMetaFromGallery(
+  markdown: string,
+  currentImageMeta: Record<string, { width: number; height: number }>,
+  galleryItems: any[],
+): Record<string, { width: number; height: number }> {
+  const urls = extractImageUrlsFromMarkdown(markdown);
+  return urls.reduce(
+    (acc, url) => {
+      if (currentImageMeta[url]) {
+        acc[url] = currentImageMeta[url];
+        return acc;
+      }
+
+      const media = galleryItems.find((item) => item.url === url);
+      if (media?.width && media?.height) {
+        acc[url] = {
+          width: media.width,
+          height: media.height,
+        };
+      }
+      return acc;
+    },
+    {} as Record<string, { width: number; height: number }>,
+  );
+}
 
 export function removeImageReferencesFromMarkdown(
   markdown: string,

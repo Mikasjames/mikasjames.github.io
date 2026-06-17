@@ -7,12 +7,16 @@
 		createJournalEntry,
 		updateJournalEntry,
 		type ImageMeta,
+		type JournalEntry,
 	} from "$lib/firebase/firestore.svelte";
 	import {
 		resolveMissingImageMeta,
 		sanitizeImageMetaFromMarkdown,
+		enrichImageMetaFromGallery,
 	} from "$lib/utils/imageMeta";
+	import { todayDateKey, getHappinessLabel, dateKeyFromDate } from "$lib/utils/date";
 	import type { User } from "firebase/auth";
+	import MediaGalleryDialog from "$lib/components/MediaGalleryDialog.svelte";
 
 	interface JournalFormState {
 		id: string | null;
@@ -30,31 +34,71 @@
 	}
 
 	let {
-		journalForm = $bindable(),
 		user,
 		mediaStore,
 		habitsStore,
 		loadJournalEntries,
-		resetJournalForm,
-		openMediaGallery,
-		todayDateKey,
-		getHappinessLabel,
-		selectedJournalEntryDate = $bindable(),
 	} = $props<{
-		journalForm: JournalFormState;
 		user: User | null;
 		mediaStore: any;
 		habitsStore: any;
 		loadJournalEntries: () => Promise<void>;
-		resetJournalForm: () => void;
-		openMediaGallery: (insertCb?: any, coverCb?: any) => Promise<void>;
-		todayDateKey: () => string;
-		getHappinessLabel: (rating: number) => string;
-		selectedJournalEntryDate: string | null;
 	}>();
 
+	let journalForm = $state<JournalFormState>({
+		id: null,
+		title: "",
+		excerpt: "",
+		content: "",
+		coverImage: null,
+		imageMeta: {},
+		happinessRating: 3,
+		submitting: false,
+		successMsg: "",
+		error: "",
+		coverUploading: false,
+		coverError: "",
+	});
+
+	let selectedJournalEntryDate = $state<string | null>(null);
+	let showMediaGallery = $state(false);
 	let activeTab = $state<"write" | "preview">("write");
 	let textareaRef = $state<HTMLTextAreaElement | null>(null);
+
+	export function startEditJournal(entry: JournalEntry) {
+		journalForm.id = entry.id;
+		journalForm.title = entry.title;
+		journalForm.excerpt = entry.excerpt || "";
+		journalForm.content = entry.content;
+		journalForm.coverImage = entry.coverImage || null;
+		journalForm.happinessRating = entry.happinessRating ?? 3;
+		selectedJournalEntryDate = dateKeyFromDate(entry.createdAt);
+		habitsStore.selectedHabitIds = new Set();
+		journalForm.imageMeta = sanitizeImageMetaFromMarkdown(
+			entry.content,
+			enrichImageMetaFromGallery(entry.content, entry.imageMeta ?? {}, mediaStore.mediaItems),
+		);
+		journalForm.successMsg = "";
+		journalForm.error = "";
+		if (user) {
+			habitsStore.loadSelectedHabitLogs(user.uid, entry.id, journalForm.id);
+		}
+		window.scrollTo({ top: 0, behavior: "smooth" });
+	}
+
+	export function resetJournalForm() {
+		journalForm.id = null;
+		journalForm.title = "";
+		journalForm.excerpt = "";
+		journalForm.content = "";
+		journalForm.coverImage = null;
+		journalForm.imageMeta = {};
+		journalForm.happinessRating = 3;
+		journalForm.successMsg = "";
+		journalForm.error = "";
+		selectedJournalEntryDate = null;
+		habitsStore.selectedHabitIds = new Set();
+	}
 
 	async function handleJournalSubmit(e: Event) {
 		e.preventDefault();
@@ -235,6 +279,24 @@
 
 	function setEditorCoverImage(url: string | null) {
 		journalForm.coverImage = url;
+	}
+
+	function copyToClipboard(text: string) {
+		navigator.clipboard.writeText(text).then(() => {
+			alert("Copied markdown image tag to clipboard!");
+		});
+	}
+
+	async function handleDeleteMediaWrapper(item: any) {
+		await mediaStore.handleDeleteMedia(item, (url: string) => {
+			journalForm.imageMeta = { ...journalForm.imageMeta };
+			delete journalForm.imageMeta[url];
+			journalForm.content = journalForm.content.replace(new RegExp(`!\\[.*?\\]\\(${url}\\)`, "g"), "");
+		});
+	}
+
+	export function isEditing(entryId: string) {
+		return journalForm.id === entryId;
 	}
 </script>
 
@@ -541,18 +603,19 @@
 				bind:imageMeta={journalForm.imageMeta}
 				bind:textareaRef
 				bind:activeTab
-				onOpenMediaGallery={() =>
-					openMediaGallery(
-						insertMarkdownAtCursor,
-						setEditorCoverImage,
-					)}
+				onOpenMediaGallery={() => {
+					showMediaGallery = true;
+					mediaStore.openMediaGallery();
+				}}
 				placeholderText="What's on your mind today? Markdown is supported."
 			/>
 		</div>
 
 		<ContentImagesHelper
-			onOpenMediaGallery={() =>
-				openMediaGallery(insertMarkdownAtCursor, setEditorCoverImage)}
+			onOpenMediaGallery={() => {
+				showMediaGallery = true;
+				mediaStore.openMediaGallery();
+			}}
 			{handleContentUpload}
 			contentUploading={mediaStore.mediaUploading}
 			contentUploadError={mediaStore.mediaUploadError}
@@ -654,3 +717,17 @@
 		</div>
 	</form>
 </section>
+
+<MediaGalleryDialog
+	bind:showMediaGallery
+	mediaItems={mediaStore.mediaItems}
+	mediaUploading={mediaStore.mediaUploading}
+	mediaUploadError={mediaStore.mediaUploadError}
+	handleGalleryUpload={(e: any) => mediaStore.handleGalleryUpload(e.target.files[0])}
+	handleDeleteMedia={handleDeleteMediaWrapper}
+	{copyToClipboard}
+	insertMarkdownAtCursor={insertMarkdownAtCursor}
+	setEditorCoverImage={setEditorCoverImage}
+	mediaLoading={mediaStore.mediaLoading}
+	deletingMediaIds={mediaStore.deletingMediaIds}
+/>

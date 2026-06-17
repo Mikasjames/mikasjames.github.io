@@ -4,7 +4,8 @@
 	import MarkdownEditor from "$lib/components/MarkdownEditor.svelte";
 	import ContentImagesHelper from "$lib/components/ContentImagesHelper.svelte";
 	import { createPost, updatePost, type BlogPost, type ImageMeta } from "$lib/firebase/firestore.svelte";
-	import { resolveMissingImageMeta, sanitizeImageMetaFromMarkdown } from "$lib/utils/imageMeta";
+	import { resolveMissingImageMeta, sanitizeImageMetaFromMarkdown, enrichImageMetaFromGallery } from "$lib/utils/imageMeta";
+	import MediaGalleryDialog from "$lib/components/MediaGalleryDialog.svelte";
 
 	interface BlogFormState {
 		id: string | null;
@@ -24,21 +25,65 @@
 	}
 
 	let {
-		blogForm = $bindable(),
 		mediaStore,
 		loadPosts,
-		resetForm,
-		openMediaGallery
 	} = $props<{
-		blogForm: BlogFormState;
-		mediaStore: any; // Could be typed as ReturnType<typeof createMediaStore> if we exported it
+		mediaStore: any;
 		loadPosts: () => Promise<void>;
-		resetForm: () => void;
-		openMediaGallery: (insertCb?: any, coverCb?: any) => Promise<void>;
 	}>();
 
+	let blogForm = $state<BlogFormState>({
+		id: null,
+		title: "",
+		slug: "",
+		excerpt: "",
+		content: "",
+		status: "published",
+		coverImage: null,
+		imageMeta: {},
+		slugManuallyEdited: false,
+		submitting: false,
+		successMsg: "",
+		error: "",
+		coverUploading: false,
+		coverError: "",
+	});
+
+	let showMediaGallery = $state(false);
 	let activeTab = $state<"write" | "preview">("write");
 	let textareaRef = $state<HTMLTextAreaElement | null>(null);
+
+	export function startEdit(post: BlogPost) {
+		blogForm.id = post.id;
+		blogForm.title = post.title;
+		blogForm.slug = post.slug;
+		blogForm.excerpt = post.excerpt;
+		blogForm.content = post.content;
+		blogForm.coverImage = post.coverImage;
+		blogForm.status = post.status ?? "published";
+		blogForm.imageMeta = sanitizeImageMetaFromMarkdown(
+			post.content,
+			enrichImageMetaFromGallery(post.content, post.imageMeta ?? {}, mediaStore.mediaItems),
+		);
+		blogForm.slugManuallyEdited = true;
+		blogForm.successMsg = "";
+		blogForm.error = "";
+		window.scrollTo({ top: 0, behavior: "smooth" });
+	}
+
+	export function resetForm() {
+		blogForm.id = null;
+		blogForm.title = "";
+		blogForm.slug = "";
+		blogForm.excerpt = "";
+		blogForm.content = "";
+		blogForm.coverImage = null;
+		blogForm.status = "published";
+		blogForm.imageMeta = {};
+		blogForm.slugManuallyEdited = false;
+		blogForm.successMsg = "";
+		blogForm.error = "";
+	}
 
 	async function handlePublish(e: Event) {
 		e.preventDefault();
@@ -124,7 +169,7 @@
 				height,
 			});
 		} catch (err: unknown) {
-			// Content upload error handled by store/component if needed
+			// Content upload error handled by store
 		} finally {
 			target.value = "";
 		}
@@ -172,6 +217,20 @@
 		blogForm.coverImage = url;
 	}
 
+	function copyToClipboard(text: string) {
+		navigator.clipboard.writeText(text).then(() => {
+			alert("Copied markdown image tag to clipboard!");
+		});
+	}
+
+	async function handleDeleteMediaWrapper(item: any) {
+		await mediaStore.handleDeleteMedia(item, (url: string) => {
+			blogForm.imageMeta = { ...blogForm.imageMeta };
+			delete blogForm.imageMeta[url];
+			blogForm.content = blogForm.content.replace(new RegExp(`!\\[.*?\\]\\(${url}\\)`, "g"), "");
+		});
+	}
+
 	$effect(() => {
 		if (!blogForm.slugManuallyEdited && !blogForm.id) {
 			blogForm.slug = blogForm.title
@@ -182,6 +241,10 @@
 				.replace(/-+/g, "-");
 		}
 	});
+
+	export function isEditing(postId: string) {
+		return blogForm.id === postId;
+	}
 </script>
 
 <section
@@ -315,13 +378,19 @@
 				bind:imageMeta={blogForm.imageMeta}
 				bind:textareaRef
 				bind:activeTab
-				onOpenMediaGallery={() => openMediaGallery(insertMarkdownAtCursor, setEditorCoverImage)}
+				onOpenMediaGallery={() => {
+					showMediaGallery = true;
+					mediaStore.openMediaGallery();
+				}}
 				placeholderText="Write your post content here…&#10;&#10;## Heading&#10;&#10;Markdown is supported."
 			/>
 		</div>
 
 		<ContentImagesHelper
-			onOpenMediaGallery={() => openMediaGallery(insertMarkdownAtCursor, setEditorCoverImage)}
+			onOpenMediaGallery={() => {
+				showMediaGallery = true;
+				mediaStore.openMediaGallery();
+			}}
 			{handleContentUpload}
 			contentUploading={mediaStore.mediaUploading}
 			contentUploadError={mediaStore.mediaUploadError}
@@ -427,3 +496,17 @@
 		</div>
 	</form>
 </section>
+
+<MediaGalleryDialog
+	bind:showMediaGallery
+	mediaItems={mediaStore.mediaItems}
+	mediaUploading={mediaStore.mediaUploading}
+	mediaUploadError={mediaStore.mediaUploadError}
+	handleGalleryUpload={(e: any) => mediaStore.handleGalleryUpload(e.target.files[0])}
+	handleDeleteMedia={handleDeleteMediaWrapper}
+	{copyToClipboard}
+	insertMarkdownAtCursor={insertMarkdownAtCursor}
+	setEditorCoverImage={setEditorCoverImage}
+	mediaLoading={mediaStore.mediaLoading}
+	deletingMediaIds={mediaStore.deletingMediaIds}
+/>

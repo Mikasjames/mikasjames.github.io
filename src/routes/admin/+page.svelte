@@ -1,30 +1,19 @@
 <script lang="ts">
-	import { tick } from "svelte";
 	import { goto } from "$app/navigation";
-	import CoverImage from "$lib/components/CoverImage.svelte";
 	import { subscribeToAuth, logout } from "$lib/firebase/auth";
 	import {
 		getPosts,
 		deletePost,
-		deleteMediaItem,
 		type BlogPost,
-		type ImageMeta,
-		type MediaItem,
 		getJournalEntries,
 		deleteJournalEntry,
 		type JournalEntry,
 	} from "$lib/firebase/firestore.svelte";
-	import {
-		removeImageReferencesFromMarkdown,
-		sanitizeImageMetaFromMarkdown,
-		extractImageUrlsFromMarkdown,
-	} from "$lib/utils/imageMeta";
-	import { deleteImage } from "$lib/firebase/storage";
 	import type { User } from "firebase/auth";
-	import MediaGalleryDialog from "$lib/components/MediaGalleryDialog.svelte";
 	import { createInsightsStore } from "$lib/firebase/insights.svelte";
 	import { createMediaStore } from "$lib/firebase/media.svelte";
 	import { createHabitsStore } from "$lib/firebase/habits.svelte";
+	import { formatDate } from "$lib/utils/date";
 	import BlogPostForm from "./BlogPostForm.svelte";
 	import JournalEntryForm from "./JournalEntryForm.svelte";
 	import InsightsDashboard from "./InsightsDashboard.svelte";
@@ -35,6 +24,9 @@
 	const insightsStore = createInsightsStore();
 	const mediaStore = createMediaStore();
 	const habitsStore = createHabitsStore();
+
+	let blogPostFormRef = $state<ReturnType<typeof BlogPostForm>>();
+	let journalEntryFormRef = $state<ReturnType<typeof JournalEntryForm>>();
 
 	$effect(() => {
 		const unsub = subscribeToAuth((u) => {
@@ -58,46 +50,10 @@
 	let posts = $state<BlogPost[]>([]);
 	let postsLoading = $state(false);
 
-	let blogForm = $state({
-		id: null as string | null,
-		title: "",
-		slug: "",
-		excerpt: "",
-		content: "",
-		status: "published" as "draft" | "published" | "unlisted",
-		coverImage: null as string | null,
-		imageMeta: {} as Record<string, ImageMeta>,
-		slugManuallyEdited: false,
-		submitting: false,
-		successMsg: "",
-		error: "",
-		coverUploading: false,
-		coverError: "",
-	});
-
-	let journalForm = $state({
-		id: null as string | null,
-		title: "",
-		excerpt: "",
-		content: "",
-		coverImage: null as string | null,
-		imageMeta: {} as Record<string, ImageMeta>,
-		happinessRating: 3,
-		submitting: false,
-		successMsg: "",
-		error: "",
-		coverUploading: false,
-		coverError: "",
-	});
-
-	let showMediaGallery = $state(false);
-
 	let currentSection = $state<"blogs" | "journal" | "insights">("blogs");
 	let journalEntries = $state<JournalEntry[]>([]);
 	let journalEntriesLoading = $state(false);
 	let journalEntriesLoadError = $state("");
-
-	let selectedJournalEntryDate = $state<string | null>(null);
 
 	let blogSearch = $state("");
 	let blogStatusFilter = $state<"all" | "published" | "unlisted" | "draft">(
@@ -107,7 +63,6 @@
 
 	let journalSearch = $state("");
 	let journalSort = $state<"newest" | "oldest">("newest");
-
 
 	let filteredPosts = $derived.by(() => {
 		let result = posts;
@@ -159,14 +114,6 @@
 			: result;
 	});
 
-	function getHappinessLabel(rating: number) {
-		if (rating <= 1) return "Very low";
-		if (rating === 2) return "Low";
-		if (rating === 3) return "Steady";
-		if (rating === 4) return "Good";
-		return "Great";
-	}
-
 	async function loadPosts() {
 		postsLoading = true;
 		try {
@@ -192,55 +139,14 @@
 		}
 	}
 
-	function todayDateKey() {
-		return new Date().toLocaleDateString("en-CA");
-	}
-
-	function dateKeyFromDate(date: Date | null | undefined) {
-		return date ? date.toLocaleDateString("en-CA") : todayDateKey();
-	}
-
-	async function startEditJournal(entry: JournalEntry) {
-		journalForm.id = entry.id;
-		journalForm.title = entry.title;
-		journalForm.excerpt = entry.excerpt || "";
-		journalForm.content = entry.content;
-		journalForm.coverImage = entry.coverImage || null;
-		journalForm.happinessRating = entry.happinessRating ?? 3;
-		selectedJournalEntryDate = dateKeyFromDate(entry.createdAt);
-		habitsStore.selectedHabitIds = new Set();
-		journalForm.imageMeta = sanitizeImageMetaFromMarkdown(
-			entry.content,
-			enrichImageMetaFromGallery(entry.content, entry.imageMeta ?? {}),
-		);
-		journalForm.successMsg = "";
-		journalForm.error = "";
-		await habitsStore.loadSelectedHabitLogs(user!.uid, entry.id, journalForm.id);
-		window.scrollTo({ top: 0, behavior: "smooth" });
-	}
-
-	function resetJournalForm() {
-		journalForm.id = null;
-		journalForm.title = "";
-		journalForm.excerpt = "";
-		journalForm.content = "";
-		journalForm.coverImage = null;
-		journalForm.imageMeta = {};
-		journalForm.happinessRating = 3;
-		journalForm.successMsg = "";
-		journalForm.error = "";
-		selectedJournalEntryDate = null;
-		habitsStore.selectedHabitIds = new Set();
-	}
-
 	async function handleDeleteJournal(entry: JournalEntry) {
 		if (!confirm(`Are you sure you want to delete this journal entry?`)) {
 			return;
 		}
 		try {
 			await deleteJournalEntry(entry.id);
-			if (journalForm.id === entry.id) {
-				resetJournalForm();
+			if (journalEntryFormRef?.isEditing(entry.id)) {
+				journalEntryFormRef.resetJournalForm();
 			}
 			await loadJournalEntries();
 		} catch (err: unknown) {
@@ -252,71 +158,14 @@
 		}
 	}
 
-	function enrichImageMetaFromGallery(
-		markdown: string,
-		currentImageMeta: Record<string, ImageMeta>,
-	): Record<string, ImageMeta> {
-		const urls = extractImageUrlsFromMarkdown(markdown);
-		return urls.reduce(
-			(acc, url) => {
-				if (currentImageMeta[url]) {
-					acc[url] = currentImageMeta[url];
-					return acc;
-				}
-
-				const media = mediaStore.mediaItems.find((item) => item.url === url);
-				if (media?.width && media?.height) {
-					acc[url] = {
-						width: media.width,
-						height: media.height,
-					};
-				}
-				return acc;
-			},
-			{} as Record<string, ImageMeta>,
-		);
-	}
-
-	function startEdit(post: BlogPost) {
-		blogForm.id = post.id;
-		blogForm.title = post.title;
-		blogForm.slug = post.slug;
-		blogForm.excerpt = post.excerpt;
-		blogForm.content = post.content;
-		blogForm.coverImage = post.coverImage;
-		blogForm.status = post.status ?? "published";
-		blogForm.imageMeta = sanitizeImageMetaFromMarkdown(
-			post.content,
-			enrichImageMetaFromGallery(post.content, post.imageMeta ?? {}),
-		);
-		blogForm.slugManuallyEdited = true;
-		blogForm.successMsg = "";
-		blogForm.error = "";
-		window.scrollTo({ top: 0, behavior: "smooth" });
-	}
-
-	function resetForm() {
-		blogForm.id = null;
-		blogForm.title = "";
-		blogForm.slug = "";
-		blogForm.excerpt = "";
-		blogForm.content = "";
-		blogForm.coverImage = null;
-		blogForm.status = "published";
-		blogForm.imageMeta = {};
-		blogForm.slugManuallyEdited = false;
-		blogForm.successMsg = "";
-		blogForm.error = "";
-	}
-
 	async function handleDelete(post: BlogPost) {
 		if (!confirm(`Are you sure you want to delete "${post.title}"?`)) {
 			return;
 		}
 		try {
 			await deletePost(post.id);
-			if (blogForm.id === post.id) {
-				resetForm();
+			if (blogPostFormRef?.isEditing(post.id)) {
+				blogPostFormRef.resetForm();
 			}
 			await loadPosts();
 		} catch (err: unknown) {
@@ -326,51 +175,9 @@
 		}
 	}
 
-	async function handleDeleteMediaWrapper(item: MediaItem) {
-		await mediaStore.handleDeleteMedia(item, (url) => {
-			blogForm.imageMeta = { ...blogForm.imageMeta };
-			delete blogForm.imageMeta[url];
-			journalForm.imageMeta = { ...journalForm.imageMeta };
-			delete journalForm.imageMeta[url];
-			blogForm.content = removeImageReferencesFromMarkdown(
-				blogForm.content,
-				url,
-			);
-			journalForm.content = removeImageReferencesFromMarkdown(
-				journalForm.content,
-				url,
-			);
-		});
-	}
-
-	let galleryInsertionCallback = $state<((url: string, alt: string, dims?: any) => void) | null>(null);
-	let galleryCoverCallback = $state<((url: string | null) => void) | null>(null);
-
-	async function openMediaGallery(insertCb?: any, coverCb?: any) {
-		galleryInsertionCallback = insertCb || null;
-		galleryCoverCallback = coverCb || null;
-		showMediaGallery = true;
-		await mediaStore.openMediaGallery();
-	}
-
-	function copyToClipboard(text: string) {
-		navigator.clipboard.writeText(text).then(() => {
-			alert("Copied markdown image tag to clipboard!");
-		});
-	}
-
 	async function handleLogout() {
 		await logout();
 		goto("/admin/login/");
-	}
-
-	function formatDate(d: Date | null) {
-		if (!d) return "—";
-		return d.toLocaleDateString("en-US", {
-			year: "numeric",
-			month: "short",
-			day: "numeric",
-		});
 	}
 </script>
 
@@ -483,11 +290,9 @@
 
 			{#if currentSection === "blogs"}
 				<BlogPostForm
-					bind:blogForm
+					bind:this={blogPostFormRef}
 					{mediaStore}
 					{loadPosts}
-					{resetForm}
-					{openMediaGallery}
 				/>
 
 				<section
@@ -540,7 +345,7 @@
 					</div>
 
 					{#if blogSearch || blogStatusFilter !== "all"}
-						<p class="text-xs text-zinc-500 mb-3">
+						<p class="text-xs text-zinc-550 mb-3">
 							{filteredPosts.length} of {posts.length} posts
 						</p>
 					{/if}
@@ -555,7 +360,7 @@
 							Loading posts…
 						</div>
 					{:else if filteredPosts.length === 0}
-						<p class="text-center py-10 text-zinc-600 text-sm">
+						<p class="text-center py-10 text-zinc-650 text-sm">
 							No posts yet. Publish your first one above!
 						</p>
 					{:else}
@@ -646,7 +451,10 @@
 											</a>
 											<button
 												type="button"
-												onclick={() => startEdit(post)}
+												onclick={() =>
+													blogPostFormRef?.startEdit(
+														post,
+													)}
 												class="text-xs text-accent-400 hover:text-accent-300 transition-colors font-medium"
 											>
 												Edit
@@ -668,16 +476,11 @@
 				</section>
 			{:else if currentSection === "journal"}
 				<JournalEntryForm
-					bind:journalForm
+					bind:this={journalEntryFormRef}
 					{user}
 					{mediaStore}
 					{habitsStore}
 					{loadJournalEntries}
-					{resetJournalForm}
-					{openMediaGallery}
-					{todayDateKey}
-					{getHappinessLabel}
-					bind:selectedJournalEntryDate
 				/>
 
 				<section
@@ -717,7 +520,7 @@
 					</div>
 
 					{#if journalSearch}
-						<p class="text-xs text-zinc-500 mb-3">
+						<p class="text-xs text-zinc-550 mb-3">
 							{filteredJournals.length} of {journalEntries.length}
 							entries
 						</p>
@@ -741,7 +544,7 @@
 								{journalEntriesLoadError}
 							</p>
 							<p
-								class="text-[10px] text-zinc-500 leading-normal pt-1"
+								class="text-[10px] text-zinc-550 leading-normal pt-1"
 							>
 								Please ensure your Firestore Security Rules
 								permit authenticated read access to the <code
@@ -795,7 +598,9 @@
 											<button
 												type="button"
 												onclick={() =>
-													startEditJournal(entry)}
+													journalEntryFormRef?.startEditJournal(
+														entry,
+													)}
 												class="text-xs text-accent-400 hover:text-accent-300 transition-colors font-medium cursor-pointer"
 											>
 												Edit
@@ -820,22 +625,4 @@
 			{/if}
 		</div>
 	</div>
-
-	<MediaGalleryDialog
-		bind:showMediaGallery
-		mediaItems={mediaStore.mediaItems}
-		mediaUploading={mediaStore.mediaUploading}
-		mediaUploadError={mediaStore.mediaUploadError}
-		handleGalleryUpload={(e: any) => mediaStore.handleGalleryUpload(e.target.files[0])}
-		handleDeleteMedia={handleDeleteMediaWrapper}
-		{copyToClipboard}
-		insertMarkdownAtCursor={(url: string, alt: string, dims?: any) => {
-			if (galleryInsertionCallback) galleryInsertionCallback(url, alt, dims);
-		}}
-		setEditorCoverImage={(url: string | null) => {
-			if (galleryCoverCallback) galleryCoverCallback(url);
-		}}
-		mediaLoading={mediaStore.mediaLoading}
-		deletingMediaIds={mediaStore.deletingMediaIds}
-	/>
 {/if}
