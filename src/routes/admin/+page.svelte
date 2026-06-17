@@ -13,7 +13,6 @@
 	import { createInsightsStore } from "$lib/firebase/insights.svelte";
 	import { createMediaStore } from "$lib/firebase/media.svelte";
 	import { createHabitsStore } from "$lib/firebase/habits.svelte";
-	import { formatDate } from "$lib/utils/date";
 	import BlogPostForm from "./BlogPostForm.svelte";
 	import JournalEntryForm from "./JournalEntryForm.svelte";
 	import InsightsDashboard from "./InsightsDashboard.svelte";
@@ -241,7 +240,8 @@
 					items={posts}
 					loading={postsLoading}
 					type="blog"
-					onEdit={(post) => blogPostFormRef?.startEdit(post as BlogPost)}
+					onEdit={(post) =>
+						blogPostFormRef?.startEdit(post as BlogPost)}
 					onDelete={(post) => handleDelete(post as BlogPost)}
 				/>
 			{:else if currentSection === "journal"}
