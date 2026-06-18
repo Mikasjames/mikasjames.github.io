@@ -248,9 +248,10 @@ export interface HabitLog {
     habitName: string;
     emoji?: string;
     ownerUid: string;
-    completedAt: Date | null;
+    completedAt: Date | null;     // When the habit was actually done
+    lastModifiedAt: Date | null;  // When this log was last edited
     journalEntryId: string | null;
-    date: string;
+    date: string;                 // The date the habit applies to (YYYY-MM-DD)
 }
 
 export interface CalculatedHabitCorrelation {
@@ -386,6 +387,11 @@ export async function upsertHabitLog(data: {
     date: string;
     journalEntryId: string | null;
 }): Promise<void> {
+    // Validate date format
+    if (!data.date || !/^\d{4}-\d{2}-\d{2}$/.test(data.date)) {
+        throw new Error(`Invalid date format: ${data.date}. Expected YYYY-MM-DD`);
+    }
+
     const logId = `${data.ownerUid}_${data.date}_${data.habit.id}`;
     await setDoc(
         doc(db, HABIT_LOGS_COLLECTION, logId),
@@ -394,9 +400,10 @@ export async function upsertHabitLog(data: {
             habitName: data.habit.name,
             emoji: data.habit.emoji,
             ownerUid: data.ownerUid,
-            completedAt: serverTimestamp(),
+            completedAt: serverTimestamp(),        // When the habit was actually done
+            lastModifiedAt: serverTimestamp(),     // When this log was last edited
             journalEntryId: data.journalEntryId,
-            date: data.date
+            date: data.date                        // The date this habit applies to
         },
         { merge: true }
     );
@@ -440,6 +447,7 @@ function docToHabitLog(id: string, data: DocumentData): HabitLog {
         emoji: data.emoji ?? '',
         ownerUid: data.ownerUid ?? '',
         completedAt: data.completedAt?.toDate?.() ?? null,
+        lastModifiedAt: data.lastModifiedAt?.toDate?.() ?? null,
         journalEntryId: data.journalEntryId ?? null,
         date: data.date ?? ''
     };

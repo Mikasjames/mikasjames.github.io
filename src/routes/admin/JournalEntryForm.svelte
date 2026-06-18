@@ -340,6 +340,15 @@
 	</h2>
 
 	<form onsubmit={handleJournalSubmit} class="space-y-5">
+		{#if selectedJournalEntryDate && selectedJournalEntryDate !== todayDateKey()}
+			<div class="rounded-lg bg-amber-500/10 border border-amber-500/20 p-3 mb-4">
+				<p class="text-sm text-amber-300">
+					⚠️ Editing a past entry from {selectedJournalEntryDate}. 
+					Habits will be saved for this date.
+				</p>
+			</div>
+		{/if}
+
 		<div class="grid grid-cols-1 gap-5 sm:grid-cols-2">
 			<div class="space-y-1.5">
 				<label
