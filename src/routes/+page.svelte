@@ -245,10 +245,10 @@
     <meta property="og:title" content="Mikas James | Full-Stack Software Engineer" />
     <meta property="og:description" content="Full-Stack Software Engineer building Web/PWA solutions with AI integration. TypeScript, Svelte, Angular, Django." />
     <meta property="og:url" content="https://mikasjames.com" />
-    <meta property="og:image" content="https://mikasjames.com/og-default.svg" />
+    <meta property="og:image" content="https://mikasjames.com/og-default.png" />
     <meta name="twitter:title" content="Mikas James | Full-Stack Software Engineer" />
     <meta name="twitter:description" content="Full-Stack Software Engineer building Web/PWA solutions with AI integration. TypeScript, Svelte, Angular, Django." />
-    <meta name="twitter:image" content="https://mikasjames.com/og-default.svg" />
+    <meta name="twitter:image" content="https://mikasjames.com/og-default.png" />
 </svelte:head>
 
 <section

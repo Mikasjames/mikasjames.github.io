@@ -28,7 +28,7 @@
 	<meta property="og:title" content="Blog · Mikas James" />
 	<meta property="og:description" content="Some stuff that came to mind." />
 	<meta property="og:url" content="https://mikasjames.com/blogs" />
-	<meta property="og:image" content="https://mikasjames.com/og-default.svg" />
+	<meta property="og:image" content="https://mikasjames.com/og-default.png" />
 	<meta name="twitter:title" content="Blog · Mikas James" />
 	<meta name="twitter:description" content="Some stuff that came to mind." />
 </svelte:head>
