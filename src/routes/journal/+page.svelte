@@ -17,6 +17,8 @@
 	let loading = $state(true);
 	let errorMsg = $state("");
 	let searchQuery = $state("");
+	let dateFrom = $state("");
+	let dateTo = $state("");
 	let selectedEntryId = $state<string | null>(null);
 	let habitLogsByDate = $state<Record<string, HabitLog[]>>({});
 
@@ -71,11 +73,19 @@
 	const filteredEntries = $derived(
 		entries.filter(entry => {
 			const q = searchQuery.toLowerCase();
-			return (
+			const matchesSearch =
 				entry.title.toLowerCase().includes(q) ||
 				(entry.excerpt?.toLowerCase().includes(q) ?? false) ||
-				entry.content.toLowerCase().includes(q)
-			);
+				entry.content.toLowerCase().includes(q);
+			if (!matchesSearch) return false;
+
+			if (dateFrom || dateTo) {
+				const key = entryDateKey(entry);
+				if (!key) return false;
+				if (dateFrom && key < dateFrom) return false;
+				if (dateTo && key > dateTo) return false;
+			}
+			return true;
 		})
 	);
 
@@ -141,8 +151,11 @@
 	}
 
 	function entryDateKey(entry: JournalEntry) {
-		if (!entry.createdAt) return "";
-		return entry.createdAt.toLocaleDateString("en-CA");
+		return entry.entryDate;
+	}
+
+	function getEntryDate(entry: JournalEntry): Date {
+		return new Date(entry.entryDate + "T00:00:00");
 	}
 
 	function entryHabitLogs(entry: JournalEntry) {
@@ -303,7 +316,36 @@
 							</div>
 						</div>
 
-						<div class="max-h-[calc(100vh-15rem)] space-y-2 overflow-y-auto pr-1">
+						<div class="flex gap-2">
+							<div class="flex-1">
+								<label for="journal-date-from" class="mb-1 block text-[10px] font-mono uppercase tracking-widest text-zinc-600">From</label>
+								<input
+									id="journal-date-from"
+									type="date"
+									bind:value={dateFrom}
+									class="w-full rounded-xl border border-zinc-800/80 bg-zinc-950/70 px-3 py-2 text-sm text-zinc-100 transition-all duration-200 focus:border-accent-500/60 focus:outline-none focus:ring-1 focus:ring-accent-500/20 [color-scheme:dark]"
+								/>
+							</div>
+							<div class="flex-1">
+								<label for="journal-date-to" class="mb-1 block text-[10px] font-mono uppercase tracking-widest text-zinc-600">To</label>
+								<input
+									id="journal-date-to"
+									type="date"
+									bind:value={dateTo}
+									class="w-full rounded-xl border border-zinc-800/80 bg-zinc-950/70 px-3 py-2 text-sm text-zinc-100 transition-all duration-200 focus:border-accent-500/60 focus:outline-none focus:ring-1 focus:ring-accent-500/20 [color-scheme:dark]"
+								/>
+							</div>
+							{#if dateFrom || dateTo}
+								<button
+									onclick={() => { dateFrom = ""; dateTo = ""; }}
+									class="self-end rounded-xl border border-zinc-800/80 bg-zinc-950/70 px-2.5 py-2 text-xs font-mono text-zinc-500 hover:text-zinc-300 transition-colors duration-200"
+								>
+									Clear
+								</button>
+							{/if}
+						</div>
+
+						<div class="max-h-[calc(100vh-20rem)] space-y-2 overflow-y-auto pr-1">
 							{#if filteredEntries.length === 0}
 								<div class="rounded-xl border border-dashed border-zinc-850 bg-zinc-900/10 py-12 text-center">
 									<p class="text-zinc-500 text-sm font-medium">No entries found</p>
@@ -332,11 +374,9 @@
 													<h3 class="flex-1 truncate text-sm font-semibold text-zinc-200 group-hover:text-accent-300">
 														{entry.title || "Untitled Entry"}
 													</h3>
-													{#if entry.createdAt}
-														<span class="mt-0.5 shrink-0 text-[10px] font-mono text-zinc-550">
-															{entry.createdAt.toLocaleDateString("en-US", { month: "short", day: "numeric" })}
-														</span>
-													{/if}
+													<span class="mt-0.5 shrink-0 text-[10px] font-mono text-zinc-550">
+														{getEntryDate(entry).toLocaleDateString("en-US", { month: "short", day: "numeric" })}
+													</span>
 												</div>
 												<p class="text-xs text-zinc-400 line-clamp-2 leading-relaxed">
 													{entryPreview(entry)}
@@ -391,22 +431,20 @@
 								<div class="border-b border-zinc-800/80 pb-6 mb-7">
 									<div class="mb-4 flex flex-wrap items-center gap-2 text-xs text-zinc-500">
 										<span class="rounded-full border border-zinc-800 bg-zinc-950/45 px-2.5 py-1 font-mono text-zinc-500">
-											{formatMonth(selectedEntry.createdAt)}
+											{formatMonth(getEntryDate(selectedEntry))}
 										</span>
-										{#if selectedEntry.createdAt}
-											<time class="flex items-center gap-1 rounded-full border border-zinc-800 bg-zinc-950/45 px-2.5 py-1 font-mono">
-												<svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-													<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/>
-												</svg>
-												{formatCompactDate(selectedEntry.createdAt)}
-											</time>
-											<span class="flex items-center gap-1 rounded-full border border-zinc-800 bg-zinc-950/45 px-2.5 py-1 font-mono">
-												<svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-													<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/>
-												</svg>
-												{formatTime(selectedEntry.createdAt)}
-											</span>
-										{/if}
+										<time class="flex items-center gap-1 rounded-full border border-zinc-800 bg-zinc-950/45 px-2.5 py-1 font-mono">
+											<svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+												<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/>
+											</svg>
+											{formatCompactDate(getEntryDate(selectedEntry))}
+										</time>
+										<span class="flex items-center gap-1 rounded-full border border-zinc-800 bg-zinc-950/45 px-2.5 py-1 font-mono">
+											<svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+												<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/>
+											</svg>
+											{formatTime(selectedEntry.createdAt)}
+										</span>
 										<span class="rounded-full border border-zinc-800 bg-zinc-950/45 px-2.5 py-1 font-mono">
 											{entryWordCount(selectedEntry)} words
 										</span>
@@ -416,7 +454,7 @@
 									</div>
 
 									<h2 class="max-w-3xl text-3xl font-bold tracking-tight text-zinc-100 md:text-4xl">{selectedEntry.title || "Untitled Entry"}</h2>
-									<p class="mt-3 text-sm font-mono text-zinc-600">{formatDate(selectedEntry.createdAt)}</p>
+									<p class="mt-3 text-sm font-mono text-zinc-600">{formatDate(getEntryDate(selectedEntry))}</p>
 
 									{#if selectedEntry.happinessRating}
 										<div

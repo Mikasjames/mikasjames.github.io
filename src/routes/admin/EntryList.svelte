@@ -48,13 +48,18 @@
 			);
 		}
 		return sort === "oldest"
-			? [...result].sort(
-					(a, b) =>
-						(a.createdAt?.getTime() ?? 0) -
-						(b.createdAt?.getTime() ?? 0),
-				)
+			? [...result].sort((a, b) => {
+					if (type === "journal") {
+						return entrySortDate(a as JournalEntry) - entrySortDate(b as JournalEntry);
+					}
+					return (a.createdAt?.getTime() ?? 0) - (b.createdAt?.getTime() ?? 0);
+				})
 			: result;
 	});
+
+	function entrySortDate(entry: JournalEntry): number {
+		return new Date(entry.entryDate + "T00:00:00").getTime();
+	}
 
 	let searchPlaceholder = $derived(
 		type === "blog" ? "Search posts…" : "Search entries…",
@@ -263,9 +268,11 @@
 							? 'pl-[3.25rem] sm:ml-auto sm:flex-col sm:items-end sm:justify-center sm:gap-1 sm:pl-0'
 							: 'sm:ml-auto sm:flex-col sm:items-end sm:justify-center sm:gap-1'}"
 					>
-						<span class="text-xs text-zinc-600 whitespace-nowrap"
-							>{formatDate(item.createdAt)}</span
-						>
+						<span class="text-xs text-zinc-600 whitespace-nowrap">
+							{type === "journal"
+								? (item as JournalEntry).entryDate
+								: formatDate(item.createdAt)}
+						</span>
 						<div
 							class="flex flex-wrap items-center justify-end gap-x-3 gap-y-1 sm:shrink-0"
 						>

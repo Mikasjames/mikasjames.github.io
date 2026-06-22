@@ -21,7 +21,7 @@ export function createInsightsStore() {
 	);
 
 	const selectedResult = $derived<any>(
-		selectedScope?.textAnalysis?.source === "groq-api"
+		(selectedScope?.textAnalysis?.source === "groq-api" || selectedScope?.textAnalysis?.source === "gemini-api")
 			? selectedScope.textAnalysis.result
 			: null,
 	);

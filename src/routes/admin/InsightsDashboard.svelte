@@ -97,9 +97,7 @@
 		{/if}
 
 		{#if insightsStore.loading}
-			<div
-				class="mt-6 grid gap-3 sm:grid-cols-2 lg:grid-cols-4"
-			>
+			<div class="mt-6 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
 				{#each Array(4) as _}
 					<div
 						class="h-24 animate-pulse rounded-xl border border-zinc-800/60 bg-zinc-900/60"
@@ -113,9 +111,7 @@
 				{insightsStore.error}
 			</p>
 		{:else}
-			<div
-				class="mt-6 grid gap-3 sm:grid-cols-2 lg:grid-cols-4"
-			>
+			<div class="mt-6 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
 				<div
 					class="rounded-xl border border-zinc-800/60 bg-zinc-900/60 p-4"
 				>
@@ -165,8 +161,8 @@
 					class="rounded-xl border border-zinc-800/60 bg-zinc-900/60 p-4"
 				>
 					<p class="text-2xl font-bold text-zinc-100">
-						{insightsStore.selectedScope?.streaks
-							?.longestLowDays ?? 0}
+						{insightsStore.selectedScope?.streaks?.longestLowDays ??
+							0}
 					</p>
 					<p
 						class="mt-1 text-xs uppercase tracking-wide text-zinc-500"
@@ -179,9 +175,7 @@
 			<div
 				class="mt-5 rounded-xl border border-zinc-800/60 bg-zinc-900/50 p-4"
 			>
-				<p
-					class="mb-3 text-sm font-semibold text-zinc-200"
-				>
+				<p class="mb-3 text-sm font-semibold text-zinc-200">
 					Daily Ratings
 				</p>
 				{#if insightsStore.selectedScope?.dailyRatings?.length}
@@ -211,27 +205,22 @@
 						/>
 						{#each insightsStore.selectedScope.dailyRatings as point}
 							<circle
-								cx={insightsStore.selectedScope
-									.dailyRatings.length === 1
+								cx={insightsStore.selectedScope.dailyRatings
+									.length === 1
 									? 320
 									: 24 +
 										((point.time -
 											insightsStore.selectedScope
-																.dailyRatings[0]
-																.time) /
+												.dailyRatings[0].time) /
 											(insightsStore.selectedScope
-																.dailyRatings[
-																insightsStore.selectedScope
-																	.dailyRatings
-																	.length - 1
-															].time -
-																insightsStore.selectedScope
-																	.dailyRatings[0]
-																	.time)) *
-															592}
-								cy={24 +
-									((5 - point.rating) / 4) *
-										172}
+												.dailyRatings[
+												insightsStore.selectedScope
+													.dailyRatings.length - 1
+											].time -
+												insightsStore.selectedScope
+													.dailyRatings[0].time)) *
+											592}
+								cy={24 + ((5 - point.rating) / 4) * 172}
 								r="3"
 								fill="currentColor"
 								class="text-accent-300"
@@ -239,9 +228,7 @@
 						{/each}
 					</svg>
 				{:else}
-					<p
-						class="py-8 text-center text-sm text-zinc-550"
-					>
+					<p class="py-8 text-center text-sm text-zinc-550">
 						No daily ratings for this scope.
 					</p>
 				{/if}
@@ -250,12 +237,13 @@
 			<div
 				class="mt-5 rounded-xl border border-zinc-800/60 bg-zinc-900/50 p-4"
 			>
-				<p
-					class="mb-3 text-sm font-semibold text-zinc-200"
-				>
-					Groq Insights
+				<p class="mb-3 text-sm font-semibold text-zinc-200">
+					{insightsStore.selectedScope?.textAnalysis?.source ===
+					"gemini-api"
+						? "Gemini"
+						: "Groq"} Insights
 				</p>
-				{#if insightsStore.selectedScope?.textAnalysis?.source === "groq-api" && insightsStore.selectedResult}
+				{#if (insightsStore.selectedScope?.textAnalysis?.source === "groq-api" || insightsStore.selectedScope?.textAnalysis?.source === "gemini-api") && insightsStore.selectedResult}
 					{#if insightsStore.selectedResult.briefSummary}
 						<blockquote
 							class="rounded-lg border-l-2 border-accent-500 bg-accent-500/10 px-4 py-3 text-sm text-accent-100"
@@ -267,13 +255,15 @@
 						{#if insightsStore.selectedResult.overallSentiment}
 							<span
 								class="rounded-full border border-zinc-700/60 bg-zinc-950/50 px-2.5 py-1 text-xs text-zinc-300"
-								>{insightsStore.selectedResult.overallSentiment}</span
+								>{insightsStore.selectedResult
+									.overallSentiment}</span
 							>
 						{/if}
 						{#if insightsStore.selectedResult.primaryEmotion}
 							<span
 								class="rounded-full border border-accent-500/20 bg-accent-500/10 px-2.5 py-1 text-xs text-accent-300"
-								>{insightsStore.selectedResult.primaryEmotion}</span
+								>{insightsStore.selectedResult
+									.primaryEmotion}</span
 							>
 						{/if}
 					</div>
@@ -298,18 +288,12 @@
 					{/if}
 					{#if insightsStore.selectedResult.ratingCorrelations?.length}
 						<div class="mt-4 overflow-x-auto">
-							<table
-								class="w-full text-left text-xs"
-							>
+							<table class="w-full text-left text-xs">
 								<thead class="text-zinc-500">
 									<tr
-										><th class="py-2"
-											>Factor</th
-										><th class="py-2"
-											>Impact</th
-										><th class="py-2"
-											>Avg Rating</th
-										></tr
+										><th class="py-2">Factor</th><th
+											class="py-2">Impact</th
+										><th class="py-2">Avg Rating</th></tr
 									>
 								</thead>
 								<tbody
@@ -317,10 +301,8 @@
 								>
 									{#each insightsStore.selectedResult.ratingCorrelations as row}
 										<tr
-											><td class="py-2"
-												>{row.factor}</td
-											><td class="py-2"
-												>{row.impact}</td
+											><td class="py-2">{row.factor}</td
+											><td class="py-2">{row.impact}</td
 											><td class="py-2"
 												>{row.averageRating}</td
 											></tr
@@ -334,8 +316,8 @@
 					<p
 						class="rounded-lg border border-zinc-800/60 bg-zinc-950/40 px-4 py-3 text-sm text-zinc-500"
 					>
-						AI analysis unavailable for this period
-						— showing keyword data only
+						AI analysis unavailable for this period — showing
+						keyword data only
 					</p>
 					<div class="mt-4 grid gap-4 md:grid-cols-2">
 						<div>
@@ -373,9 +355,7 @@
 						<p class="mb-2 text-xs text-zinc-550">
 							Lexical sentiment
 						</p>
-						<div
-							class="h-2 rounded-full bg-zinc-800"
-						>
+						<div class="h-2 rounded-full bg-zinc-800">
 							<div
 								class="h-2 rounded-full bg-accent-500"
 								style={`width: ${Math.min(100, Math.max(0, 50 + (insightsStore.selectedLocalAnalysis.sentimentVsRating?.lexicalSentimentScore ?? 0) * 5))}%`}
@@ -389,9 +369,7 @@
 				<div
 					class="mt-5 rounded-xl border border-zinc-800/60 bg-zinc-900/50 p-4"
 				>
-					<p
-						class="mb-3 text-sm font-semibold text-zinc-200"
-					>
+					<p class="mb-3 text-sm font-semibold text-zinc-200">
 						Habit Correlations
 					</p>
 					<div class="grid gap-3 md:grid-cols-2">
@@ -402,9 +380,7 @@
 								<div
 									class="flex items-center justify-between gap-2"
 								>
-									<p
-										class="font-semibold text-zinc-100"
-									>
+									<p class="font-semibold text-zinc-100">
 										{correlation.habitName}
 									</p>
 									<span
@@ -421,9 +397,7 @@
 									<div
 										class="grid grid-cols-[8.5rem_minmax(0,1fr)_3rem] items-center gap-2"
 									>
-										<span
-											>Completed days avg:</span
-										>
+										<span>Completed days avg:</span>
 										<div
 											class="h-2 rounded-full bg-zinc-800"
 										>
@@ -432,8 +406,7 @@
 												style={`width: ${insightsStore.ratingBarWidth(correlation.averageRatingOnCompletedDays)}`}
 											></div>
 										</div>
-										<span
-											class="text-zinc-300"
+										<span class="text-zinc-300"
 											>{correlation.averageRatingOnCompletedDays?.toFixed?.(
 												1,
 											) ?? "—"}</span
@@ -442,9 +415,7 @@
 									<div
 										class="grid grid-cols-[8.5rem_minmax(0,1fr)_3rem] items-center gap-2"
 									>
-										<span
-											>Missed days avg:</span
-										>
+										<span>Missed days avg:</span>
 										<div
 											class="h-2 rounded-full bg-zinc-800"
 										>
@@ -453,8 +424,7 @@
 												style={`width: ${insightsStore.ratingBarWidth(correlation.averageRatingOnMissedDays)}`}
 											></div>
 										</div>
-										<span
-											class="text-zinc-300"
+										<span class="text-zinc-300"
 											>{correlation.averageRatingOnMissedDays?.toFixed?.(
 												1,
 											) ?? "—"}</span
@@ -478,9 +448,7 @@
 				<div
 					class="mt-5 rounded-xl border border-zinc-800/60 bg-zinc-900/50 p-4"
 				>
-					<p
-						class="mb-3 text-sm font-semibold text-zinc-200"
-					>
+					<p class="mb-3 text-sm font-semibold text-zinc-200">
 						Habit Overview
 					</p>
 					<div class="space-y-4">
@@ -490,22 +458,16 @@
 								<div
 									class="mb-2 flex items-center justify-between gap-3"
 								>
-									<p
-										class="text-sm text-zinc-300"
-									>
+									<p class="text-sm text-zinc-300">
 										{habit.name}
 									</p>
-									<p
-										class="text-xs font-mono text-zinc-500"
-									>
+									<p class="text-xs font-mono text-zinc-500">
 										{habit.count} / {insightsStore.daysInPeriod(
 											insightsStore.selectedPeriod,
 										)} days
 									</p>
 								</div>
-								<div
-									class="flex flex-wrap gap-1"
-								>
+								<div class="flex flex-wrap gap-1">
 									{#each Array(insightsStore.daysInPeriod(insightsStore.selectedPeriod)) as _, index}
 										<span
 											title={`${insightsStore.selectedPeriod}-${String(index + 1).padStart(2, "0")}`}

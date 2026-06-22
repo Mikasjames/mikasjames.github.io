@@ -165,6 +165,7 @@ export interface JournalEntry {
     imageMeta?: Record<string, ImageMeta>;
     happinessRating?: number | null;
     ownerUid?: string;
+    entryDate: string;
     createdAt: Date | null;
     updatedAt: Date | null;
 }
@@ -185,6 +186,7 @@ export async function createJournalEntry(data: {
     imageMeta?: Record<string, ImageMeta>;
     happinessRating?: number | null;
     ownerUid?: string;
+    entryDate?: string | null;
 }): Promise<string> {
     const ref = await addDoc(collection(db, JOURNAL_COLLECTION), {
         ...data,
@@ -204,6 +206,7 @@ export async function updateJournalEntry(
         imageMeta?: Record<string, ImageMeta>;
         happinessRating?: number | null;
         ownerUid?: string;
+        entryDate?: string | null;
     }
 ): Promise<void> {
     const entryRef = doc(db, JOURNAL_COLLECTION, id);
@@ -228,6 +231,7 @@ function docToJournalEntry(id: string, data: DocumentData): JournalEntry {
         imageMeta: data.imageMeta ?? {},
         happinessRating: typeof data.happinessRating === 'number' ? data.happinessRating : null,
         ownerUid: data.ownerUid ?? '',
+        entryDate: data.entryDate ?? '',
         createdAt: data.createdAt?.toDate?.() ?? null,
         updatedAt: data.updatedAt?.toDate?.() ?? null
     };

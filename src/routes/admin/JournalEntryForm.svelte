@@ -14,7 +14,7 @@
 		sanitizeImageMetaFromMarkdown,
 		enrichImageMetaFromGallery,
 	} from "$lib/utils/imageMeta";
-	import { todayDateKey, getHappinessLabel, dateKeyFromDate } from "$lib/utils/date";
+	import { todayDateKey, getHappinessLabel } from "$lib/utils/date";
 	import type { User } from "firebase/auth";
 	import MediaGalleryDialog from "$lib/components/MediaGalleryDialog.svelte";
 
@@ -72,7 +72,7 @@
 		journalForm.content = entry.content;
 		journalForm.coverImage = entry.coverImage || null;
 		journalForm.happinessRating = entry.happinessRating ?? 3;
-		selectedJournalEntryDate = dateKeyFromDate(entry.createdAt);
+		selectedJournalEntryDate = entry.entryDate;
 		habitsStore.selectedHabitIds = new Set();
 		journalForm.imageMeta = sanitizeImageMetaFromMarkdown(
 			entry.content,
@@ -96,7 +96,7 @@
 		journalForm.happinessRating = 3;
 		journalForm.successMsg = "";
 		journalForm.error = "";
-		selectedJournalEntryDate = null;
+		selectedJournalEntryDate = todayDateKey();
 		habitsStore.selectedHabitIds = new Set();
 	}
 
@@ -129,6 +129,7 @@
 				imageMeta: sanitizedImageMeta,
 				happinessRating: journalForm.happinessRating,
 				ownerUid: user?.uid,
+				entryDate: selectedJournalEntryDate ?? todayDateKey(),
 			};
 
 			if (journalForm.id) {
@@ -136,7 +137,7 @@
 				await habitsStore.saveSelectedHabitLogs(
 					user!.uid,
 					journalForm.id,
-					selectedJournalEntryDate ?? todayDateKey(),
+					payload.entryDate,
 				);
 				journalForm.successMsg = "Journal entry updated successfully!";
 			} else {
@@ -144,7 +145,7 @@
 				await habitsStore.saveSelectedHabitLogs(
 					user!.uid,
 					entryId,
-					todayDateKey(),
+					payload.entryDate,
 				);
 				journalForm.successMsg = "Journal entry added successfully!";
 			}
@@ -380,6 +381,20 @@
 					class="w-full px-3.5 py-2.5 rounded-lg bg-zinc-900 border border-zinc-700/60 text-zinc-100 text-sm placeholder-zinc-600 focus:outline-none focus:border-accent-500 focus:ring-1 focus:ring-accent-500/30 transition-all duration-200"
 				/>
 			</div>
+		</div>
+
+		<div class="space-y-1.5">
+			<label
+				for="journal-entry-date"
+				class="block text-xs font-medium text-zinc-400 tracking-wide uppercase"
+				>Entry Date</label
+			>
+			<input
+				id="journal-entry-date"
+				type="date"
+				bind:value={selectedJournalEntryDate}
+				class="w-full px-3.5 py-2.5 rounded-lg bg-zinc-900 border border-zinc-700/60 text-zinc-100 text-sm focus:outline-none focus:border-accent-500 focus:ring-1 focus:ring-accent-500/30 transition-all duration-200 [color-scheme:dark]"
+			/>
 		</div>
 
 		<div class="rounded-xl border border-zinc-800/60 bg-zinc-900/40 p-4">
