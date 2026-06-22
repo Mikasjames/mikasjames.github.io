@@ -25,6 +25,12 @@
 	<title>Blog · Mikas James</title>
 	<meta name="description" content="Some stuff that came to mind." />
 	<link rel="canonical" href="https://mikasjames.com/blogs" />
+	<meta property="og:title" content="Blog · Mikas James" />
+	<meta property="og:description" content="Some stuff that came to mind." />
+	<meta property="og:url" content="https://mikasjames.com/blogs" />
+	<meta property="og:image" content="https://mikasjames.com/og-default.svg" />
+	<meta name="twitter:title" content="Blog · Mikas James" />
+	<meta name="twitter:description" content="Some stuff that came to mind." />
 </svelte:head>
 
 <div class="min-h-screen bg-[#09090b] pt-28 pb-20 px-4">

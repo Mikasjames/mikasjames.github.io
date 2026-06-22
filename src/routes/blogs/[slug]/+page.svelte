@@ -10,6 +10,13 @@
 	<title>{post ? `${post.title} · Mikas James` : "Blog · Mikas James"}</title>
 	{#if post}
 		<meta name="description" content={post.excerpt} />
+		<meta property="og:title" content="{post.title} · Mikas James" />
+		<meta property="og:description" content={post.excerpt} />
+		<meta property="og:url" content="https://mikasjames.com/blogs/{post.slug}" />
+		<meta property="og:image" content={post.coverImage || "https://mikasjames.com/og-default.svg"} />
+		<meta name="twitter:title" content="{post.title} · Mikas James" />
+		<meta name="twitter:description" content={post.excerpt} />
+		<meta name="twitter:image" content={post.coverImage || "https://mikasjames.com/og-default.svg"} />
 		{#if post.status === "unlisted"}
 			<meta name="robots" content="noindex, nofollow" />
 		{:else}
