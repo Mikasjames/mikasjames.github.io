@@ -108,5 +108,7 @@
 		</svg>
 		{backHref === "/admin/" ? "Back" : "All posts"}
 	</a>
-	<span class="font-mono text-xs text-zinc-700">/blogs/{post.slug}</span>
+	<span class="font-mono text-xs text-zinc-700"
+		>/{post.status === "draft" ? "drafts" : "blogs"}/{post.slug}</span
+	>
 </div>

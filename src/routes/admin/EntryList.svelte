@@ -1,6 +1,9 @@
 <script lang="ts">
 	import { formatDate } from "$lib/utils/date";
-	import type { BlogPost, JournalEntry } from "$lib/firebase/firestore.svelte";
+	import type {
+		BlogPost,
+		JournalEntry,
+	} from "$lib/firebase/firestore.svelte";
 
 	type Entry = BlogPost | JournalEntry;
 
@@ -30,9 +33,7 @@
 				const excerpt = (item.excerpt ?? "").toLowerCase();
 				const slug = "slug" in item ? item.slug.toLowerCase() : "";
 				return (
-					title.includes(q) ||
-					slug.includes(q) ||
-					excerpt.includes(q)
+					title.includes(q) || slug.includes(q) || excerpt.includes(q)
 				);
 			});
 			result =
@@ -50,9 +51,15 @@
 		return sort === "oldest"
 			? [...result].sort((a, b) => {
 					if (type === "journal") {
-						return entrySortDate(a as JournalEntry) - entrySortDate(b as JournalEntry);
+						return (
+							entrySortDate(a as JournalEntry) -
+							entrySortDate(b as JournalEntry)
+						);
 					}
-					return (a.createdAt?.getTime() ?? 0) - (b.createdAt?.getTime() ?? 0);
+					return (
+						(a.createdAt?.getTime() ?? 0) -
+						(b.createdAt?.getTime() ?? 0)
+					);
 				})
 			: result;
 	});
@@ -211,7 +218,9 @@
 
 						<div class="flex-1 min-w-0">
 							<div class="flex items-center gap-2 flex-wrap">
-								<p class="text-sm font-medium text-zinc-200 truncate">
+								<p
+									class="text-sm font-medium text-zinc-200 truncate"
+								>
 									{item.title ||
 										(type === "journal"
 											? "Untitled Entry"
@@ -242,7 +251,11 @@
 								<p
 									class="text-xs text-zinc-650 font-mono mt-0.5 truncate"
 								>
-									/blogs/{post.slug}
+									{#if post.status === "draft"}
+										/blogs/drafts/{post.slug}/
+									{:else}
+										/blogs/{post.slug}/
+									{/if}
 								</p>
 							{:else}
 								{@const entry = item as JournalEntry}
