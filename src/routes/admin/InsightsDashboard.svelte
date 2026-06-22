@@ -118,7 +118,7 @@
 					<p class="text-2xl font-bold text-zinc-100">
 						{typeof insightsStore.selectedScope?.averageRating ===
 						"number"
-							? `${insightsStore.selectedScope.averageRating.toFixed(1)} / 5`
+							? `${(Math.ceil(insightsStore.selectedScope.averageRating * 100) / 100).toFixed(2)} / 5`
 							: "—"}
 					</p>
 					<p
@@ -304,7 +304,15 @@
 											><td class="py-2">{row.factor}</td
 											><td class="py-2">{row.impact}</td
 											><td class="py-2"
-												>{row.averageRating}</td
+												>{typeof row.averageRating ===
+												"number"
+													? (
+															Math.ceil(
+																row.averageRating *
+																	100,
+															) / 100
+														).toFixed(2)
+													: "—"}</td
 											></tr
 										>
 									{/each}
@@ -407,9 +415,15 @@
 											></div>
 										</div>
 										<span class="text-zinc-300"
-											>{correlation.averageRatingOnCompletedDays?.toFixed?.(
-												1,
-											) ?? "—"}</span
+											>{typeof correlation.averageRatingOnCompletedDays ===
+											"number"
+												? (
+														Math.ceil(
+															correlation.averageRatingOnCompletedDays *
+																100,
+														) / 100
+													).toFixed(2)
+												: "—"}</span
 										>
 									</div>
 									<div
@@ -425,9 +439,15 @@
 											></div>
 										</div>
 										<span class="text-zinc-300"
-											>{correlation.averageRatingOnMissedDays?.toFixed?.(
-												1,
-											) ?? "—"}</span
+											>{typeof correlation.averageRatingOnMissedDays ===
+											"number"
+												? (
+														Math.ceil(
+															correlation.averageRatingOnMissedDays *
+																100,
+														) / 100
+													).toFixed(2)
+												: "—"}</span
 										>
 									</div>
 								</div>
