@@ -5,6 +5,86 @@
     let activeSkillTab = $state("Frontend");
     let visibleSections = $state<Set<string>>(new Set());
 
+    let current = $state(0);
+
+    const projects = [
+        {
+            title: "IloCo. — Ilokano Dictionary",
+            tagline: "Offline-capable bilingual dictionary for 8–10M speakers",
+            description:
+                "A modern, offline-capable PWA bilingual dictionary for the Ilokano language with over 6,500 entries. Provides fast, relevance-ranked two-way lookup between Ilokano and English.",
+            liveUrl: "https://dictionary.mikasjames.com",
+            blogUrl: "https://mikasjames.com/blogs/iloCo",
+            techStack: [
+                "SvelteKit",
+                "TypeScript",
+                "Tailwind CSS",
+                "PWA",
+                "shadcn-svelte",
+            ],
+            features: [
+                "Two-way search with relevance-ranked results",
+                "Detailed entries with examples, conjugations, etymology",
+                "Interlinked entries with clickable cross-references",
+                "Installable PWA with offline support",
+                "Dark/light mode with system preference detection",
+            ],
+        },
+        {
+            title: "Expense Tracker",
+            tagline:
+                "Full-stack finance management for community organizations",
+            description:
+                "A serverless PWA that helps organizations manage income and expenses, categorize with tags, visualize financial trends, and generate government-required PDF reports — all from a single dashboard.",
+            liveUrl: "https://tracker.mikasjames.com",
+            sourceUrl: null,
+            techStack: [
+                "Angular 17",
+                "Firebase",
+                "RxJS",
+                "ECharts",
+                "AG Grid",
+                "PWA",
+            ],
+            features: [
+                "Full CRUD with tag-based categorization",
+                "Interactive dashboard with ECharts charts",
+                "Multi-provider auth (Email, Google)",
+                "PDF report generation",
+                "Angular SSR with offline service worker",
+            ],
+        },
+        {
+            title: "CMS Dashboard — Blog",
+            tagline: "Full-featured admin panel powering this very site",
+            description:
+                "A Firebase-powered content management system with a rich markdown blog editor behind secure authentication.",
+            liveUrl: "https://mikasjames.com/admin/",
+            sourceUrl: null,
+            techStack: [
+                "SvelteKit",
+                "Firebase Auth",
+                "Firestore",
+                "Storage",
+                "Markdown",
+            ],
+            features: [
+                "Blog CRUD with markdown editor & cover images",
+                "Dedicated gallery system that supports both images and GIFs",
+                "Markdown editor supports video embeddings",
+                "Secure admin panel",
+            ],
+        },
+    ];
+
+    function prevProject() {
+        current = current === 0 ? projects.length - 1 : current - 1;
+    }
+
+    function nextProject() {
+        current = current === projects.length - 1 ? 0 : current + 1;
+    }
+
     const skillTabs = ["Frontend", "Backend", "Cloud & Tools", "QA", "AI"];
 
     const skills: Record<string, string[]> = {
@@ -469,6 +549,227 @@
     </div>
 </section>
 
+<section id="projects" class="py-24 px-6">
+    <div class="max-w-5xl mx-auto">
+        <div
+            id="projects-header"
+            data-observe
+            class="mb-12 transition-all duration-700 {isVisible(
+                'projects-header',
+            )
+                ? 'opacity-100 translate-y-0'
+                : 'opacity-0 translate-y-6'}"
+        >
+            <p
+                class="font-mono text-accent-400 text-xs tracking-widest uppercase mb-3"
+            >
+                04. Free Time Activities
+            </p>
+            <h2 class="text-3xl sm:text-4xl font-bold text-zinc-50">
+                Personal Projects
+            </h2>
+            <div
+                class="mt-4 h-px w-16 bg-gradient-to-r from-accent-500 to-transparent"
+            ></div>
+        </div>
+
+        <div
+            id="projects-carousel"
+            data-observe
+            class="transition-all duration-700 delay-100 {isVisible(
+                'projects-carousel',
+            )
+                ? 'opacity-100 translate-y-0'
+                : 'opacity-0 translate-y-6'}"
+        >
+            <div class="relative mx-auto max-w-4xl overflow-hidden px-2">
+                <div class="relative h-[520px] sm:h-[460px] md:h-[420px]">
+                    {#each projects as project, i}
+                        {@const pos = i - current}
+                        {#if Math.abs(pos) <= 1}
+                            <div
+                                class="absolute left-1/2 top-1/2 w-[85vw] max-w-[520px] transition-all duration-500 ease-out cursor-pointer"
+                                style="transform: translate(-50%,-50%) translateX({pos *
+                                    440}px) scale({pos === 0
+                                    ? 1
+                                    : 0.85}); opacity: {pos === 0
+                                    ? 1
+                                    : 0.5}; z-index: {pos === 0 ? 3 : 2};"
+                                role="button"
+                                tabindex="0"
+                                onclick={() => (current = i)}
+                                onkeydown={(e) => {
+                                    if (e.key === "Enter" || e.key === " ")
+                                        current = i;
+                                }}
+                            >
+                                <div
+                                    class="rounded-xl border border-zinc-800/80 bg-zinc-900/40 p-5 md:p-7 hover:border-zinc-700 hover:bg-zinc-900/70 transition-all duration-300 h-full"
+                                >
+                                    <div
+                                        class="flex flex-wrap items-start justify-between gap-2 mb-4"
+                                    >
+                                        <div class="flex gap-2">
+                                            {#if project.liveUrl}
+                                                <a
+                                                    href={project.liveUrl}
+                                                    target="_blank"
+                                                    rel="noopener noreferrer"
+                                                    onclick={(e) =>
+                                                        e.stopPropagation()}
+                                                    class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-accent-500/10 border border-accent-500/30 text-accent-400 text-xs font-medium hover:bg-accent-500/20 hover:border-accent-400/50 transition-all duration-200"
+                                                >
+                                                    <svg
+                                                        class="w-3 h-3"
+                                                        fill="none"
+                                                        stroke="currentColor"
+                                                        viewBox="0 0 24 24"
+                                                    >
+                                                        <path
+                                                            stroke-linecap="round"
+                                                            stroke-linejoin="round"
+                                                            stroke-width="2"
+                                                            d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"
+                                                        />
+                                                    </svg>
+                                                    Live
+                                                </a>
+                                            {/if}
+                                            {#if project.blogUrl}
+                                                <a
+                                                    href={project.blogUrl}
+                                                    target="_blank"
+                                                    rel="noopener noreferrer"
+                                                    onclick={(e) =>
+                                                        e.stopPropagation()}
+                                                    class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-zinc-800 border border-zinc-700 text-zinc-300 text-xs font-medium hover:bg-zinc-700 hover:border-zinc-600 transition-all duration-200"
+                                                >
+                                                    <svg
+                                                        class="w-3.5 h-3.5"
+                                                        fill="none"
+                                                        stroke="currentColor"
+                                                        stroke-width="2"
+                                                        stroke-linecap="round"
+                                                        stroke-linejoin="round"
+                                                        viewBox="0 0 24 24"
+                                                    >
+                                                        <path
+                                                            d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"
+                                                        />
+                                                        <path
+                                                            d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"
+                                                        />
+                                                    </svg>
+                                                    Blog
+                                                </a>
+                                            {/if}
+                                        </div>
+                                    </div>
+
+                                    <h3
+                                        class="text-lg md:text-xl font-bold text-zinc-100 leading-tight mb-1"
+                                    >
+                                        {project.title}
+                                    </h3>
+                                    <p
+                                        class="text-sm text-zinc-500 mb-3 font-medium"
+                                    >
+                                        {project.tagline}
+                                    </p>
+                                    <p
+                                        class="text-sm text-zinc-400 leading-relaxed mb-4 line-clamp-2 md:line-clamp-none"
+                                    >
+                                        {project.description}
+                                    </p>
+
+                                    <div class="space-y-1.5 mb-4">
+                                        {#each project.features as feature}
+                                            <div
+                                                class="flex gap-2 text-xs text-zinc-400 leading-relaxed"
+                                            >
+                                                <span
+                                                    class="text-accent-400 shrink-0 mt-0.5"
+                                                    >▸</span
+                                                >
+                                                {feature}
+                                            </div>
+                                        {/each}
+                                    </div>
+
+                                    <div class="flex flex-wrap gap-1.5">
+                                        {#each project.techStack as tech}
+                                            <span
+                                                class="inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-zinc-800/60 border border-zinc-700/50 text-zinc-300 text-[11px] font-mono"
+                                            >
+                                                <span
+                                                    class="w-1 h-1 rounded-full bg-accent-400"
+                                                ></span>
+                                                {tech}
+                                            </span>
+                                        {/each}
+                                    </div>
+                                </div>
+                            </div>
+                        {/if}
+                    {/each}
+                </div>
+
+                <button
+                    onclick={prevProject}
+                    class="absolute left-0 top-1/2 -translate-y-1/2 w-10 h-10 rounded-full bg-zinc-900/80 border border-zinc-800 text-zinc-400 hover:text-zinc-100 hover:border-zinc-700 hover:bg-zinc-800/80 flex items-center justify-center transition-all duration-200 backdrop-blur-sm"
+                    aria-label="Previous project"
+                >
+                    <svg
+                        class="w-4 h-4"
+                        fill="none"
+                        stroke="currentColor"
+                        viewBox="0 0 24 24"
+                    >
+                        <path
+                            stroke-linecap="round"
+                            stroke-linejoin="round"
+                            stroke-width="2"
+                            d="M15 19l-7-7 7-7"
+                        />
+                    </svg>
+                </button>
+                <button
+                    onclick={nextProject}
+                    class="absolute right-0 top-1/2 -translate-y-1/2 w-10 h-10 rounded-full bg-zinc-900/80 border border-zinc-800 text-zinc-400 hover:text-zinc-100 hover:border-zinc-700 hover:bg-zinc-800/80 flex items-center justify-center transition-all duration-200 backdrop-blur-sm"
+                    aria-label="Next project"
+                >
+                    <svg
+                        class="w-4 h-4"
+                        fill="none"
+                        stroke="currentColor"
+                        viewBox="0 0 24 24"
+                    >
+                        <path
+                            stroke-linecap="round"
+                            stroke-linejoin="round"
+                            stroke-width="2"
+                            d="M9 5l7 7-7 7"
+                        />
+                    </svg>
+                </button>
+            </div>
+
+            <div class="flex items-center justify-center gap-2.5 mt-6">
+                {#each projects as _, i}
+                    <button
+                        onclick={() => (current = i)}
+                        class="transition-all duration-300 rounded-full {i ===
+                        current
+                            ? 'w-7 h-2 bg-accent-500'
+                            : 'w-2 h-2 bg-zinc-700 hover:bg-zinc-500'}"
+                        aria-label="Go to project {i + 1}"
+                    ></button>
+                {/each}
+            </div>
+        </div>
+    </div>
+</section>
+
 <section id="contact" class="py-24 px-6">
     <div class="max-w-5xl mx-auto">
         <div
@@ -487,7 +788,7 @@
             <p
                 class="font-mono text-accent-400 text-xs tracking-widest uppercase mb-4"
             >
-                04. Let's connect
+                05. Let's connect
             </p>
             <h2 class="text-3xl sm:text-4xl font-bold text-zinc-50 mb-4">
                 Get In Touch
