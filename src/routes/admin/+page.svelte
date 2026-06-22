@@ -162,6 +162,12 @@
 					class="grid w-full grid-cols-2 gap-2 sm:flex sm:w-auto sm:gap-3 sm:self-auto"
 				>
 					<a
+						href="/blogs/drafts/"
+						class="rounded-lg border border-zinc-700/60 px-3 py-2 text-center text-sm font-medium text-zinc-400 transition-all duration-200 hover:border-zinc-600 hover:text-zinc-200 sm:px-4"
+					>
+						View Drafts
+					</a>
+					<a
 						href={currentSection === "blogs"
 							? "/blogs/"
 							: "/journal/"}

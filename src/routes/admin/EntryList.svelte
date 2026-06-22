@@ -279,7 +279,9 @@
 							{#if type === "blog"}
 								{@const post = item as BlogPost}
 								<a
-									href="/blogs/{post.slug}/"
+									href={post.status === "draft"
+										? `/blogs/drafts/${post.slug}/`
+										: `/blogs/${post.slug}/`}
 									target="_blank"
 									class="text-xs text-zinc-400 hover:text-zinc-200 transition-colors font-medium"
 								>
