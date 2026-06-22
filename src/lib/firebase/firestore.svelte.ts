@@ -173,7 +173,7 @@ export interface JournalEntry {
 const JOURNAL_COLLECTION = 'journal';
 
 export async function getJournalEntries(): Promise<JournalEntry[]> {
-    const q = query(collection(db, JOURNAL_COLLECTION), orderBy('createdAt', 'desc'));
+    const q = query(collection(db, JOURNAL_COLLECTION), orderBy('entryDate', 'desc'));
     const snapshot = await getDocs(q);
     return snapshot.docs.map((d) => docToJournalEntry(d.id, d.data()));
 }
