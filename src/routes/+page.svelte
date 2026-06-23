@@ -1,8 +1,9 @@
 <script lang="ts">
-    import { onMount } from "svelte";
-    import { fly } from "svelte/transition";
+	import { onMount } from "svelte";
+	import { fly } from "svelte/transition";
+	import { logEvent } from "$lib/firebase/analytics";
 
-    let activeSkillTab = $state("Frontend");
+	let activeSkillTab = $state("Frontend");
     let visibleSections = $state<Set<string>>(new Set());
 
     let current = $state(0);
@@ -336,6 +337,7 @@
                 target="_blank"
                 rel="noopener noreferrer"
                 id="hero-github-link"
+                onclick={() => logEvent('click_cta', { label: 'Hero GitHub', url: 'https://github.com/Mikasjames' })}
                 class="inline-flex items-center gap-2.5 px-5 py-2.5 rounded-lg bg-zinc-900 border border-zinc-800 text-zinc-200 text-sm font-medium hover:bg-zinc-800 hover:border-zinc-700 transition-all duration-200 group"
             >
                 <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 24 24">
@@ -361,6 +363,7 @@
             <a
                 href="mailto:mikasjames@gmail.com"
                 id="hero-email-link"
+                onclick={() => logEvent('click_cta', { label: 'Hero Email', url: 'mailto:mikasjames@gmail.com' })}
                 class="inline-flex items-center gap-2.5 px-5 py-2.5 rounded-lg bg-accent-500/10 border border-accent-500/30 text-accent-400 text-sm font-medium hover:bg-accent-500/20 hover:border-accent-400/50 transition-all duration-200"
             >
                 <svg
@@ -647,8 +650,10 @@
                                                     href={project.liveUrl}
                                                     target="_blank"
                                                     rel="noopener noreferrer"
-                                                    onclick={(e) =>
-                                                        e.stopPropagation()}
+                                                    onclick={(e) => {
+                                                        e.stopPropagation();
+                                                        logEvent('click_cta', { label: 'Project Live', title: project.title, url: project.liveUrl });
+                                                    }}
                                                     class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-accent-500/10 border border-accent-500/30 text-accent-400 text-xs font-medium hover:bg-accent-500/20 hover:border-accent-400/50 transition-all duration-200"
                                                 >
                                                     <svg
@@ -672,8 +677,10 @@
                                                     href={project.blogUrl}
                                                     target="_blank"
                                                     rel="noopener noreferrer"
-                                                    onclick={(e) =>
-                                                        e.stopPropagation()}
+                                                    onclick={(e) => {
+                                                        e.stopPropagation();
+                                                        logEvent('click_cta', { label: 'Project Blog', title: project.title, url: project.blogUrl });
+                                                    }}
                                                     class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-zinc-800 border border-zinc-700 text-zinc-300 text-xs font-medium hover:bg-zinc-700 hover:border-zinc-600 transition-all duration-200"
                                                 >
                                                     <svg
@@ -833,10 +840,11 @@
             <div
                 class="flex flex-col sm:flex-row items-center justify-center gap-4"
             >
-                <a
-                    href="mailto:mikasjames@gmail.com"
-                    id="contact-email-btn"
-                    class="inline-flex items-center gap-2.5 px-6 py-3 rounded-lg bg-accent-500 text-white text-sm font-semibold hover:bg-accent-600 transition-all duration-200 shadow-lg shadow-accent-500/25"
+            <a
+                href="mailto:mikasjames@gmail.com"
+                id="contact-email-btn"
+                onclick={() => logEvent('click_cta', { label: 'Contact Email', url: 'mailto:mikasjames@gmail.com' })}
+                class="inline-flex items-center gap-2.5 px-6 py-3 rounded-lg bg-accent-500 text-white text-sm font-semibold hover:bg-accent-600 transition-all duration-200 shadow-lg shadow-accent-500/25"
                 >
                     <svg
                         class="w-4 h-4"
@@ -853,12 +861,13 @@
                     </svg>
                     mikasjames@gmail.com
                 </a>
-                <a
-                    href="https://github.com/Mikasjames"
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    id="contact-github-btn"
-                    class="inline-flex items-center gap-2.5 px-6 py-3 rounded-lg bg-zinc-800 border border-zinc-700 text-zinc-200 text-sm font-semibold hover:bg-zinc-700 hover:border-zinc-600 transition-all duration-200"
+            <a
+                href="https://github.com/Mikasjames"
+                target="_blank"
+                rel="noopener noreferrer"
+                id="contact-github-btn"
+                onclick={() => logEvent('click_cta', { label: 'Contact GitHub', url: 'https://github.com/Mikasjames' })}
+                class="inline-flex items-center gap-2.5 px-6 py-3 rounded-lg bg-zinc-800 border border-zinc-700 text-zinc-200 text-sm font-semibold hover:bg-zinc-700 hover:border-zinc-600 transition-all duration-200"
                 >
                     <svg
                         class="w-4 h-4"

@@ -1,9 +1,15 @@
 <script lang="ts">
+	import { onMount } from "svelte";
 	import type { BlogPost } from "$lib/firebase/firestore.svelte";
 	import BlogPostContent from "$lib/components/BlogPostContent.svelte";
+	import { logEvent } from "$lib/firebase/analytics";
 
 	let { data } = $props();
 	let post = $derived(data.post as BlogPost);
+
+	onMount(() => {
+		logEvent("blog_read", { slug: post.slug, title: post.title });
+	});
 </script>
 
 <svelte:head>

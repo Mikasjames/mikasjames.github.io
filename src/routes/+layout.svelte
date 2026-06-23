@@ -6,6 +6,8 @@
 	import "../app.css";
 	import { onMount } from "svelte";
 	import { page } from "$app/stores";
+	import { afterNavigate } from "$app/navigation";
+	import { logPageView } from "$lib/firebase/analytics";
 
 	const isHome = $derived($page.url.pathname === "/");
 
@@ -27,6 +29,10 @@
 		return () => {
 			document.body.classList.remove("overflow-hidden");
 		};
+	});
+
+	afterNavigate(() => {
+		logPageView($page.url.pathname, document.title);
 	});
 
 	const navLinks = [
