@@ -273,6 +273,33 @@ export type HabitSummary = {
     byHabit: Record<string, { name: string; count: number; dates: string[] }>;
 };
 
+export interface AiAnalysisResult {
+	briefSummary?: string;
+	overallSentiment?: string;
+	primaryEmotion?: string;
+	keyThemes?: string[];
+	patterns?: string[];
+	ratingCorrelations?: Array<{ factor: string; impact: string; averageRating: number }>;
+}
+
+export interface LocalAnalysis {
+	keywordFrequencyByRating?: {
+		highRated?: Record<string, number>;
+		lowRated?: Record<string, number>;
+	};
+	sentimentVsRating?: {
+		lexicalSentimentScore?: number;
+	};
+}
+
+export type TextAnalysis = {
+	source: 'groq-api' | 'gemini-api';
+	result: AiAnalysisResult;
+	fallback?: LocalAnalysis;
+} | {
+	source: 'local-fallback';
+} & LocalAnalysis;
+
 export type InsightScope = {
     entryCount: number;
     ratedDayCount?: number;
@@ -284,7 +311,7 @@ export type InsightScope = {
         longestLowDays: number;
     };
     dailyRatings: Array<{ date: string; time: number; rating: number }>;
-    textAnalysis?: any;
+    textAnalysis?: TextAnalysis;
     habitSummary?: HabitSummary;
     habitCorrelations?: CalculatedHabitCorrelation[];
 };

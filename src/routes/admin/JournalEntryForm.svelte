@@ -16,7 +16,13 @@
 	} from "$lib/utils/imageMeta";
 	import { todayDateKey, getHappinessLabel } from "$lib/utils/date";
 	import type { User } from "firebase/auth";
+	import type { MediaItem } from "$lib/firebase/firestore.svelte";
+	import type { createMediaStore } from "$lib/firebase/media.svelte";
+	import type { createHabitsStore } from "$lib/firebase/habits.svelte";
 	import MediaGalleryDialog from "$lib/components/MediaGalleryDialog.svelte";
+
+	type MediaStore = ReturnType<typeof createMediaStore>;
+	type HabitsStore = ReturnType<typeof createHabitsStore>;
 
 	interface JournalFormState {
 		id: string | null;
@@ -40,8 +46,8 @@
 		loadJournalEntries,
 	} = $props<{
 		user: User | null;
-		mediaStore: any;
-		habitsStore: any;
+		mediaStore: MediaStore;
+		habitsStore: HabitsStore;
 		loadJournalEntries: () => Promise<void>;
 	}>();
 
@@ -288,7 +294,7 @@
 		});
 	}
 
-	async function handleDeleteMediaWrapper(item: any) {
+	async function handleDeleteMediaWrapper(item: MediaItem) {
 		await mediaStore.handleDeleteMedia(item, (url: string) => {
 			journalForm.imageMeta = { ...journalForm.imageMeta };
 			delete journalForm.imageMeta[url];
@@ -747,7 +753,10 @@
 	mediaItems={mediaStore.mediaItems}
 	mediaUploading={mediaStore.mediaUploading}
 	mediaUploadError={mediaStore.mediaUploadError}
-	handleGalleryUpload={(e: any) => mediaStore.handleGalleryUpload(e.target.files[0])}
+	handleGalleryUpload={(e: Event & { target: HTMLInputElement }) => {
+		const file = e.target.files?.[0];
+		if (file) mediaStore.handleGalleryUpload(file);
+	}}
 	handleDeleteMedia={handleDeleteMediaWrapper}
 	{copyToClipboard}
 	insertMarkdownAtCursor={insertMarkdownAtCursor}

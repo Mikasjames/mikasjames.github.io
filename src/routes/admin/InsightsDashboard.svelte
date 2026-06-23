@@ -1,5 +1,6 @@
 <script lang="ts">
 	import type { User } from "firebase/auth";
+	import type { createInsightsStore } from "$lib/firebase/insights.svelte";
 
 	interface HabitSummary {
 		name: string;
@@ -7,9 +8,11 @@
 		dates: string[];
 	}
 
+	type InsightsStore = ReturnType<typeof createInsightsStore>;
+
 	let { user, insightsStore } = $props<{
 		user: User;
-		insightsStore: any;
+		insightsStore: InsightsStore;
 	}>();
 </script>
 

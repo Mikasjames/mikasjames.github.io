@@ -1,5 +1,6 @@
-import imageCompression from "browser-image-compression";
+import imageCompression, { type Options as CompressOptions } from "browser-image-compression";
 import { extractImageUrlsFromMarkdown } from "./mediaMeta";
+import type { MediaItem } from "$lib/firebase/firestore.svelte";
 
 export type { MediaDimensions as ImageMeta } from "./mediaMeta";
 export {
@@ -12,7 +13,7 @@ export {
 export function enrichImageMetaFromGallery(
   markdown: string,
   currentImageMeta: Record<string, { width: number; height: number }>,
-  galleryItems: any[],
+  galleryItems: MediaItem[],
 ): Record<string, { width: number; height: number }> {
   const urls = extractImageUrlsFromMarkdown(markdown);
   return urls.reduce(
@@ -56,12 +57,12 @@ export async function compressAndGetMeta(file: File) {
   if (isGif) {
     compressedFile = file;
   } else {
-    const options = {
+    const options: CompressOptions = {
       maxWidthOrHeight: 1200,
       useWebWorker: true,
       fileType: "image/webp",
       initialQuality: 0.78,
-    } as any;
+    };
 
     const compressedBlob = await imageCompression(file, options);
     compressedFile =

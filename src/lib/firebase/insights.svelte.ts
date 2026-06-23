@@ -3,6 +3,8 @@ import {
 	getMonthlyInsightByPeriod,
 	type MonthlyInsight,
 	type InsightScope,
+	type AiAnalysisResult,
+	type LocalAnalysis,
 } from "./firestore.svelte";
 
 export function createInsightsStore() {
@@ -20,13 +22,13 @@ export function createInsightsStore() {
 			: null,
 	);
 
-	const selectedResult = $derived<any>(
+	const selectedResult = $derived<AiAnalysisResult | null>(
 		(selectedScope?.textAnalysis?.source === "groq-api" || selectedScope?.textAnalysis?.source === "gemini-api")
-			? selectedScope.textAnalysis.result
+			? (selectedScope.textAnalysis.result ?? null)
 			: null,
 	);
 
-	const selectedLocalAnalysis = $derived<any>(
+	const selectedLocalAnalysis = $derived<LocalAnalysis | null | undefined>(
 		selectedScope?.textAnalysis?.source === "local-fallback"
 			? selectedScope.textAnalysis
 			: selectedScope?.textAnalysis?.fallback,

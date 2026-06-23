@@ -2,7 +2,7 @@ import { SITE_URL } from '$lib/site';
 
 export const prerender = true;
 
-export function GET() {
+export function GET(): Response {
 	const body = `User-agent: *
 Disallow: /admin/
 Disallow: /journal/

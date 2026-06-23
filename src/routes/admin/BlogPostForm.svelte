@@ -5,7 +5,11 @@
 	import ContentImagesHelper from "$lib/components/ContentImagesHelper.svelte";
 	import { createPost, updatePost, type BlogPost, type ImageMeta } from "$lib/firebase/firestore.svelte";
 	import { resolveMissingImageMeta, sanitizeImageMetaFromMarkdown, enrichImageMetaFromGallery } from "$lib/utils/imageMeta";
+	import type { MediaItem } from "$lib/firebase/firestore.svelte";
+	import type { createMediaStore } from "$lib/firebase/media.svelte";
 	import MediaGalleryDialog from "$lib/components/MediaGalleryDialog.svelte";
+
+	type MediaStore = ReturnType<typeof createMediaStore>;
 
 	interface BlogFormState {
 		id: string | null;
@@ -28,7 +32,7 @@
 		mediaStore,
 		loadPosts,
 	} = $props<{
-		mediaStore: any;
+		mediaStore: MediaStore;
 		loadPosts: () => Promise<void>;
 	}>();
 
@@ -223,7 +227,7 @@
 		});
 	}
 
-	async function handleDeleteMediaWrapper(item: any) {
+	async function handleDeleteMediaWrapper(item: MediaItem) {
 		await mediaStore.handleDeleteMedia(item, (url: string) => {
 			blogForm.imageMeta = { ...blogForm.imageMeta };
 			delete blogForm.imageMeta[url];
@@ -502,7 +506,10 @@
 	mediaItems={mediaStore.mediaItems}
 	mediaUploading={mediaStore.mediaUploading}
 	mediaUploadError={mediaStore.mediaUploadError}
-	handleGalleryUpload={(e: any) => mediaStore.handleGalleryUpload(e.target.files[0])}
+	handleGalleryUpload={(e: Event & { target: HTMLInputElement }) => {
+		const file = e.target.files?.[0];
+		if (file) mediaStore.handleGalleryUpload(file);
+	}}
 	handleDeleteMedia={handleDeleteMediaWrapper}
 	{copyToClipboard}
 	insertMarkdownAtCursor={insertMarkdownAtCursor}
