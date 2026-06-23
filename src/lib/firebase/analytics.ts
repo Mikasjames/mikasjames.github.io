@@ -1,13 +1,11 @@
 import { browser } from '$app/environment';
 import { getAnalytics, logEvent as firebaseLogEvent, type Analytics } from 'firebase/analytics';
-import { PUBLIC_FIREBASE_MEASUREMENT_ID } from '$env/static/public';
 import app from './firebase';
 
 let analytics: Analytics | null = null;
 
 function init(): Analytics | null {
 	if (!browser) return null;
-	if (!PUBLIC_FIREBASE_MEASUREMENT_ID) return null;
 	if (analytics) return analytics;
 	try {
 		analytics = getAnalytics(app);
