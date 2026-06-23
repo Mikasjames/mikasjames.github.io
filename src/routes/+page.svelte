@@ -85,6 +85,23 @@
         current = current === projects.length - 1 ? 0 : current + 1;
     }
 
+    let touchStartX = 0;
+    let touchStartY = 0;
+
+    function handleTouchStart(e: TouchEvent) {
+        touchStartX = e.touches[0].clientX;
+        touchStartY = e.touches[0].clientY;
+    }
+
+    function handleTouchEnd(e: TouchEvent) {
+        const dx = e.changedTouches[0].clientX - touchStartX;
+        const dy = e.changedTouches[0].clientY - touchStartY;
+        if (Math.abs(dx) > Math.abs(dy) && Math.abs(dx) > 50) {
+            if (dx > 0) prevProject();
+            else nextProject();
+        }
+    }
+
     const skillTabs = ["Frontend", "Backend", "Cloud & Tools", "QA", "AI"];
 
     const skills: Record<string, string[]> = {
@@ -590,10 +607,17 @@
                 ? 'opacity-100 translate-y-0'
                 : 'opacity-0 translate-y-6'}"
         >
-            <div class="relative mx-auto max-w-4xl overflow-hidden px-2">
+            <div
+                class="relative mx-auto max-w-4xl overflow-hidden px-2 touch-pan-y"
+                role="region"
+                aria-label="Project carousel"
+                ontouchstart={handleTouchStart}
+                ontouchend={handleTouchEnd}
+            >
                 <div class="relative h-[520px] sm:h-[460px] md:h-[420px]">
                     {#each projects as project, i}
-                        {@const pos = i - current}
+                        {@const rawPos = i - current}
+                        {@const pos = rawPos > Math.floor(projects.length / 2) ? rawPos - projects.length : rawPos < -Math.floor(projects.length / 2) ? rawPos + projects.length : rawPos}
                         {#if Math.abs(pos) <= 1}
                             <div
                                 class="absolute left-1/2 top-1/2 w-[85vw] max-w-[520px] transition-all duration-500 ease-out cursor-pointer"
@@ -724,11 +748,11 @@
 
                 <button
                     onclick={prevProject}
-                    class="absolute left-0 top-1/2 -translate-y-1/2 w-10 h-10 rounded-full bg-zinc-900/80 border border-zinc-800 text-zinc-400 hover:text-zinc-100 hover:border-zinc-700 hover:bg-zinc-800/80 flex items-center justify-center transition-all duration-200 backdrop-blur-sm"
+                    class="absolute left-0 top-1/2 -translate-y-1/2 w-12 h-12 sm:w-10 sm:h-10 rounded-full bg-zinc-900/80 border border-zinc-800 text-zinc-400 hover:text-zinc-100 hover:border-zinc-700 hover:bg-zinc-800/80 flex items-center justify-center transition-all duration-200 backdrop-blur-sm z-10"
                     aria-label="Previous project"
                 >
                     <svg
-                        class="w-4 h-4"
+                        class="w-5 h-5 sm:w-4 sm:h-4"
                         fill="none"
                         stroke="currentColor"
                         viewBox="0 0 24 24"
@@ -743,11 +767,11 @@
                 </button>
                 <button
                     onclick={nextProject}
-                    class="absolute right-0 top-1/2 -translate-y-1/2 w-10 h-10 rounded-full bg-zinc-900/80 border border-zinc-800 text-zinc-400 hover:text-zinc-100 hover:border-zinc-700 hover:bg-zinc-800/80 flex items-center justify-center transition-all duration-200 backdrop-blur-sm"
+                    class="absolute right-0 top-1/2 -translate-y-1/2 w-12 h-12 sm:w-10 sm:h-10 rounded-full bg-zinc-900/80 border border-zinc-800 text-zinc-400 hover:text-zinc-100 hover:border-zinc-700 hover:bg-zinc-800/80 flex items-center justify-center transition-all duration-200 backdrop-blur-sm z-10"
                     aria-label="Next project"
                 >
                     <svg
-                        class="w-4 h-4"
+                        class="w-5 h-5 sm:w-4 sm:h-4"
                         fill="none"
                         stroke="currentColor"
                         viewBox="0 0 24 24"
