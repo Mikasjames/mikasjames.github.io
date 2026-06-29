@@ -1,12 +1,16 @@
 <script lang="ts">
 	import { goto } from "$app/navigation";
 	import { subscribeToAuth } from "$lib/firebase/auth";
-	import { getPosts, type BlogPost } from "$lib/firebase/firestore.svelte";
+	import type { DocumentSnapshot } from "firebase/firestore";
+	import { getPostsPage, type BlogPost, DEFAULT_PAGE_SIZE } from "$lib/firebase/firestore.svelte";
 
 	let user = $state<import("firebase/auth").User | null>(null);
 	let authReady = $state(false);
 	let posts = $state<BlogPost[]>([]);
 	let loading = $state(true);
+	let postsCursor = $state<DocumentSnapshot | null>(null);
+	let postsHasMore = $state(false);
+	let loadingMore = $state(false);
 
 	$effect(() => {
 		const unsub = subscribeToAuth((u) => {
@@ -17,12 +21,36 @@
 		return unsub;
 	});
 
+	async function loadDrafts() {
+		loading = true;
+		posts = [];
+		postsCursor = null;
+		try {
+			const result = await getPostsPage(undefined, DEFAULT_PAGE_SIZE, { status: 'draft' });
+			posts = result.items;
+			postsCursor = result.nextCursor;
+			postsHasMore = result.hasMore;
+		} finally {
+			loading = false;
+		}
+	}
+
+	async function loadMoreDrafts() {
+		if (!postsCursor || loadingMore) return;
+		loadingMore = true;
+		try {
+			const result = await getPostsPage(postsCursor, DEFAULT_PAGE_SIZE, { status: 'draft' });
+			posts = [...posts, ...result.items];
+			postsCursor = result.nextCursor;
+			postsHasMore = result.hasMore;
+		} finally {
+			loadingMore = false;
+		}
+	}
+
 	$effect(() => {
 		if (!authReady || !user) return;
-		getPosts().then((all) => {
-			posts = all.filter((p) => p.status === "draft");
-			loading = false;
-		});
+		loadDrafts();
 	});
 
 	function formatDate(d: Date | null) {
@@ -192,6 +220,25 @@
 						</div>
 					</a>
 				{/each}
+				{#if postsHasMore}
+					<div class="flex justify-center pt-2">
+						<button
+							type="button"
+							onclick={loadMoreDrafts}
+							disabled={loadingMore}
+							class="flex items-center gap-2 rounded-lg border border-zinc-700/60 bg-zinc-900 px-5 py-2.5 text-sm font-medium text-zinc-300 transition-all duration-200 hover:border-zinc-600 hover:text-zinc-100 disabled:opacity-50"
+						>
+							{#if loadingMore}
+								<div
+									class="w-4 h-4 border-2 border-zinc-600 border-t-zinc-300 rounded-full animate-spin"
+								></div>
+								Loading…
+							{:else}
+								Show more
+							{/if}
+						</button>
+					</div>
+				{/if}
 			</div>
 		{/if}
 	</div>

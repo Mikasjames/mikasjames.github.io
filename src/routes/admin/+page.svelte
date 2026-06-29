@@ -2,13 +2,15 @@
 	import { goto } from "$app/navigation";
 	import { subscribeToAuth, logout } from "$lib/firebase/auth";
 	import {
-		getPosts,
+		getPostsPage,
 		deletePost,
 		type BlogPost,
-		getJournalEntries,
+		getJournalEntriesPage,
 		deleteJournalEntry,
 		type JournalEntry,
+		DEFAULT_PAGE_SIZE,
 	} from "$lib/firebase/firestore.svelte";
+	import type { DocumentSnapshot } from "firebase/firestore";
 	import type { User } from "firebase/auth";
 	import { createInsightsStore } from "$lib/firebase/insights.svelte";
 	import { createMediaStore } from "$lib/firebase/media.svelte";
@@ -49,26 +51,57 @@
 
 	let posts = $state<BlogPost[]>([]);
 	let postsLoading = $state(false);
+	let postsLoadingMore = $state(false);
+	let postsCursor = $state<DocumentSnapshot | null>(null);
+	let postsHasMore = $state(false);
+	let postsStatusFilter = $state<string | undefined>(undefined);
 
 	let currentSection = $state<"blogs" | "journal" | "insights">("blogs");
 	let journalEntries = $state<JournalEntry[]>([]);
 	let journalEntriesLoading = $state(false);
 	let journalEntriesLoadError = $state("");
+	let journalEntriesLoadingMore = $state(false);
+	let journalEntriesCursor = $state<DocumentSnapshot | null>(null);
+	let journalEntriesHasMore = $state(false);
 
-	async function loadPosts() {
+	async function loadPosts(status?: string) {
 		postsLoading = true;
+		postsStatusFilter = status;
+		posts = [];
+		postsCursor = null;
 		try {
-			posts = await getPosts();
+			const result = await getPostsPage(undefined, DEFAULT_PAGE_SIZE, status ? { status: status as 'draft' | 'published' | 'unlisted' } : undefined);
+			posts = result.items;
+			postsCursor = result.nextCursor;
+			postsHasMore = result.hasMore;
 		} finally {
 			postsLoading = false;
+		}
+	}
+
+	async function loadMorePosts() {
+		if (!postsCursor || postsLoadingMore) return;
+		postsLoadingMore = true;
+		try {
+			const result = await getPostsPage(postsCursor, DEFAULT_PAGE_SIZE, postsStatusFilter ? { status: postsStatusFilter as 'draft' | 'published' | 'unlisted' } : undefined);
+			posts = [...posts, ...result.items];
+			postsCursor = result.nextCursor;
+			postsHasMore = result.hasMore;
+		} finally {
+			postsLoadingMore = false;
 		}
 	}
 
 	async function loadJournalEntries() {
 		journalEntriesLoading = true;
 		journalEntriesLoadError = "";
+		journalEntries = [];
+		journalEntriesCursor = null;
 		try {
-			journalEntries = await getJournalEntries();
+			const result = await getJournalEntriesPage();
+			journalEntries = result.items;
+			journalEntriesCursor = result.nextCursor;
+			journalEntriesHasMore = result.hasMore;
 		} catch (err: unknown) {
 			console.error("Failed to load journal entries:", err);
 			journalEntriesLoadError =
@@ -77,6 +110,21 @@
 					: "Failed to load journal entries. Check Firestore rules.";
 		} finally {
 			journalEntriesLoading = false;
+		}
+	}
+
+	async function loadMoreJournalEntries() {
+		if (!journalEntriesCursor || journalEntriesLoadingMore) return;
+		journalEntriesLoadingMore = true;
+		try {
+			const result = await getJournalEntriesPage(journalEntriesCursor);
+			journalEntries = [...journalEntries, ...result.items];
+			journalEntriesCursor = result.nextCursor;
+			journalEntriesHasMore = result.hasMore;
+		} catch (err: unknown) {
+			console.error("Failed to load more journal entries:", err);
+		} finally {
+			journalEntriesLoadingMore = false;
 		}
 	}
 
@@ -119,6 +167,10 @@
 	async function handleLogout() {
 		await logout();
 		goto("/admin/login/");
+	}
+
+	function handlePostsStatusFilterChange(status: string | undefined) {
+		loadPosts(status);
 	}
 </script>
 
@@ -249,6 +301,10 @@
 					onEdit={(post) =>
 						blogPostFormRef?.startEdit(post as BlogPost)}
 					onDelete={(post) => handleDelete(post as BlogPost)}
+					onLoadMore={loadMorePosts}
+					hasMore={postsHasMore}
+					loadingMore={postsLoadingMore}
+					onStatusFilterChange={handlePostsStatusFilterChange}
 				/>
 			{:else if currentSection === "journal"}
 				<JournalEntryForm
@@ -270,6 +326,9 @@
 					onDelete={(entry) =>
 						handleDeleteJournal(entry as JournalEntry)}
 					error={journalEntriesLoadError}
+					onLoadMore={loadMoreJournalEntries}
+					hasMore={journalEntriesHasMore}
+					loadingMore={journalEntriesLoadingMore}
 				/>
 			{:else if currentSection === "insights"}
 				<InsightsDashboard {user} {insightsStore} />

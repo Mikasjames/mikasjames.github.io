@@ -11,10 +11,14 @@ import {
     updateDoc,
     deleteDoc,
     type DocumentData,
+    type DocumentSnapshot,
     limit,
+    startAfter,
     setDoc
 } from 'firebase/firestore';
 import { db } from './firebase';
+
+export const DEFAULT_PAGE_SIZE = 12;
 
 export interface ImageMeta {
     width: number;
@@ -39,6 +43,27 @@ export async function getPosts(): Promise<BlogPost[]> {
     const q = query(collection(db, COLLECTION), orderBy('createdAt', 'desc'));
     const snapshot = await getDocs(q);
     return snapshot.docs.map((d) => docToPost(d.id, d.data()));
+}
+
+export async function getPostsPage(
+    cursor?: DocumentSnapshot,
+    pageSize = DEFAULT_PAGE_SIZE,
+    options?: { status?: 'draft' | 'published' | 'unlisted' }
+): Promise<{ items: BlogPost[]; nextCursor: DocumentSnapshot | null; hasMore: boolean }> {
+    let q = query(collection(db, COLLECTION), orderBy('createdAt', 'desc'));
+    if (options?.status) {
+        q = query(q, where('status', '==', options.status));
+    }
+    if (cursor) {
+        q = query(q, startAfter(cursor));
+    }
+    q = query(q, limit(pageSize + 1));
+    const snapshot = await getDocs(q);
+    const docs = snapshot.docs;
+    const hasMore = docs.length > pageSize;
+    const items = docs.slice(0, pageSize).map((d) => docToPost(d.id, d.data()));
+    const nextCursor = hasMore ? docs[pageSize - 1] : null;
+    return { items, nextCursor, hasMore };
 }
 
 export async function getPublishedPosts(): Promise<BlogPost[]> {
@@ -126,6 +151,23 @@ export async function getMediaItems(): Promise<MediaItem[]> {
     return snapshot.docs.map((d) => docToMediaItem(d.id, d.data()));
 }
 
+export async function getMediaItemsPage(
+    cursor?: DocumentSnapshot,
+    pageSize = DEFAULT_PAGE_SIZE
+): Promise<{ items: MediaItem[]; nextCursor: DocumentSnapshot | null; hasMore: boolean }> {
+    let q = query(collection(db, MEDIA_COLLECTION), orderBy('uploadedAt', 'desc'));
+    if (cursor) {
+        q = query(q, startAfter(cursor));
+    }
+    q = query(q, limit(pageSize + 1));
+    const snapshot = await getDocs(q);
+    const docs = snapshot.docs;
+    const hasMore = docs.length > pageSize;
+    const items = docs.slice(0, pageSize).map((d) => docToMediaItem(d.id, d.data()));
+    const nextCursor = hasMore ? docs[pageSize - 1] : null;
+    return { items, nextCursor, hasMore };
+}
+
 export async function getRecentMediaItems(limitCount = 4): Promise<MediaItem[]> {
     const q = query(collection(db, MEDIA_COLLECTION), orderBy('uploadedAt', 'desc'), limit(limitCount));
     const snapshot = await getDocs(q);
@@ -176,6 +218,30 @@ export async function getJournalEntries(): Promise<JournalEntry[]> {
     const q = query(collection(db, JOURNAL_COLLECTION), orderBy('entryDate', 'desc'));
     const snapshot = await getDocs(q);
     return snapshot.docs.map((d) => docToJournalEntry(d.id, d.data()));
+}
+
+export async function getJournalEntriesPage(
+    cursor?: DocumentSnapshot,
+    pageSize = DEFAULT_PAGE_SIZE,
+    options?: { dateFrom?: string; dateTo?: string }
+): Promise<{ items: JournalEntry[]; nextCursor: DocumentSnapshot | null; hasMore: boolean }> {
+    let q = query(collection(db, JOURNAL_COLLECTION), orderBy('entryDate', 'desc'));
+    if (options?.dateFrom) {
+        q = query(q, where('entryDate', '>=', options.dateFrom));
+    }
+    if (options?.dateTo) {
+        q = query(q, where('entryDate', '<=', options.dateTo));
+    }
+    if (cursor) {
+        q = query(q, startAfter(cursor));
+    }
+    q = query(q, limit(pageSize + 1));
+    const snapshot = await getDocs(q);
+    const docs = snapshot.docs;
+    const hasMore = docs.length > pageSize;
+    const items = docs.slice(0, pageSize).map((d) => docToJournalEntry(d.id, d.data()));
+    const nextCursor = hasMore ? docs[pageSize - 1] : null;
+    return { items, nextCursor, hasMore };
 }
 
 export async function createJournalEntry(data: {

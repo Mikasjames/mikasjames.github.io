@@ -2,11 +2,13 @@
 	import { onMount, onDestroy } from "svelte";
 	import { goto } from "$app/navigation";
 	import { subscribeToAuth, logout } from "$lib/firebase/auth";
+	import type { DocumentSnapshot } from "firebase/firestore";
 	import {
-		getJournalEntries,
+		getJournalEntriesPage,
 		getHabitLogsForDates,
 		type JournalEntry,
 		type HabitLog,
+		DEFAULT_PAGE_SIZE,
 	} from "$lib/firebase/firestore.svelte";
 	import { renderMarkdown } from "$lib/utils/renderMarkdown";
 	import type { User } from "firebase/auth";
@@ -15,12 +17,15 @@
 	let authReady = $state(false);
 	let entries = $state<JournalEntry[]>([]);
 	let loading = $state(true);
+	let loadingMore = $state(false);
 	let errorMsg = $state("");
 	let searchQuery = $state("");
 	let dateFrom = $state("");
 	let dateTo = $state("");
 	let selectedEntryId = $state<string | null>(null);
 	let habitLogsByDate = $state<Record<string, HabitLog[]>>({});
+	let entriesCursor = $state<DocumentSnapshot | null>(null);
+	let entriesHasMore = $state(false);
 
 	const unsub = subscribeToAuth((u) => {
 		user = u;
@@ -34,21 +39,15 @@
 	async function loadJournal() {
 		loading = true;
 		errorMsg = "";
+		entries = [];
+		entriesCursor = null;
 		try {
-			entries = await getJournalEntries();
+			const result = await getJournalEntriesPage();
+			entries = result.items;
+			entriesCursor = result.nextCursor;
+			entriesHasMore = result.hasMore;
 			if (user) {
-				const dates = entries
-					.map((entry) => entryDateKey(entry))
-					.filter((date): date is string => Boolean(date));
-				try {
-					habitLogsByDate = await getHabitLogsForDates(
-						user.uid,
-						dates,
-					);
-				} catch (habitErr) {
-					console.warn("Habit logs unavailable:", habitErr);
-					habitLogsByDate = {};
-				}
+				await loadHabitLogsForEntries(result.items);
 			}
 		} catch (err: unknown) {
 			console.error("Error loading journal entries:", err);
@@ -61,8 +60,38 @@
 		}
 	}
 
+	async function loadMoreEntries() {
+		if (!entriesCursor || loadingMore) return;
+		loadingMore = true;
+		try {
+			const result = await getJournalEntriesPage(entriesCursor);
+			entries = [...entries, ...result.items];
+			entriesCursor = result.nextCursor;
+			entriesHasMore = result.hasMore;
+			if (user) {
+				await loadHabitLogsForEntries(result.items);
+			}
+		} catch (err: unknown) {
+			console.error("Error loading more entries:", err);
+		} finally {
+			loadingMore = false;
+		}
+	}
+
+	async function loadHabitLogsForEntries(entryList: JournalEntry[]) {
+		const dates = entryList
+			.map((entry) => entryDateKey(entry))
+			.filter((date): date is string => Boolean(date));
+		if (!dates.length) return;
+		try {
+			const logs = await getHabitLogsForDates(user!.uid, dates);
+			habitLogsByDate = { ...habitLogsByDate, ...logs };
+		} catch (habitErr) {
+			console.warn("Habit logs unavailable:", habitErr);
+		}
+	}
+
 	onMount(async () => {
-		// Wait for authentication state to be initialized
 		await new Promise<void>((res) => {
 			const check = setInterval(() => {
 				if (authReady) {
@@ -331,10 +360,10 @@
 						<p
 							class="text-[10px] font-mono uppercase tracking-widest text-zinc-600"
 						>
-							Entries
+							Loaded
 						</p>
 						<p class="mt-1 text-2xl font-semibold text-zinc-100">
-							{entries.length}
+							{entries.length}{#if entriesHasMore}+{/if}
 						</p>
 					</div>
 					<div
@@ -575,6 +604,25 @@
 										</div>
 									</button>
 								{/each}
+								{#if entriesHasMore}
+									<div class="flex justify-center pt-2">
+										<button
+											type="button"
+											onclick={loadMoreEntries}
+											disabled={loadingMore}
+											class="flex w-full items-center justify-center gap-2 rounded-xl border border-zinc-800/80 bg-zinc-950/70 px-4 py-2.5 text-sm font-medium text-zinc-300 transition-all duration-200 hover:border-zinc-700 hover:text-zinc-100 disabled:opacity-50"
+										>
+											{#if loadingMore}
+												<div
+													class="w-4 h-4 border-2 border-zinc-600 border-t-zinc-300 rounded-full animate-spin"
+												></div>
+												Loading…
+											{:else}
+												Load more entries
+											{/if}
+										</button>
+									</div>
+								{/if}
 							{/if}
 						</div>
 					</div>

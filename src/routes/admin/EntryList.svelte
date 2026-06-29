@@ -14,15 +14,36 @@
 		onEdit: (entry: Entry) => void;
 		onDelete: (entry: Entry) => void;
 		error?: string;
+		onLoadMore?: () => void;
+		hasMore?: boolean;
+		loadingMore?: boolean;
+		onStatusFilterChange?: (status: string | undefined) => void;
 	}
 
-	let { items, loading, type, onEdit, onDelete, error }: Props = $props();
+	let {
+		items,
+		loading,
+		type,
+		onEdit,
+		onDelete,
+		error,
+		onLoadMore = undefined,
+		hasMore = false,
+		loadingMore = false,
+		onStatusFilterChange = undefined,
+	}: Props = $props();
 
 	let search = $state("");
 	let statusFilter = $state<"all" | "published" | "unlisted" | "draft">(
 		"all",
 	);
 	let sort = $state<"newest" | "oldest">("newest");
+
+	function handleStatusFilterChange() {
+		onStatusFilterChange?.(
+			statusFilter === "all" ? undefined : statusFilter,
+		);
+	}
 
 	let filteredItems = $derived.by(() => {
 		let result = items;
@@ -43,9 +64,9 @@
 							item.content.toLowerCase().includes(q),
 						);
 		}
-		if (type === "blog" && statusFilter !== "all") {
+		if (type === "blog") {
 			result = result.filter(
-				(item) => (item as BlogPost).status === statusFilter,
+				(item) => statusFilter === "all" || (item as BlogPost).status === statusFilter,
 			);
 		}
 		return sort === "oldest"
@@ -118,6 +139,7 @@
 			{#if type === "blog"}
 				<select
 					bind:value={statusFilter}
+					onchange={handleStatusFilterChange}
 					class="w-full rounded-lg border border-zinc-700/60 bg-zinc-900 px-3 py-2 text-sm text-zinc-300 transition-all focus:border-accent-500 focus:outline-none md:w-auto"
 				>
 					<option value="all">All statuses</option>
@@ -142,7 +164,7 @@
 	{#if search || (type === "blog" && statusFilter !== "all")}
 		<p class="text-xs text-zinc-550 mb-3">
 			{filteredItems.length} of {items.length}
-			{type === "blog" ? "posts" : "entries"}
+			{type === "blog" ? "posts" : "entries"} loaded
 		</p>
 	{/if}
 
@@ -181,7 +203,7 @@
 			{emptyMessage}
 		</p>
 	{:else}
-		<div class="space-y-2">
+		<div id="entry-list" class="space-y-2">
 			{#each filteredItems as item (item.id)}
 				<div
 					class="flex flex-col gap-3 rounded-lg border border-zinc-800/40 bg-zinc-900/60 px-3 py-3 transition-all duration-200 hover:border-zinc-700/60 sm:flex-row sm:items-center sm:gap-4 sm:px-4"
@@ -320,5 +342,25 @@
 				</div>
 			{/each}
 		</div>
+
+		{#if hasMore}
+			<div class="mt-4 flex justify-center">
+				<button
+					type="button"
+					onclick={onLoadMore}
+					disabled={loadingMore}
+					class="flex items-center gap-2 rounded-lg border border-zinc-700/60 bg-zinc-900 px-5 py-2.5 text-sm font-medium text-zinc-300 transition-all duration-200 hover:border-zinc-600 hover:text-zinc-100 disabled:opacity-50"
+				>
+					{#if loadingMore}
+						<div
+							class="w-4 h-4 border-2 border-zinc-600 border-t-zinc-300 rounded-full animate-spin"
+						></div>
+						Loading…
+					{:else}
+						Show more
+					{/if}
+				</button>
+			</div>
+		{/if}
 	{/if}
 </section>

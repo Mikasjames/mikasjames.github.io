@@ -1,4 +1,5 @@
-import { getMediaItems, getRecentMediaItems, addMediaItem, deleteMediaItem, type MediaItem } from "./firestore.svelte";
+import { getMediaItemsPage, getRecentMediaItems, addMediaItem, deleteMediaItem, type MediaItem } from "./firestore.svelte";
+import type { DocumentSnapshot } from "firebase/firestore";
 import { uploadImage, deleteImage } from "./storage";
 import { compressAndGetMeta } from "$lib/utils/imageMeta";
 
@@ -11,12 +12,19 @@ export function createMediaStore() {
 	let mediaUploadError = $state("");
 	let mediaLoadError = $state("");
 	let deletingMediaIds = $state<Set<string>>(new Set());
+	let mediaCursor = $state<DocumentSnapshot | null>(null);
+	let mediaHasMore = $state(false);
 
 	async function loadMediaItems() {
 		mediaLoading = true;
 		mediaLoadError = "";
+		mediaItems = [];
+		mediaCursor = null;
 		try {
-			mediaItems = await getMediaItems();
+			const result = await getMediaItemsPage();
+			mediaItems = result.items;
+			mediaCursor = result.nextCursor;
+			mediaHasMore = result.hasMore;
 			mediaLoaded = true;
 		} catch (err) {
 			console.error("Failed to load media items:", err);
@@ -24,6 +32,25 @@ export function createMediaStore() {
 				err instanceof Error
 					? err.message
 					: "Failed to load gallery items.";
+		} finally {
+			mediaLoading = false;
+		}
+	}
+
+	async function loadMoreMediaItems() {
+		if (!mediaCursor || mediaLoading) return;
+		mediaLoading = true;
+		try {
+			const result = await getMediaItemsPage(mediaCursor);
+			mediaItems = [...mediaItems, ...result.items];
+			mediaCursor = result.nextCursor;
+			mediaHasMore = result.hasMore;
+		} catch (err) {
+			console.error("Failed to load more media items:", err);
+			mediaLoadError =
+				err instanceof Error
+					? err.message
+					: "Failed to load more gallery items.";
 		} finally {
 			mediaLoading = false;
 		}
@@ -41,7 +68,7 @@ export function createMediaStore() {
 		if (!mediaLoaded) {
 			await loadMediaItems();
 		}
-		return true; // Used to trigger visibility in component if needed
+		return true;
 	}
 
 	async function handleGalleryUpload(file: File) {
@@ -101,7 +128,9 @@ export function createMediaStore() {
 		get mediaUploadError() { return mediaUploadError; },
 		get mediaLoadError() { return mediaLoadError; },
 		get deletingMediaIds() { return deletingMediaIds; },
+		get mediaHasMore() { return mediaHasMore; },
 		loadMediaItems,
+		loadMoreMediaItems,
 		loadRecentMedia,
 		openMediaGallery,
 		handleGalleryUpload,

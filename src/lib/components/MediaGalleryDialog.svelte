@@ -11,7 +11,19 @@
         setEditorCoverImage,
         mediaLoading,
         deletingMediaIds,
+        loadMoreMediaItems,
+        mediaHasMore = false,
     } = $props();
+
+    let mediaSearch = $state("");
+
+    let filteredMediaItems = $derived(
+        mediaSearch.trim()
+            ? mediaItems.filter((item: { name: string }) =>
+                  item.name.toLowerCase().includes(mediaSearch.toLowerCase()),
+              )
+            : mediaItems,
+    );
 </script>
 
 {#if showMediaGallery}
@@ -103,8 +115,31 @@
                     {/if}
                 </div>
 
-                <div class="text-xs text-zinc-500 font-mono sm:text-right">
-                    {mediaItems.length} assets indexed
+                <div class="flex items-center gap-3">
+                    <div class="relative">
+                        <svg
+                            class="absolute left-2.5 top-1/2 -translate-y-1/2 w-3 h-3 text-zinc-600"
+                            fill="none"
+                            stroke="currentColor"
+                            viewBox="0 0 24 24"
+                        >
+                            <path
+                                stroke-linecap="round"
+                                stroke-linejoin="round"
+                                stroke-width="2"
+                                d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"
+                            />
+                        </svg>
+                        <input
+                            type="text"
+                            bind:value={mediaSearch}
+                            placeholder="Filter by name…"
+                            class="w-36 rounded-lg border border-zinc-700/60 bg-zinc-900 py-1.5 pl-7 pr-2.5 text-xs text-zinc-100 placeholder-zinc-600 focus:border-accent-500 focus:outline-none focus:ring-1 focus:ring-accent-500/30 transition-all"
+                        />
+                    </div>
+                    <div class="text-xs text-zinc-500 font-mono whitespace-nowrap">
+                        {mediaSearch ? `${filteredMediaItems.length} / ` : ''}{mediaItems.length} assets
+                    </div>
                 </div>
             </div>
 
@@ -142,11 +177,19 @@
                             Upload your first image to get started.
                         </p>
                     </div>
+                {:else if filteredMediaItems.length === 0}
+                    <div
+                        class="flex flex-col items-center justify-center py-20 text-center"
+                    >
+                        <p class="text-zinc-405 text-sm font-medium">
+                            No assets match "{mediaSearch}"
+                        </p>
+                    </div>
                 {:else}
                     <div
                         class="grid grid-cols-1 gap-4 min-[430px]:grid-cols-2 md:grid-cols-3 lg:grid-cols-4"
                     >
-                        {#each mediaItems as item (item.id)}
+                        {#each filteredMediaItems as item (item.id)}
                             {@const isDeleting = deletingMediaIds.has(item.id)}
                             <div
                                 class="group relative flex flex-col overflow-hidden rounded-xl border border-zinc-800/80 bg-zinc-950 transition-all duration-200 hover:border-zinc-750 lg:aspect-square"
@@ -272,6 +315,25 @@
                             </div>
                         {/each}
                     </div>
+                    {#if mediaHasMore && !mediaSearch}
+                        <div class="mt-4 flex justify-center">
+                            <button
+                                type="button"
+                                onclick={loadMoreMediaItems}
+                                disabled={mediaLoading}
+                                class="flex items-center gap-2 rounded-lg border border-zinc-700/60 bg-zinc-900 px-5 py-2.5 text-sm font-medium text-zinc-300 transition-all duration-200 hover:border-zinc-600 hover:text-zinc-100 disabled:opacity-50"
+                            >
+                                {#if mediaLoading}
+                                    <div
+                                        class="w-4 h-4 border-2 border-zinc-600 border-t-zinc-300 rounded-full animate-spin"
+                                    ></div>
+                                    Loading…
+                                {:else}
+                                    Load more
+                                {/if}
+                            </button>
+                        </div>
+                    {/if}
                 {/if}
             </div>
 

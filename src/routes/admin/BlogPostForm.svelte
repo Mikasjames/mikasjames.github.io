@@ -516,4 +516,6 @@
 	setEditorCoverImage={setEditorCoverImage}
 	mediaLoading={mediaStore.mediaLoading}
 	deletingMediaIds={mediaStore.deletingMediaIds}
+	loadMoreMediaItems={mediaStore.loadMoreMediaItems}
+	mediaHasMore={mediaStore.mediaHasMore}
 />
