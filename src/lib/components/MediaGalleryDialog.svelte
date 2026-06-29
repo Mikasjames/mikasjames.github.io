@@ -28,12 +28,12 @@
 
 {#if showMediaGallery}
     <div
-        class="fixed inset-0 z-50 flex items-center justify-center bg-black/80 p-2 backdrop-blur-md transition-opacity duration-300 sm:p-4"
+        class="fixed top-0 left-0 w-screen h-screen z-50 flex items-start justify-center bg-black/80 backdrop-blur-md transition-opacity duration-300 sm:items-center overflow-y-auto"
         role="dialog"
         aria-modal="true"
     >
         <div
-            class="relative flex max-h-[92vh] w-full max-w-4xl flex-col overflow-hidden rounded-xl border border-zinc-800 bg-zinc-900 shadow-2xl sm:max-h-[85vh] sm:rounded-2xl"
+            class="relative my-8 flex max-h-[92vh] w-full max-w-4xl flex-col overflow-hidden rounded-xl border border-zinc-800 bg-zinc-900 shadow-2xl sm:max-h-[85vh] sm:my-4 sm:rounded-2xl"
         >
             <div
                 class="flex items-start justify-between gap-3 border-b border-zinc-800 px-4 py-3 sm:items-center sm:px-6 sm:py-4"
