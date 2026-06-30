@@ -306,7 +306,7 @@
         >
             <span class="relative flex h-2 w-2">
                 <span
-                    class="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"
+                    class="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75 motion-safe:animate-ping" style="will-change: transform, opacity"
                 ></span>
                 <span
                     class="relative inline-flex rounded-full h-2 w-2 bg-emerald-500"

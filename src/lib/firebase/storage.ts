@@ -1,24 +1,21 @@
-import { ref, uploadBytes, getDownloadURL, deleteObject } from 'firebase/storage';
-import { storage } from './firebase';
+import { ref, uploadBytes, getDownloadURL, deleteObject, getStorage } from 'firebase/storage';
+import app from './firebase';
 
-/**
- * Uploads a file to Firebase Storage and returns its public download URL.
- * @param file The file to upload.
- * @param folder The folder in Firebase Storage.
- */
+let storageInstance: ReturnType<typeof getStorage> | null = null;
+function getStorageInstance() {
+	if (!storageInstance) storageInstance = getStorage(app);
+	return storageInstance;
+}
+
 export async function uploadImage(file: File, folder = 'blog-images'): Promise<string> {
     const filename = `${Date.now()}-${file.name.replace(/\s+/g, '-')}`;
-    const storageRef = ref(storage, `${folder}/${filename}`);
+    const storageRef = ref(getStorageInstance(), `${folder}/${filename}`);
     const snapshot = await uploadBytes(storageRef, file);
     return getDownloadURL(snapshot.ref);
 }
 
-/**
- * Deletes a file from Firebase Storage using its download URL.
- * @param url The download URL of the file to delete.
- */
 export async function deleteImage(url: string): Promise<void> {
-    const storageRef = ref(storage, url);
+    const storageRef = ref(getStorageInstance(), url);
     await deleteObject(storageRef);
 }
 

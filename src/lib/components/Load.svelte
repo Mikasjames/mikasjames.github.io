@@ -50,12 +50,14 @@
         stroke-dashoffset: 500;
         animation: drawContainerEffect 1.2s cubic-bezier(0.4, 0, 0.2, 1)
             forwards;
+        will-change: stroke-dashoffset;
     }
 
     .draw-bracket {
         stroke-dasharray: 60;
         stroke-dashoffset: 60;
         animation: drawBracketEffect 0.8s ease-in-out 0.3s forwards;
+        will-change: stroke-dashoffset;
     }
 
     .blink-cursor {

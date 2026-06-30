@@ -10,13 +10,20 @@ import {
     serverTimestamp,
     updateDoc,
     deleteDoc,
+    getFirestore,
     type DocumentData,
     type DocumentSnapshot,
     limit,
     startAfter,
     setDoc
 } from 'firebase/firestore';
-import { db } from './firebase';
+import app from './firebase';
+
+let dbInstance: ReturnType<typeof getFirestore> | null = null;
+function getDb() {
+    if (!dbInstance) dbInstance = getFirestore(app);
+    return dbInstance;
+}
 
 export const DEFAULT_PAGE_SIZE = 12;
 
@@ -40,7 +47,7 @@ export interface BlogPost {
 const COLLECTION = 'blogs';
 
 export async function getPosts(): Promise<BlogPost[]> {
-    const q = query(collection(db, COLLECTION), orderBy('createdAt', 'desc'));
+    const q = query(collection(getDb(), COLLECTION), orderBy('createdAt', 'desc'));
     const snapshot = await getDocs(q);
     return snapshot.docs.map((d) => docToPost(d.id, d.data()));
 }
@@ -50,7 +57,7 @@ export async function getPostsPage(
     pageSize = DEFAULT_PAGE_SIZE,
     options?: { status?: 'draft' | 'published' | 'unlisted' }
 ): Promise<{ items: BlogPost[]; nextCursor: DocumentSnapshot | null; hasMore: boolean }> {
-    let q = query(collection(db, COLLECTION), orderBy('createdAt', 'desc'));
+    let q = query(collection(getDb(), COLLECTION), orderBy('createdAt', 'desc'));
     if (options?.status) {
         q = query(q, where('status', '==', options.status));
     }
@@ -77,7 +84,7 @@ export async function getPrerenderPosts(): Promise<BlogPost[]> {
 }
 
 export async function getPostBySlug(slug: string): Promise<BlogPost | null> {
-    const snapshot = await getDocs(collection(db, COLLECTION));
+    const snapshot = await getDocs(collection(getDb(), COLLECTION));
     const match = snapshot.docs.find((d) => d.data().slug === slug);
     if (!match) return null;
     return docToPost(match.id, match.data());
@@ -92,7 +99,7 @@ export async function createPost(data: {
     status: 'draft' | 'published' | 'unlisted';
     imageMeta?: Record<string, ImageMeta>;
 }): Promise<string> {
-    const ref = await addDoc(collection(db, COLLECTION), {
+    const ref = await addDoc(collection(getDb(), COLLECTION), {
         ...data,
         createdAt: serverTimestamp()
     });
@@ -111,12 +118,12 @@ export async function updatePost(
         imageMeta?: Record<string, ImageMeta>;
     }
 ): Promise<void> {
-    const postRef = doc(db, COLLECTION, id);
+    const postRef = doc(getDb(), COLLECTION, id);
     await updateDoc(postRef, data);
 }
 
 export async function deletePost(id: string): Promise<void> {
-    const postRef = doc(db, COLLECTION, id);
+    const postRef = doc(getDb(), COLLECTION, id);
     await deleteDoc(postRef);
 }
 
@@ -146,7 +153,7 @@ export interface MediaItem {
 const MEDIA_COLLECTION = 'media_gallery';
 
 export async function getMediaItems(): Promise<MediaItem[]> {
-    const q = query(collection(db, MEDIA_COLLECTION), orderBy('uploadedAt', 'desc'));
+    const q = query(collection(getDb(), MEDIA_COLLECTION), orderBy('uploadedAt', 'desc'));
     const snapshot = await getDocs(q);
     return snapshot.docs.map((d) => docToMediaItem(d.id, d.data()));
 }
@@ -155,7 +162,7 @@ export async function getMediaItemsPage(
     cursor?: DocumentSnapshot,
     pageSize = DEFAULT_PAGE_SIZE
 ): Promise<{ items: MediaItem[]; nextCursor: DocumentSnapshot | null; hasMore: boolean }> {
-    let q = query(collection(db, MEDIA_COLLECTION), orderBy('uploadedAt', 'desc'));
+    let q = query(collection(getDb(), MEDIA_COLLECTION), orderBy('uploadedAt', 'desc'));
     if (cursor) {
         q = query(q, startAfter(cursor));
     }
@@ -169,13 +176,13 @@ export async function getMediaItemsPage(
 }
 
 export async function getRecentMediaItems(limitCount = 4): Promise<MediaItem[]> {
-    const q = query(collection(db, MEDIA_COLLECTION), orderBy('uploadedAt', 'desc'), limit(limitCount));
+    const q = query(collection(getDb(), MEDIA_COLLECTION), orderBy('uploadedAt', 'desc'), limit(limitCount));
     const snapshot = await getDocs(q);
     return snapshot.docs.map((d) => docToMediaItem(d.id, d.data()));
 }
 
 export async function addMediaItem(data: { url: string; name: string; width?: number; height?: number }): Promise<string> {
-    const ref = await addDoc(collection(db, MEDIA_COLLECTION), {
+    const ref = await addDoc(collection(getDb(), MEDIA_COLLECTION), {
         ...data,
         uploadedAt: serverTimestamp()
     });
@@ -183,7 +190,7 @@ export async function addMediaItem(data: { url: string; name: string; width?: nu
 }
 
 export async function deleteMediaItem(id: string): Promise<void> {
-    const mediaRef = doc(db, MEDIA_COLLECTION, id);
+    const mediaRef = doc(getDb(), MEDIA_COLLECTION, id);
     await deleteDoc(mediaRef);
 }
 
@@ -215,7 +222,7 @@ export interface JournalEntry {
 const JOURNAL_COLLECTION = 'journal';
 
 export async function getJournalEntries(): Promise<JournalEntry[]> {
-    const q = query(collection(db, JOURNAL_COLLECTION), orderBy('entryDate', 'desc'));
+    const q = query(collection(getDb(), JOURNAL_COLLECTION), orderBy('entryDate', 'desc'));
     const snapshot = await getDocs(q);
     return snapshot.docs.map((d) => docToJournalEntry(d.id, d.data()));
 }
@@ -225,7 +232,7 @@ export async function getJournalEntriesPage(
     pageSize = DEFAULT_PAGE_SIZE,
     options?: { dateFrom?: string; dateTo?: string }
 ): Promise<{ items: JournalEntry[]; nextCursor: DocumentSnapshot | null; hasMore: boolean }> {
-    let q = query(collection(db, JOURNAL_COLLECTION), orderBy('entryDate', 'desc'));
+    let q = query(collection(getDb(), JOURNAL_COLLECTION), orderBy('entryDate', 'desc'));
     if (options?.dateFrom) {
         q = query(q, where('entryDate', '>=', options.dateFrom));
     }
@@ -254,7 +261,7 @@ export async function createJournalEntry(data: {
     ownerUid?: string;
     entryDate?: string | null;
 }): Promise<string> {
-    const ref = await addDoc(collection(db, JOURNAL_COLLECTION), {
+    const ref = await addDoc(collection(getDb(), JOURNAL_COLLECTION), {
         ...data,
         createdAt: serverTimestamp(),
         updatedAt: serverTimestamp()
@@ -275,7 +282,7 @@ export async function updateJournalEntry(
         entryDate?: string | null;
     }
 ): Promise<void> {
-    const entryRef = doc(db, JOURNAL_COLLECTION, id);
+    const entryRef = doc(getDb(), JOURNAL_COLLECTION, id);
     await updateDoc(entryRef, {
         ...data,
         updatedAt: serverTimestamp()
@@ -283,7 +290,7 @@ export async function updateJournalEntry(
 }
 
 export async function deleteJournalEntry(id: string): Promise<void> {
-    const entryRef = doc(db, JOURNAL_COLLECTION, id);
+    const entryRef = doc(getDb(), JOURNAL_COLLECTION, id);
     await deleteDoc(entryRef);
 }
 
@@ -397,7 +404,7 @@ const HABIT_LOGS_COLLECTION = 'habitLogs';
 
 export async function getHabits(ownerUid: string): Promise<Habit[]> {
     const q = query(
-        collection(db, HABITS_COLLECTION),
+        collection(getDb(), HABITS_COLLECTION),
         where('ownerUid', '==', ownerUid),
         orderBy('order', 'asc')
     );
@@ -411,7 +418,7 @@ export async function addHabit(data: {
     ownerUid: string;
     order: number;
 }): Promise<string> {
-    const ref = await addDoc(collection(db, HABITS_COLLECTION), {
+    const ref = await addDoc(collection(getDb(), HABITS_COLLECTION), {
         ...data,
         createdAt: serverTimestamp()
     });
@@ -419,16 +426,16 @@ export async function addHabit(data: {
 }
 
 export async function deleteHabit(id: string): Promise<void> {
-    await deleteDoc(doc(db, HABITS_COLLECTION, id));
+    await deleteDoc(doc(getDb(), HABITS_COLLECTION, id));
 }
 
 export async function updateHabitOrder(id: string, order: number): Promise<void> {
-    await updateDoc(doc(db, HABITS_COLLECTION, id), { order });
+    await updateDoc(doc(getDb(), HABITS_COLLECTION, id), { order });
 }
 
 export async function getHabitLogsForDate(ownerUid: string, date: string): Promise<HabitLog[]> {
     const q = query(
-        collection(db, HABIT_LOGS_COLLECTION),
+        collection(getDb(), HABIT_LOGS_COLLECTION),
         where('ownerUid', '==', ownerUid),
         where('date', '==', date)
     );
@@ -441,7 +448,7 @@ export async function getHabitLogsForJournalEntry(
     journalEntryId: string
 ): Promise<HabitLog[]> {
     const q = query(
-        collection(db, HABIT_LOGS_COLLECTION),
+        collection(getDb(), HABIT_LOGS_COLLECTION),
         where('ownerUid', '==', ownerUid),
         where('journalEntryId', '==', journalEntryId)
     );
@@ -454,7 +461,7 @@ export async function deleteHabitLogsForJournalEntry(
     journalEntryId: string
 ): Promise<void> {
     const logs = await getHabitLogsForJournalEntry(ownerUid, journalEntryId);
-    await Promise.all(logs.map((log) => deleteDoc(doc(db, HABIT_LOGS_COLLECTION, log.id))));
+    await Promise.all(logs.map((log) => deleteDoc(doc(getDb(), HABIT_LOGS_COLLECTION, log.id))));
 }
 
 export async function getHabitLogsForDates(
@@ -466,7 +473,7 @@ export async function getHabitLogsForDates(
     for (let i = 0; i < uniqueDates.length; i += 10) {
         const batch = uniqueDates.slice(i, i + 10);
         const q = query(
-            collection(db, HABIT_LOGS_COLLECTION),
+            collection(getDb(), HABIT_LOGS_COLLECTION),
             where('ownerUid', '==', ownerUid),
             where('date', 'in', batch)
         );
@@ -491,7 +498,7 @@ export async function upsertHabitLog(data: {
 
     const logId = `${data.ownerUid}_${data.date}_${data.habit.id}`;
     await setDoc(
-        doc(db, HABIT_LOGS_COLLECTION, logId),
+        doc(getDb(), HABIT_LOGS_COLLECTION, logId),
         {
             habitId: data.habit.id,
             habitName: data.habit.name,
@@ -508,7 +515,7 @@ export async function upsertHabitLog(data: {
 
 export async function getLatestMonthlyInsight(ownerUid: string): Promise<MonthlyInsight | null> {
     const q = query(
-        collection(db, 'insights', ownerUid, 'monthly'),
+        collection(getDb(), 'insights', ownerUid, 'monthly'),
         orderBy('period', 'desc'),
         limit(1)
     );
@@ -521,7 +528,7 @@ export async function getMonthlyInsightByPeriod(
     ownerUid: string,
     period: string
 ): Promise<MonthlyInsight | null> {
-    const snapshot = await getDoc(doc(db, 'insights', ownerUid, 'monthly', period));
+    const snapshot = await getDoc(doc(getDb(), 'insights', ownerUid, 'monthly', period));
     return snapshot.exists() ? docToMonthlyInsight(snapshot.id, snapshot.data()) : null;
 }
 

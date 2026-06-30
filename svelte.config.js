@@ -6,6 +6,7 @@ const config = {
 		runes: ({ filename }) => (filename.split(/[/\\]/).includes('node_modules') ? undefined : true)
 	},
 	kit: {
+		inlineStyleThreshold: 4096,
 		adapter: adapter({
 			pages: 'build',
 			assets: 'build',
