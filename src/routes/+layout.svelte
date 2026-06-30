@@ -19,15 +19,16 @@
 	onMount(() => {
 		document.body.classList.add("overflow-hidden");
 
-		setTimeout(() => {
+		const timer = setTimeout(() => {
 			isLoaded = true;
 			setTimeout(() => {
 				showLoaderDOM = false;
 				document.body.classList.remove("overflow-hidden");
 			}, 400);
-		}, 1500);
+		}, 800);
 
 		return () => {
+			clearTimeout(timer);
 			document.body.classList.remove("overflow-hidden");
 		};
 	});
