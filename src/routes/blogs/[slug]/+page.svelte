@@ -15,6 +15,14 @@
 <svelte:head>
 	<title>{post ? `${post.title} · Mikas James` : "Blog · Mikas James"}</title>
 	{#if post}
+		<link
+			rel="preconnect"
+			href="https://firebasestorage.googleapis.com"
+		/>
+		<link
+			rel="preconnect"
+			href="https://i.ytimg.com"
+		/>
 		<meta name="description" content={post.excerpt} />
 		<meta property="og:title" content={post.title} />
 		<meta property="og:description" content={post.excerpt} />

@@ -51,7 +51,7 @@ function createVideoEmbedHtml(url: string, title = "Video"): string {
   const embedUrl = getVideoEmbedUrl(trimmedUrl);
 
   if (embedUrl) {
-    return `<div class="video-embed my-6"><iframe src="${escapeHtml(embedUrl)}" title="${escapedTitle}" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowfullscreen></iframe></div>`;
+    return `<div class="video-embed my-6"><iframe src="${escapeHtml(embedUrl)}" title="${escapedTitle}" loading="lazy" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowfullscreen></iframe></div>`;
   }
 
   if (isDirectVideoUrl(trimmedUrl)) {

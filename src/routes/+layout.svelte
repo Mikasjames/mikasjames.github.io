@@ -63,7 +63,7 @@
 
 <svelte:window onscroll={onScroll} />
 
-{#if showLoaderDOM}
+{#if showLoaderDOM && isHome}
 	<Load />
 {/if}
 
