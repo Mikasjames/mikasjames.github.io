@@ -1,9 +1,9 @@
 <script lang="ts">
-	import { onMount } from "svelte";
-	import { fly } from "svelte/transition";
-	import { logEvent } from "$lib/firebase/analytics";
+    import { onMount } from "svelte";
+    import { fly } from "svelte/transition";
+    import { logEvent } from "$lib/firebase/analytics";
 
-	let activeSkillTab = $state("Frontend");
+    let activeSkillTab = $state("Frontend");
     let visibleSections = $state<Set<string>>(new Set());
 
     let current = $state(0);
@@ -32,6 +32,28 @@
             ],
         },
         {
+            title: "CMS Dashboard — Blog",
+            tagline: "Full-featured admin panel powering this very site",
+            description:
+                "A Firebase-powered content management system with a rich markdown blog editor behind secure authentication.",
+            blogUrl: "https://mikasjames.com/blogs/blog-cms/",
+            liveUrl: "https://mikasjames.com/admin/",
+            sourceUrl: null,
+            techStack: [
+                "SvelteKit",
+                "Firebase Auth",
+                "Firestore",
+                "Storage",
+                "Markdown",
+            ],
+            features: [
+                "Blog CRUD with markdown editor & cover images",
+                "Dedicated gallery system that supports both images and GIFs",
+                "Markdown editor supports video embeddings",
+                "Secure admin panel",
+            ],
+        },
+        {
             title: "Expense Tracker",
             tagline:
                 "Full-stack finance management for community organizations",
@@ -53,27 +75,6 @@
                 "Multi-provider auth (Email, Google)",
                 "PDF report generation",
                 "Angular SSR with offline service worker",
-            ],
-        },
-        {
-            title: "CMS Dashboard — Blog",
-            tagline: "Full-featured admin panel powering this very site",
-            description:
-                "A Firebase-powered content management system with a rich markdown blog editor behind secure authentication.",
-            liveUrl: "https://mikasjames.com/admin/",
-            sourceUrl: null,
-            techStack: [
-                "SvelteKit",
-                "Firebase Auth",
-                "Firestore",
-                "Storage",
-                "Markdown",
-            ],
-            features: [
-                "Blog CRUD with markdown editor & cover images",
-                "Dedicated gallery system that supports both images and GIFs",
-                "Markdown editor supports video embeddings",
-                "Secure admin panel",
             ],
         },
     ];
@@ -258,15 +259,33 @@
 
 <svelte:head>
     <title>Mikas James | Full-Stack Software Engineer</title>
-    <meta name="description" content="Full-Stack Software Engineer with 3+ years at Codefrost. TypeScript, Svelte, Angular, Django, and more." />
+    <meta
+        name="description"
+        content="Full-Stack Software Engineer with 3+ years at Codefrost. TypeScript, Svelte, Angular, Django, and more."
+    />
     <link rel="canonical" href="https://mikasjames.com" />
-    <meta property="og:title" content="Mikas James | Full-Stack Software Engineer" />
-    <meta property="og:description" content="Full-Stack Software Engineer building Web/PWA solutions with AI integration. TypeScript, Svelte, Angular, Django." />
+    <meta
+        property="og:title"
+        content="Mikas James | Full-Stack Software Engineer"
+    />
+    <meta
+        property="og:description"
+        content="Full-Stack Software Engineer building Web/PWA solutions with AI integration. TypeScript, Svelte, Angular, Django."
+    />
     <meta property="og:url" content="https://mikasjames.com" />
     <meta property="og:image" content="https://mikasjames.com/og-default.png" />
-    <meta name="twitter:title" content="Mikas James | Full-Stack Software Engineer" />
-    <meta name="twitter:description" content="Full-Stack Software Engineer building Web/PWA solutions with AI integration. TypeScript, Svelte, Angular, Django." />
-    <meta name="twitter:image" content="https://mikasjames.com/og-default.png" />
+    <meta
+        name="twitter:title"
+        content="Mikas James | Full-Stack Software Engineer"
+    />
+    <meta
+        name="twitter:description"
+        content="Full-Stack Software Engineer building Web/PWA solutions with AI integration. TypeScript, Svelte, Angular, Django."
+    />
+    <meta
+        name="twitter:image"
+        content="https://mikasjames.com/og-default.png"
+    />
 </svelte:head>
 
 <section
@@ -337,7 +356,11 @@
                 target="_blank"
                 rel="noopener noreferrer"
                 id="hero-github-link"
-                onclick={() => logEvent('click_cta', { label: 'Hero GitHub', url: 'https://github.com/Mikasjames' })}
+                onclick={() =>
+                    logEvent("click_cta", {
+                        label: "Hero GitHub",
+                        url: "https://github.com/Mikasjames",
+                    })}
                 class="inline-flex items-center gap-2.5 px-5 py-2.5 rounded-lg bg-zinc-900 border border-zinc-800 text-zinc-200 text-sm font-medium hover:bg-zinc-800 hover:border-zinc-700 transition-all duration-200 group"
             >
                 <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 24 24">
@@ -363,7 +386,11 @@
             <a
                 href="mailto:mikasjames@gmail.com"
                 id="hero-email-link"
-                onclick={() => logEvent('click_cta', { label: 'Hero Email', url: 'mailto:mikasjames@gmail.com' })}
+                onclick={() =>
+                    logEvent("click_cta", {
+                        label: "Hero Email",
+                        url: "mailto:mikasjames@gmail.com",
+                    })}
                 class="inline-flex items-center gap-2.5 px-5 py-2.5 rounded-lg bg-accent-500/10 border border-accent-500/30 text-accent-400 text-sm font-medium hover:bg-accent-500/20 hover:border-accent-400/50 transition-all duration-200"
             >
                 <svg
@@ -620,7 +647,12 @@
                 <div class="relative h-[520px] sm:h-[460px] md:h-[420px]">
                     {#each projects as project, i}
                         {@const rawPos = i - current}
-                        {@const pos = rawPos > Math.floor(projects.length / 2) ? rawPos - projects.length : rawPos < -Math.floor(projects.length / 2) ? rawPos + projects.length : rawPos}
+                        {@const pos =
+                            rawPos > Math.floor(projects.length / 2)
+                                ? rawPos - projects.length
+                                : rawPos < -Math.floor(projects.length / 2)
+                                  ? rawPos + projects.length
+                                  : rawPos}
                         {#if Math.abs(pos) <= 1}
                             <div
                                 class="absolute left-1/2 top-1/2 w-[85vw] max-w-[520px] transition-all duration-500 ease-out cursor-pointer"
@@ -652,7 +684,11 @@
                                                     rel="noopener noreferrer"
                                                     onclick={(e) => {
                                                         e.stopPropagation();
-                                                        logEvent('click_cta', { label: 'Project Live', title: project.title, url: project.liveUrl });
+                                                        logEvent("click_cta", {
+                                                            label: "Project Live",
+                                                            title: project.title,
+                                                            url: project.liveUrl,
+                                                        });
                                                     }}
                                                     class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-accent-500/10 border border-accent-500/30 text-accent-400 text-xs font-medium hover:bg-accent-500/20 hover:border-accent-400/50 transition-all duration-200"
                                                 >
@@ -679,7 +715,11 @@
                                                     rel="noopener noreferrer"
                                                     onclick={(e) => {
                                                         e.stopPropagation();
-                                                        logEvent('click_cta', { label: 'Project Blog', title: project.title, url: project.blogUrl });
+                                                        logEvent("click_cta", {
+                                                            label: "Project Blog",
+                                                            title: project.title,
+                                                            url: project.blogUrl,
+                                                        });
                                                     }}
                                                     class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-zinc-800 border border-zinc-700 text-zinc-300 text-xs font-medium hover:bg-zinc-700 hover:border-zinc-600 transition-all duration-200"
                                                 >
@@ -840,11 +880,15 @@
             <div
                 class="flex flex-col sm:flex-row items-center justify-center gap-4"
             >
-            <a
-                href="mailto:mikasjames@gmail.com"
-                id="contact-email-btn"
-                onclick={() => logEvent('click_cta', { label: 'Contact Email', url: 'mailto:mikasjames@gmail.com' })}
-                class="inline-flex items-center gap-2.5 px-6 py-3 rounded-lg bg-accent-500 text-white text-sm font-semibold hover:bg-accent-600 transition-all duration-200 shadow-lg shadow-accent-500/25"
+                <a
+                    href="mailto:mikasjames@gmail.com"
+                    id="contact-email-btn"
+                    onclick={() =>
+                        logEvent("click_cta", {
+                            label: "Contact Email",
+                            url: "mailto:mikasjames@gmail.com",
+                        })}
+                    class="inline-flex items-center gap-2.5 px-6 py-3 rounded-lg bg-accent-500 text-white text-sm font-semibold hover:bg-accent-600 transition-all duration-200 shadow-lg shadow-accent-500/25"
                 >
                     <svg
                         class="w-4 h-4"
@@ -861,13 +905,17 @@
                     </svg>
                     mikasjames@gmail.com
                 </a>
-            <a
-                href="https://github.com/Mikasjames"
-                target="_blank"
-                rel="noopener noreferrer"
-                id="contact-github-btn"
-                onclick={() => logEvent('click_cta', { label: 'Contact GitHub', url: 'https://github.com/Mikasjames' })}
-                class="inline-flex items-center gap-2.5 px-6 py-3 rounded-lg bg-zinc-800 border border-zinc-700 text-zinc-200 text-sm font-semibold hover:bg-zinc-700 hover:border-zinc-600 transition-all duration-200"
+                <a
+                    href="https://github.com/Mikasjames"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    id="contact-github-btn"
+                    onclick={() =>
+                        logEvent("click_cta", {
+                            label: "Contact GitHub",
+                            url: "https://github.com/Mikasjames",
+                        })}
+                    class="inline-flex items-center gap-2.5 px-6 py-3 rounded-lg bg-zinc-800 border border-zinc-700 text-zinc-200 text-sm font-semibold hover:bg-zinc-700 hover:border-zinc-600 transition-all duration-200"
                 >
                     <svg
                         class="w-4 h-4"
