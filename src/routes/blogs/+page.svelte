@@ -81,7 +81,7 @@
 			</div>
 		{:else}
 			<div class="space-y-5">
-				{#each posts as post (post.id)}
+				{#each posts as post, i (post.id)}
 					<a
 						href="/blogs/{post.slug}/"
 						class="block group rounded-xl bg-surface-900/60 border border-zinc-800/40 hover:border-accent-500/30 hover:bg-surface-900/90 p-6 transition-all duration-300 hover:shadow-lg hover:shadow-accent-600/5"
@@ -93,7 +93,9 @@
 								>
 									<img
 										src={post.coverImage}
-										fetchpriority="high"
+										fetchpriority={i === 0 ? "high" : "low"}
+										loading={i === 0 ? "eager" : "lazy"}
+										decoding="async"
 										alt=""
 										class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
 									/>
