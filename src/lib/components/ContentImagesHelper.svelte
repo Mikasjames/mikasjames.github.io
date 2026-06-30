@@ -1,5 +1,6 @@
 <script lang="ts">
     import type { MediaItem } from "$lib/firebase/firestore.svelte";
+    import { toast } from "$lib/stores/toast.svelte";
 
     let {
         onOpenMediaGallery,
@@ -145,7 +146,7 @@
                                 type="button"
                                 onclick={() => {
                                     setEditorCoverImage(img.url);
-                                    alert("Set cover image successfully!");
+                                    toast("Set cover image successfully!", "success");
                                 }}
                                 class="px-2 py-1 rounded bg-zinc-800 hover:bg-zinc-700 text-zinc-300 font-medium transition-colors text-[10px] cursor-pointer"
                             >

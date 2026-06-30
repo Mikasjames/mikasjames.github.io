@@ -1,4 +1,6 @@
 <script lang="ts">
+    import { toast } from "$lib/stores/toast.svelte";
+
     let {
         showMediaGallery = $bindable(),
         mediaItems,
@@ -282,9 +284,7 @@
                                             type="button"
                                             onclick={() => {
                                                 setEditorCoverImage(item.url);
-                                                alert(
-                                                    "Set cover image successfully!",
-                                                );
+                                                toast("Set cover image successfully!", "success");
                                             }}
                                             class="flex w-full cursor-pointer items-center justify-center gap-1 rounded border border-zinc-750 bg-zinc-800 px-2 py-1.5 text-[11px] font-semibold text-zinc-200 transition-colors hover:bg-zinc-700 lg:py-1"
                                         >

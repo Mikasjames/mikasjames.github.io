@@ -16,10 +16,12 @@
 	} from "$lib/utils/imageMeta";
 	import { todayDateKey, getHappinessLabel } from "$lib/utils/date";
 	import type { User } from "firebase/auth";
-	import type { MediaItem } from "$lib/firebase/firestore.svelte";
+	import type { MediaItem, Habit } from "$lib/firebase/firestore.svelte";
 	import type { createMediaStore } from "$lib/firebase/media.svelte";
 	import type { createHabitsStore } from "$lib/firebase/habits.svelte";
 	import MediaGalleryDialog from "$lib/components/MediaGalleryDialog.svelte";
+	import ConfirmDialog from "$lib/components/ConfirmDialog.svelte";
+	import { toast } from "$lib/stores/toast.svelte";
 
 	type MediaStore = ReturnType<typeof createMediaStore>;
 	type HabitsStore = ReturnType<typeof createHabitsStore>;
@@ -39,12 +41,7 @@
 		coverError: string;
 	}
 
-	let {
-		user,
-		mediaStore,
-		habitsStore,
-		loadJournalEntries,
-	} = $props<{
+	let { user, mediaStore, habitsStore, loadJournalEntries } = $props<{
 		user: User | null;
 		mediaStore: MediaStore;
 		habitsStore: HabitsStore;
@@ -68,6 +65,12 @@
 
 	let selectedJournalEntryDate = $state<string | null>(null);
 	let showMediaGallery = $state(false);
+	let showConfirmDelete = $state(false);
+	let confirmDeleteMessage = $state("");
+	let confirmDeleteAction = $state<(val: boolean) => void>(() => {});
+	let showConfirmHabitDelete = $state(false);
+	let confirmHabitDeleteMessage = $state("");
+	let confirmHabitDeleteAction = $state<(val: boolean) => void>(() => {});
 	let activeTab = $state<"write" | "preview">("write");
 	let textareaRef = $state<HTMLTextAreaElement | null>(null);
 
@@ -82,12 +85,20 @@
 		habitsStore.selectedHabitIds = new Set();
 		journalForm.imageMeta = sanitizeImageMetaFromMarkdown(
 			entry.content,
-			enrichImageMetaFromGallery(entry.content, entry.imageMeta ?? {}, mediaStore.mediaItems),
+			enrichImageMetaFromGallery(
+				entry.content,
+				entry.imageMeta ?? {},
+				mediaStore.mediaItems,
+			),
 		);
 		journalForm.successMsg = "";
 		journalForm.error = "";
 		if (user) {
-			habitsStore.loadSelectedHabitLogs(user.uid, entry.id, journalForm.id);
+			habitsStore.loadSelectedHabitLogs(
+				user.uid,
+				entry.id,
+				journalForm.id,
+			);
 		}
 		window.scrollTo({ top: 0, behavior: "smooth" });
 	}
@@ -245,6 +256,8 @@
 			textareaRef.selectionStart = textareaRef.selectionEnd =
 				start + tag.length;
 		}
+
+		toast("Image inserted into editor", "success");
 	}
 
 	async function insertTextAtCursor(textToInsert: string) {
@@ -290,16 +303,42 @@
 
 	function copyToClipboard(text: string) {
 		navigator.clipboard.writeText(text).then(() => {
-			alert("Copied markdown image tag to clipboard!");
+			toast("Copied markdown image tag to clipboard!", "success");
 		});
 	}
 
 	async function handleDeleteMediaWrapper(item: MediaItem) {
-		await mediaStore.handleDeleteMedia(item, (url: string) => {
-			journalForm.imageMeta = { ...journalForm.imageMeta };
-			delete journalForm.imageMeta[url];
-			journalForm.content = journalForm.content.replace(new RegExp(`!\\[.*?\\]\\(${url}\\)`, "g"), "");
-		});
+		await mediaStore.handleDeleteMedia(
+			item,
+			(url: string) => {
+				journalForm.imageMeta = { ...journalForm.imageMeta };
+				delete journalForm.imageMeta[url];
+				journalForm.content = journalForm.content.replace(
+					new RegExp(`!\\[.*?\\]\\(${url}\\)`, "g"),
+					"",
+				);
+			},
+			(message: string) =>
+				new Promise<boolean>((resolve) => {
+					confirmDeleteMessage = message;
+					confirmDeleteAction = resolve;
+					showConfirmDelete = true;
+				}),
+			(message: string) => toast(message, "error"),
+		);
+	}
+
+	function handleConfirmHabitDelete(habit: Habit, userUid: string) {
+		habitsStore.handleDeleteHabit(
+			habit,
+			userUid,
+			(message: string) =>
+				new Promise<boolean>((resolve) => {
+					confirmHabitDeleteMessage = message;
+					confirmHabitDeleteAction = resolve;
+					showConfirmHabitDelete = true;
+				}),
+		);
 	}
 
 	export function isEditing(entryId: string) {
@@ -348,9 +387,11 @@
 
 	<form onsubmit={handleJournalSubmit} class="space-y-5">
 		{#if selectedJournalEntryDate && selectedJournalEntryDate !== todayDateKey()}
-			<div class="rounded-lg bg-amber-500/10 border border-amber-500/20 p-3 mb-4">
+			<div
+				class="rounded-lg bg-amber-500/10 border border-amber-500/20 p-3 mb-4"
+			>
 				<p class="text-sm text-amber-300">
-					⚠️ Editing a past entry from {selectedJournalEntryDate}. 
+					⚠️ Editing a past entry from {selectedJournalEntryDate}.
 					Habits will be saved for this date.
 				</p>
 			</div>
@@ -558,7 +599,7 @@
 								<button
 									type="button"
 									onclick={() =>
-										habitsStore.handleDeleteHabit(
+										handleConfirmHabitDelete(
 											habit,
 											user!.uid,
 										)}
@@ -759,10 +800,42 @@
 	}}
 	handleDeleteMedia={handleDeleteMediaWrapper}
 	{copyToClipboard}
-	insertMarkdownAtCursor={insertMarkdownAtCursor}
-	setEditorCoverImage={setEditorCoverImage}
+	{insertMarkdownAtCursor}
+	{setEditorCoverImage}
 	mediaLoading={mediaStore.mediaLoading}
 	deletingMediaIds={mediaStore.deletingMediaIds}
 	loadMoreMediaItems={mediaStore.loadMoreMediaItems}
 	mediaHasMore={mediaStore.mediaHasMore}
+/>
+
+<ConfirmDialog
+	bind:show={showConfirmDelete}
+	title="Delete Image"
+	message={confirmDeleteMessage}
+	variant="danger"
+	confirmText="Delete"
+	onConfirm={() => {
+		confirmDeleteAction(true);
+		confirmDeleteAction = () => {};
+	}}
+	onCancel={() => {
+		confirmDeleteAction(false);
+		confirmDeleteAction = () => {};
+	}}
+/>
+
+<ConfirmDialog
+	bind:show={showConfirmHabitDelete}
+	title="Delete Habit"
+	message={confirmHabitDeleteMessage}
+	variant="danger"
+	confirmText="Delete"
+	onConfirm={() => {
+		confirmHabitDeleteAction(true);
+		confirmHabitDeleteAction = () => {};
+	}}
+	onCancel={() => {
+		confirmHabitDeleteAction(false);
+		confirmHabitDeleteAction = () => {};
+	}}
 />

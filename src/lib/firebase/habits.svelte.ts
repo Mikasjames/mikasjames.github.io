@@ -71,8 +71,15 @@ export function createHabitsStore() {
 		}
 	}
 
-	async function handleDeleteHabit(habit: Habit, userUid: string) {
-		if (!confirm(`Delete "${habit.name}" from habits?`)) return;
+	async function handleDeleteHabit(
+		habit: Habit,
+		userUid: string,
+		onConfirm?: (message: string) => Promise<boolean>,
+	) {
+		const confirmed = onConfirm
+			? await onConfirm(`Delete "${habit.name}" from habits?`)
+			: confirm(`Delete "${habit.name}" from habits?`);
+		if (!confirmed) return;
 		habitsError = "";
 		try {
 			await deleteHabit(habit.id);

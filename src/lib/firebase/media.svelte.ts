@@ -96,10 +96,16 @@ export function createMediaStore() {
 		}
 	}
 
-	async function handleDeleteMedia(item: MediaItem, onDelete?: (url: string) => void) {
-		if (!confirm(`Are you sure you want to delete "${item.name}"?`)) {
-			return;
-		}
+	async function handleDeleteMedia(
+		item: MediaItem,
+		onDelete?: (url: string) => void,
+		onConfirm?: (message: string) => Promise<boolean>,
+		onError?: (message: string) => void,
+	) {
+		const confirmed = onConfirm
+			? await onConfirm(`Are you sure you want to delete "${item.name}"?`)
+			: confirm(`Are you sure you want to delete "${item.name}"?`);
+		if (!confirmed) return;
 		deletingMediaIds.add(item.id);
 		deletingMediaIds = new Set(deletingMediaIds);
 		try {
@@ -109,9 +115,12 @@ export function createMediaStore() {
 			await loadMediaItems();
 			await loadRecentMedia();
 		} catch (err: unknown) {
-			alert(
-				err instanceof Error ? err.message : "Failed to delete image.",
-			);
+			const msg = err instanceof Error ? err.message : "Failed to delete image.";
+			if (onError) {
+				onError(msg);
+			} else {
+				alert(msg);
+			}
 		} finally {
 			deletingMediaIds.delete(item.id);
 			deletingMediaIds = new Set(deletingMediaIds);

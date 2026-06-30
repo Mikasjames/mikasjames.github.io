@@ -3,11 +3,22 @@
 	import CoverImage from "$lib/components/CoverImage.svelte";
 	import MarkdownEditor from "$lib/components/MarkdownEditor.svelte";
 	import ContentImagesHelper from "$lib/components/ContentImagesHelper.svelte";
-	import { createPost, updatePost, type BlogPost, type ImageMeta } from "$lib/firebase/firestore.svelte";
-	import { resolveMissingImageMeta, sanitizeImageMetaFromMarkdown, enrichImageMetaFromGallery } from "$lib/utils/imageMeta";
+	import {
+		createPost,
+		updatePost,
+		type BlogPost,
+		type ImageMeta,
+	} from "$lib/firebase/firestore.svelte";
+	import {
+		resolveMissingImageMeta,
+		sanitizeImageMetaFromMarkdown,
+		enrichImageMetaFromGallery,
+	} from "$lib/utils/imageMeta";
 	import type { MediaItem } from "$lib/firebase/firestore.svelte";
 	import type { createMediaStore } from "$lib/firebase/media.svelte";
 	import MediaGalleryDialog from "$lib/components/MediaGalleryDialog.svelte";
+	import ConfirmDialog from "$lib/components/ConfirmDialog.svelte";
+	import { toast } from "$lib/stores/toast.svelte";
 
 	type MediaStore = ReturnType<typeof createMediaStore>;
 
@@ -28,10 +39,7 @@
 		coverError: string;
 	}
 
-	let {
-		mediaStore,
-		loadPosts,
-	} = $props<{
+	let { mediaStore, loadPosts } = $props<{
 		mediaStore: MediaStore;
 		loadPosts: () => Promise<void>;
 	}>();
@@ -54,6 +62,9 @@
 	});
 
 	let showMediaGallery = $state(false);
+	let showConfirmDelete = $state(false);
+	let confirmDeleteMessage = $state("");
+	let confirmDeleteAction = $state<(val: boolean) => void>(() => {});
 	let activeTab = $state<"write" | "preview">("write");
 	let textareaRef = $state<HTMLTextAreaElement | null>(null);
 
@@ -67,7 +78,11 @@
 		blogForm.status = post.status ?? "published";
 		blogForm.imageMeta = sanitizeImageMetaFromMarkdown(
 			post.content,
-			enrichImageMetaFromGallery(post.content, post.imageMeta ?? {}, mediaStore.mediaItems),
+			enrichImageMetaFromGallery(
+				post.content,
+				post.imageMeta ?? {},
+				mediaStore.mediaItems,
+			),
 		);
 		blogForm.slugManuallyEdited = true;
 		blogForm.successMsg = "";
@@ -152,10 +167,13 @@
 		const target = e.target as HTMLInputElement;
 		if (!target.files || target.files.length === 0) return;
 		try {
-			const result = await mediaStore.handleGalleryUpload(target.files[0]);
+			const result = await mediaStore.handleGalleryUpload(
+				target.files[0],
+			);
 			blogForm.coverImage = result.url;
 		} catch (err: unknown) {
-			blogForm.coverError = err instanceof Error ? err.message : "Upload failed.";
+			blogForm.coverError =
+				err instanceof Error ? err.message : "Upload failed.";
 		} finally {
 			target.value = "";
 		}
@@ -166,8 +184,12 @@
 		if (!target.files || target.files.length === 0) return;
 		const file = target.files[0];
 		try {
-			const { url, width, height, name } = await mediaStore.handleGalleryUpload(file);
-			blogForm.imageMeta = { ...blogForm.imageMeta, [url]: { width, height } };
+			const { url, width, height, name } =
+				await mediaStore.handleGalleryUpload(file);
+			blogForm.imageMeta = {
+				...blogForm.imageMeta,
+				[url]: { width, height },
+			};
 			await insertMarkdownAtCursor(url, name.split(".")[0], {
 				width,
 				height,
@@ -189,7 +211,10 @@
 		if (!textareaRef) return;
 
 		if (dims?.width && dims?.height) {
-			blogForm.imageMeta = { ...blogForm.imageMeta, [url]: { width: dims.width, height: dims.height } };
+			blogForm.imageMeta = {
+				...blogForm.imageMeta,
+				[url]: { width: dims.width, height: dims.height },
+			};
 		}
 
 		const start = textareaRef.selectionStart;
@@ -215,6 +240,8 @@
 			textareaRef.selectionStart = textareaRef.selectionEnd =
 				start + tag.length;
 		}
+
+		toast("Image inserted into editor", "success");
 	}
 
 	function setEditorCoverImage(url: string | null) {
@@ -223,16 +250,29 @@
 
 	function copyToClipboard(text: string) {
 		navigator.clipboard.writeText(text).then(() => {
-			alert("Copied markdown image tag to clipboard!");
+			toast("Copied markdown image tag to clipboard!", "success");
 		});
 	}
 
 	async function handleDeleteMediaWrapper(item: MediaItem) {
-		await mediaStore.handleDeleteMedia(item, (url: string) => {
-			blogForm.imageMeta = { ...blogForm.imageMeta };
-			delete blogForm.imageMeta[url];
-			blogForm.content = blogForm.content.replace(new RegExp(`!\\[.*?\\]\\(${url}\\)`, "g"), "");
-		});
+		await mediaStore.handleDeleteMedia(
+			item,
+			(url: string) => {
+				blogForm.imageMeta = { ...blogForm.imageMeta };
+				delete blogForm.imageMeta[url];
+				blogForm.content = blogForm.content.replace(
+					new RegExp(`!\\[.*?\\]\\(${url}\\)`, "g"),
+					"",
+				);
+			},
+			(message: string) =>
+				new Promise<boolean>((resolve) => {
+					confirmDeleteMessage = message;
+					confirmDeleteAction = resolve;
+					showConfirmDelete = true;
+				}),
+			(message: string) => toast(message, "error"),
+		);
 	}
 
 	$effect(() => {
@@ -290,11 +330,7 @@
 		{/if}
 	</h2>
 
-	<form
-		id="publish-form"
-		onsubmit={handlePublish}
-		class="space-y-5"
-	>
+	<form id="publish-form" onsubmit={handlePublish} class="space-y-5">
 		<div class="space-y-1.5">
 			<label
 				for="post-title"
@@ -318,8 +354,7 @@
 					class="block text-xs font-medium text-zinc-400 tracking-wide uppercase"
 				>
 					Slug
-					<span
-						class="ml-1 text-zinc-600 normal-case font-normal"
+					<span class="ml-1 text-zinc-600 normal-case font-normal"
 						>(auto-generated)</span
 					>
 				</label>
@@ -446,9 +481,7 @@
 			</div>
 		{/if}
 
-		<div
-			class="flex flex-col-reverse gap-3 sm:flex-row sm:justify-end"
-		>
+		<div class="flex flex-col-reverse gap-3 sm:flex-row sm:justify-end">
 			{#if blogForm.id}
 				<button
 					type="button"
@@ -493,8 +526,7 @@
 							/>
 						{/if}
 					</svg>
-					{#if blogForm.id}Save Changes{:else}Publish
-						Post{/if}
+					{#if blogForm.id}Save Changes{:else}Publish Post{/if}
 				{/if}
 			</button>
 		</div>
@@ -512,10 +544,26 @@
 	}}
 	handleDeleteMedia={handleDeleteMediaWrapper}
 	{copyToClipboard}
-	insertMarkdownAtCursor={insertMarkdownAtCursor}
-	setEditorCoverImage={setEditorCoverImage}
+	{insertMarkdownAtCursor}
+	{setEditorCoverImage}
 	mediaLoading={mediaStore.mediaLoading}
 	deletingMediaIds={mediaStore.deletingMediaIds}
 	loadMoreMediaItems={mediaStore.loadMoreMediaItems}
 	mediaHasMore={mediaStore.mediaHasMore}
+/>
+
+<ConfirmDialog
+	bind:show={showConfirmDelete}
+	title="Delete Image"
+	message={confirmDeleteMessage}
+	variant="danger"
+	confirmText="Delete"
+	onConfirm={() => {
+		confirmDeleteAction(true);
+		confirmDeleteAction = () => {};
+	}}
+	onCancel={() => {
+		confirmDeleteAction(false);
+		confirmDeleteAction = () => {};
+	}}
 />

@@ -19,6 +19,8 @@
 	import JournalEntryForm from "./JournalEntryForm.svelte";
 	import InsightsDashboard from "./InsightsDashboard.svelte";
 	import EntryList from "./EntryList.svelte";
+	import ConfirmDialog from "$lib/components/ConfirmDialog.svelte";
+	import { toast } from "$lib/stores/toast.svelte";
 
 	let user = $state<User | null>(null);
 	let authReady = $state(false);
@@ -57,6 +59,25 @@
 	let postsStatusFilter = $state<string | undefined>(undefined);
 
 	let currentSection = $state<"blogs" | "journal" | "insights">("blogs");
+
+	let showConfirm = $state(false);
+	let confirmTitle = $state("");
+	let confirmMessage = $state("");
+	let confirmVariant = $state<"danger" | "primary">("danger");
+	let confirmAction = $state<() => void>(() => {});
+
+	function openConfirm(
+		title: string,
+		message: string,
+		action: () => void,
+		variant: "danger" | "primary" = "danger",
+	) {
+		confirmTitle = title;
+		confirmMessage = message;
+		confirmAction = action;
+		confirmVariant = variant;
+		showConfirm = true;
+	}
 	let journalEntries = $state<JournalEntry[]>([]);
 	let journalEntriesLoading = $state(false);
 	let journalEntriesLoadError = $state("");
@@ -129,39 +150,49 @@
 	}
 
 	async function handleDeleteJournal(entry: JournalEntry) {
-		if (!confirm(`Are you sure you want to delete this journal entry?`)) {
-			return;
-		}
-		try {
-			await deleteJournalEntry(entry.id);
-			if (journalEntryFormRef?.isEditing(entry.id)) {
-				journalEntryFormRef.resetJournalForm();
-			}
-			await loadJournalEntries();
-		} catch (err: unknown) {
-			alert(
-				err instanceof Error
-					? err.message
-					: "Failed to delete journal entry.",
-			);
-		}
+		openConfirm(
+			"Delete Journal Entry",
+			"Are you sure you want to delete this journal entry? This action cannot be undone.",
+			async () => {
+				try {
+					await deleteJournalEntry(entry.id);
+					if (journalEntryFormRef?.isEditing(entry.id)) {
+						journalEntryFormRef.resetJournalForm();
+					}
+					await loadJournalEntries();
+				} catch (err: unknown) {
+					toast(
+						err instanceof Error
+							? err.message
+							: "Failed to delete journal entry.",
+						"error",
+					);
+				}
+			},
+		);
 	}
 
 	async function handleDelete(post: BlogPost) {
-		if (!confirm(`Are you sure you want to delete "${post.title}"?`)) {
-			return;
-		}
-		try {
-			await deletePost(post.id);
-			if (blogPostFormRef?.isEditing(post.id)) {
-				blogPostFormRef.resetForm();
-			}
-			await loadPosts();
-		} catch (err: unknown) {
-			alert(
-				err instanceof Error ? err.message : "Failed to delete post.",
-			);
-		}
+		openConfirm(
+			"Delete Blog Post",
+			`Are you sure you want to delete "${post.title}"? This action cannot be undone.`,
+			async () => {
+				try {
+					await deletePost(post.id);
+					if (blogPostFormRef?.isEditing(post.id)) {
+						blogPostFormRef.resetForm();
+					}
+					await loadPosts();
+				} catch (err: unknown) {
+					toast(
+						err instanceof Error
+							? err.message
+							: "Failed to delete post.",
+						"error",
+					);
+				}
+			},
+		);
 	}
 
 	async function handleLogout() {
@@ -336,3 +367,11 @@
 		</div>
 	</div>
 {/if}
+
+<ConfirmDialog
+	bind:show={showConfirm}
+	title={confirmTitle}
+	message={confirmMessage}
+	variant={confirmVariant}
+	onConfirm={confirmAction}
+/>

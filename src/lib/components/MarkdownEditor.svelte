@@ -9,6 +9,8 @@
         getImageDimensionsFromUrl,
         type ImageMeta,
     } from "$lib/utils/imageMeta";
+    import PromptDialog from "./PromptDialog.svelte";
+    import { toast } from "$lib/stores/toast.svelte";
 
     let {
         content = $bindable<string>(""),
@@ -114,6 +116,8 @@
             textareaRef.selectionStart = textareaRef.selectionEnd =
                 start + tag.length;
         }
+
+        toast("Image inserted into editor", "success");
     }
 
     async function insertVideoEmbedAtCursor(url: string, title: string) {
@@ -137,44 +141,78 @@
             textareaRef.selectionStart = textareaRef.selectionEnd =
                 start + tag.length;
         }
+
+        toast("Video embed inserted into editor", "success");
     }
 
-    async function promptInsertImage() {
-        const url = window.prompt("Image URL");
-        if (!url) return;
-        const trimmed = url.trim();
-        const alt = window.prompt("Alt text", "Image")?.trim() || "Image";
+    let showPrompt = $state(false);
+    let promptTitle = $state("");
+    let promptLabel = $state("");
+    let promptPlaceholder = $state("");
+    let promptValue = $state("");
+    let promptCallback = $state<(value: string) => void>(() => {});
 
-        if (!imageMeta[trimmed]) {
-            try {
-                const dims = await getImageDimensionsFromUrl(trimmed);
-                imageMeta = { ...imageMeta, [trimmed]: dims };
-            } catch {
-                // Insert without dimensions when probing fails.
-            }
-        }
-
-        await insertMarkdownAtCursor(trimmed, alt);
+    function openPrompt(
+        title: string,
+        label: string,
+        placeholder: string,
+        callback: (value: string) => void,
+        initialValue = "",
+    ) {
+        promptTitle = title;
+        promptLabel = label;
+        promptPlaceholder = placeholder;
+        promptValue = initialValue;
+        promptCallback = callback;
+        showPrompt = true;
     }
 
-    async function promptInsertVideo() {
-        const url = window.prompt(
-            "Video URL (YouTube, Vimeo, or direct .mp4/.webm/.ogg)",
-        );
-        if (!url) return;
-        const title =
-            window
-                .prompt(
+    let pendingImageUrl = $state("");
+
+    function promptInsertImage() {
+        openPrompt("Insert Image", "Image URL", "https://example.com/image.jpg", (url) => {
+            pendingImageUrl = url;
+            openPrompt("Insert Image", "Alt text", "Image description", async (alt) => {
+                const trimmed = url.trim();
+                const altText = alt.trim() || "Image";
+
+                if (!imageMeta[trimmed]) {
+                    try {
+                        const dims = await getImageDimensionsFromUrl(trimmed);
+                        imageMeta = { ...imageMeta, [trimmed]: dims };
+                    } catch {
+                        // Insert without dimensions when probing fails.
+                    }
+                }
+
+                await insertMarkdownAtCursor(trimmed, altText);
+            }, "Image");
+        });
+    }
+
+    function promptInsertVideo() {
+        const selectedText = textareaRef
+            ? textareaRef.value.substring(
+                  textareaRef.selectionStart,
+                  textareaRef.selectionEnd,
+              )
+            : "";
+        openPrompt(
+            "Insert Video",
+            "Video URL",
+            "https://youtube.com/watch?v=...",
+            (url) => {
+                openPrompt(
+                    "Insert Video",
                     "Video title",
-                    textareaRef
-                        ? textareaRef.value.substring(
-                              textareaRef.selectionStart,
-                              textareaRef.selectionEnd,
-                          )
-                        : "Video",
-                )
-                ?.trim() || "Video";
-        await insertVideoEmbedAtCursor(url.trim(), title);
+                    "My Video",
+                    (title) => {
+                        insertVideoEmbedAtCursor(url.trim(), title.trim() || "Video");
+                    },
+                    selectedText || "Video",
+                );
+            },
+        );
     }
 </script>
 
@@ -434,3 +472,12 @@
         </div>
     {/if}
 </div>
+
+<PromptDialog
+	bind:show={showPrompt}
+	title={promptTitle}
+	label={promptLabel}
+	placeholder={promptPlaceholder}
+	bind:value={promptValue}
+	onConfirm={(val) => promptCallback(val)}
+/>
