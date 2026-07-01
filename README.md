@@ -48,7 +48,7 @@ git clone https://github.com/mikasjames/mikasjames.github.io.git
 cd mikasjames.github.io
 
 # Install dependencies
-npm install
+pnpm install
 
 # Set up environment variables
 cp .env.example .env
@@ -71,29 +71,29 @@ cp .env.example .env
 ### Development
 
 ```bash
-npm run dev
+pnpm run dev
 # or open in browser
-npm run dev -- --open
+pnpm run dev -- --open
 ```
 
 ### Build
 
 ```bash
-npm run build
-npm run preview   # preview the production build locally
+pnpm run build
+pnpm run preview   # preview the production build locally
 ```
 
 ### Run Tests
 
 ```bash
-npm run test:e2e
+pnpm run test:e2e
 ```
 
 ### Code Quality
 
 ```bash
-npm run check        # Type-check with svelte-check
-npm run check:watch  # Watch mode
+pnpm run check        # Type-check with svelte-check
+pnpm run check:watch  # Watch mode
 ```
 
 ## Project Structure
@@ -163,7 +163,7 @@ tests/
 
 The site is deployed to **GitHub Pages** via GitHub Actions. On every push to `main` (or via `repository_dispatch` / manual trigger):
 
-1. Dependencies are installed (`npm ci`)
+1. Dependencies are installed (`pnpm ci`)
 2. The site is built with full Firebase environment variables from repository secrets
 3. The `build/` directory is uploaded as a Pages artifact
 4. GitHub Pages deploys the artifact
