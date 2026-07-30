@@ -4,6 +4,8 @@
 		BlogPost,
 		JournalEntry,
 	} from "$lib/firebase/firestore.svelte";
+	import Spinner from "$lib/components/Spinner.svelte";
+	import AppButton from "$lib/components/AppButton.svelte";
 
 	type Entry = BlogPost | JournalEntry;
 
@@ -172,9 +174,7 @@
 		<div
 			class="flex items-center justify-center py-10 gap-3 text-zinc-500 text-sm"
 		>
-			<div
-				class="w-4 h-4 border-2 border-zinc-700 border-t-zinc-400 rounded-full animate-spin"
-			></div>
+			<Spinner size="sm" color="zinc" />
 			{loadingMessage}
 		</div>
 	{:else if error}
@@ -345,21 +345,9 @@
 
 		{#if hasMore}
 			<div class="mt-4 flex justify-center">
-				<button
-					type="button"
-					onclick={onLoadMore}
-					disabled={loadingMore}
-					class="flex items-center gap-2 rounded-lg border border-zinc-700/60 bg-zinc-900 px-5 py-2.5 text-sm font-medium text-zinc-300 transition-all duration-200 hover:border-zinc-600 hover:text-zinc-100 disabled:opacity-50"
-				>
-					{#if loadingMore}
-						<div
-							class="w-4 h-4 border-2 border-zinc-600 border-t-zinc-300 rounded-full animate-spin"
-						></div>
-						Loading…
-					{:else}
-						Show more
-					{/if}
-				</button>
+				<AppButton variant="ghost" size="lg" onclick={onLoadMore} disabled={loadingMore} loading={loadingMore}>
+					{loadingMore ? "Loading…" : "Show more"}
+				</AppButton>
 			</div>
 		{/if}
 	{/if}

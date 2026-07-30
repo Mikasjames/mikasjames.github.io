@@ -13,6 +13,11 @@
 	import { renderMarkdown } from "$lib/utils/renderMarkdown";
 	import { getHappinessLabel, todayDateKey } from "$lib/utils/date";
 	import type { User } from "firebase/auth";
+	import GridBackground from "$lib/components/GridBackground.svelte";
+	import Spinner from "$lib/components/Spinner.svelte";
+	import AppButton from "$lib/components/AppButton.svelte";
+	import UserActions from "$lib/components/UserActions.svelte";
+	import HabitsManager from "$lib/components/HabitsManager.svelte";
 
 	let user = $state<User | null>(null);
 	let authReady = $state(false);
@@ -216,16 +221,14 @@
 </svelte:head>
 
 <div class="min-h-screen bg-[#09090b] pt-20 pb-12 px-4 md:px-8">
-	<div
-		class="fixed inset-0 bg-[linear-gradient(rgba(99,102,241,0.02)_1px,transparent_1px),linear-gradient(90deg,rgba(99,102,241,0.02)_1px,transparent_1px)] bg-[size:64px_64px] pointer-events-none"
-	></div>
+	<GridBackground opacity="2" />
 	<div
 		class="fixed top-24 left-1/2 h-px w-[min(72rem,calc(100vw-2rem))] -translate-x-1/2 bg-gradient-to-r from-transparent via-accent-500/25 to-transparent pointer-events-none"
 	></div>
 
 	{#if !authReady || (user && habitsStore.habitsLoading && !journalEntryId)}
 		<div class="min-h-[70vh] flex flex-col items-center justify-center gap-4">
-			<div class="w-8 h-8 border-2 border-accent-500/20 border-t-accent-500 rounded-full animate-spin"></div>
+			<Spinner size="xl" color="accent" />
 			<p class="text-zinc-550 font-mono text-xs tracking-wider">LOADING...</p>
 		</div>
 	{:else if user}
@@ -240,20 +243,7 @@
 						{formattedDate(selectedDate)}
 					</h1>
 				</div>
-				<div class="flex items-center gap-2">
-					<button
-						onclick={goToday}
-						class="rounded-lg border border-zinc-700/60 px-3 py-2 text-xs font-semibold text-zinc-300 transition hover:border-accent-500/50 hover:text-accent-300"
-					>
-						Today
-					</button>
-					<button
-						onclick={handleLogout}
-						class="rounded-lg bg-zinc-800 px-3 py-2 text-xs font-semibold text-zinc-300 transition hover:bg-zinc-700"
-					>
-						Sign Out
-					</button>
-				</div>
+				<UserActions onTodayClick={goToday} onSignOut={handleLogout} />
 			</div>
 
 			<div class="space-y-5">
@@ -280,101 +270,7 @@
 				</div>
 
 				<div class="rounded-xl border border-zinc-800/60 bg-zinc-900/50 p-5">
-					<div class="mb-3 flex items-center justify-between">
-						<p class="text-xs font-semibold uppercase tracking-wide text-zinc-400">
-							Habits
-						</p>
-						<button
-							type="button"
-							onclick={() => (habitsStore.showHabitManager = !habitsStore.showHabitManager)}
-							class="text-xs font-semibold text-accent-400 transition-colors hover:text-accent-300"
-						>
-							{habitsStore.showHabitManager ? "Done" : "Manage"}
-						</button>
-					</div>
-
-					{#if habitsStore.habitsLoading}
-						<div class="flex flex-wrap gap-2">
-							<div class="h-9 w-24 animate-pulse rounded-lg bg-zinc-800/70"></div>
-							<div class="h-9 w-28 animate-pulse rounded-lg bg-zinc-800/70"></div>
-							<div class="h-9 w-20 animate-pulse rounded-lg bg-zinc-800/70"></div>
-						</div>
-					{:else if habitsStore.habits.length === 0}
-						<p class="text-sm text-zinc-550">
-							No habits yet.{" "}
-							<button
-								type="button"
-								onclick={() => (habitsStore.showHabitManager = true)}
-								class="text-accent-400 hover:text-accent-300 underline"
-							>Add one</button>.
-						</p>
-					{:else}
-						<div class="flex flex-wrap gap-2">
-							{#each habitsStore.habits as habit (habit.id)}
-								<button
-									type="button"
-									onclick={() => habitsStore.toggleHabit(habit.id)}
-									class="rounded-lg border px-3 py-2 text-sm font-medium transition-all {habitsStore.selectedHabitIds.has(habit.id)
-										? 'border-accent-500/50 bg-accent-600/20 text-accent-200 shadow-lg shadow-accent-600/10'
-										: 'border-zinc-700/60 bg-zinc-900 text-zinc-300 hover:border-zinc-600 hover:text-zinc-100'}"
-								>
-									{habit.emoji} {habit.name}
-								</button>
-							{/each}
-						</div>
-					{/if}
-
-					{#if habitsStore.showHabitManager}
-						<div class="mt-4 space-y-3 border-t border-zinc-800/60 pt-4">
-							{#each habitsStore.habits as habit, index (habit.id)}
-								<div class="flex flex-wrap items-center gap-2 rounded-lg border border-zinc-800/50 bg-zinc-950/30 px-3 py-2">
-									<span class="min-w-0 flex-1 truncate text-sm text-zinc-300">
-										{habit.emoji} {habit.name}
-									</span>
-									<button
-										type="button"
-										onclick={() => habitsStore.moveHabit(index, -1, user!.uid)}
-										disabled={index === 0}
-										class="rounded border border-zinc-700/60 px-2 py-1 text-xs text-zinc-400 transition hover:border-accent-500/50 hover:text-accent-300 disabled:cursor-not-allowed disabled:opacity-40"
-									>Up</button>
-									<button
-										type="button"
-										onclick={() => habitsStore.moveHabit(index, 1, user!.uid)}
-										disabled={index === habitsStore.habits.length - 1}
-										class="rounded border border-zinc-700/60 px-2 py-1 text-xs text-zinc-400 transition hover:border-accent-500/50 hover:text-accent-300 disabled:cursor-not-allowed disabled:opacity-40"
-									>Down</button>
-									<button
-										type="button"
-										onclick={() => habitsStore.handleDeleteHabit(habit, user!.uid)}
-										class="rounded border border-red-500/20 px-2 py-1 text-xs text-red-400 transition hover:border-red-500/40 hover:text-red-300"
-									>Delete</button>
-								</div>
-							{/each}
-							<div class="grid gap-2 sm:grid-cols-[5rem_minmax(0,1fr)_auto]">
-								<input
-									type="text"
-									bind:value={habitsStore.habitForm.emoji}
-									placeholder="🙏"
-									class="w-full rounded-lg border border-zinc-700/60 bg-zinc-900 px-3 py-2 text-sm text-zinc-100 placeholder-zinc-600 focus:border-accent-500 focus:outline-none focus:ring-1 focus:ring-accent-500/30"
-								/>
-								<input
-									type="text"
-									bind:value={habitsStore.habitForm.name}
-									placeholder="Habit name"
-									class="w-full rounded-lg border border-zinc-700/60 bg-zinc-900 px-3 py-2 text-sm text-zinc-100 placeholder-zinc-600 focus:border-accent-500 focus:outline-none focus:ring-1 focus:ring-accent-500/30"
-								/>
-								<button
-									type="button"
-									onclick={() => habitsStore.handleAddHabit(user!.uid)}
-									disabled={habitsStore.habitForm.submitting}
-									class="rounded-lg bg-accent-600 px-4 py-2 text-sm font-semibold text-white transition hover:bg-accent-500 disabled:cursor-not-allowed disabled:opacity-50"
-								>Save</button>
-							</div>
-							{#if habitsStore.habitForm.error}
-								<p class="text-xs text-red-400">{habitsStore.habitForm.error}</p>
-							{/if}
-						</div>
-					{/if}
+					<HabitsManager {habitsStore} userId={user!.uid} />
 				</div>
 
 				<div class="rounded-xl border border-zinc-800/60 bg-zinc-900/50 p-5">
@@ -394,13 +290,9 @@
 					{#if showNote}
 						<div class="mt-3 space-y-3">
 							<div class="flex items-center gap-2">
-								<button
-									type="button"
-									onclick={() => (showPreview = !showPreview)}
-									class="rounded border border-zinc-700/60 px-2 py-1 text-xs text-zinc-400 transition hover:border-accent-500/50 hover:text-accent-300"
-								>
+								<AppButton variant="ghost" size="sm" onclick={() => (showPreview = !showPreview)}>
 									{showPreview ? "Edit" : "Preview"}
-								</button>
+								</AppButton>
 								<span class="text-[10px] text-zinc-600">Supports markdown</span>
 							</div>
 							{#if showPreview}
@@ -418,46 +310,29 @@
 					{/if}
 				</div>
 
-				<div class="flex items-center gap-4">
-					<button
-						onclick={handleSave}
-						disabled={saving}
-						class="rounded-lg bg-accent-600 px-6 py-3 text-sm font-semibold text-white transition hover:bg-accent-500 disabled:cursor-not-allowed disabled:opacity-50 flex items-center gap-2"
-					>
-						{#if saving}
-							<div class="h-4 w-4 border-2 border-white/30 border-t-white rounded-full animate-spin"></div>
-						{/if}
-						{saving ? "Saving..." : "Save Check-in"}
-					</button>
+			<div class="flex items-center gap-4">
+				<AppButton variant="primary" size="lg" onclick={handleSave} disabled={saving} loading={saving}>
+					{saving ? "Saving..." : "Save Check-in"}
+				</AppButton>
 					{#if saveMsg}
 						<span class="text-sm {saveMsg === 'Saved!' ? 'text-emerald-400' : 'text-red-400'}">{saveMsg}</span>
 					{/if}
 				</div>
 			</div>
 
-			<div class="mt-10 rounded-xl border border-zinc-800/60 bg-zinc-900/50 p-5">
-				<div class="mb-4 flex items-center justify-between">
-					<button
-						onclick={prevMonth}
-						class="rounded border border-zinc-700/60 px-2 py-1 text-xs text-zinc-400 transition hover:border-accent-500/50 hover:text-accent-300"
-					>
-						&larr;
-					</button>
-					<p class="text-sm font-semibold text-zinc-200">
-						{monthNames[calendarMonth - 1]} {calendarYear}
-					</p>
-					<button
-						onclick={nextMonth}
-						class="rounded border border-zinc-700/60 px-2 py-1 text-xs text-zinc-400 transition hover:border-accent-500/50 hover:text-accent-300"
-					>
-						&rarr;
-					</button>
-				</div>
+		<div class="mt-10 rounded-xl border border-zinc-800/60 bg-zinc-900/50 p-5">
+			<div class="mb-4 flex items-center justify-between">
+				<AppButton variant="ghost" size="sm" onclick={prevMonth}>&larr;</AppButton>
+				<p class="text-sm font-semibold text-zinc-200">
+					{monthNames[calendarMonth - 1]} {calendarYear}
+				</p>
+				<AppButton variant="ghost" size="sm" onclick={nextMonth}>&rarr;</AppButton>
+			</div>
 
-				{#if calendarLoading}
-					<div class="flex justify-center py-4">
-						<div class="h-5 w-5 border-2 border-accent-500/20 border-t-accent-500 rounded-full animate-spin"></div>
-					</div>
+			{#if calendarLoading}
+				<div class="flex justify-center py-4">
+					<Spinner size="md" color="accent" />
+				</div>
 				{:else}
 					{@const pad = firstDayOfMonth(calendarYear, calendarMonth)}
 					{@const totalDays = daysInMonth(calendarYear, calendarMonth)}

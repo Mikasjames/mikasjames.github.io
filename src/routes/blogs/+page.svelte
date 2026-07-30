@@ -19,6 +19,7 @@
 		const mins = Math.max(1, Math.round(words / 200));
 		return `${mins} min read`;
 	}
+	import GridBackground from "$lib/components/GridBackground.svelte";
 </script>
 
 <svelte:head>
@@ -34,9 +35,7 @@
 </svelte:head>
 
 <div class="min-h-screen bg-[#09090b] pt-28 pb-20 px-4">
-	<div
-		class="fixed inset-0 bg-[linear-gradient(rgba(99,102,241,0.03)_1px,transparent_1px),linear-gradient(90deg,rgba(99,102,241,0.03)_1px,transparent_1px)] bg-[size:64px_64px] pointer-events-none"
-	></div>
+	<GridBackground opacity="3" />
 
 	<div class="relative mx-auto max-w-3xl">
 		<div class="mb-14">

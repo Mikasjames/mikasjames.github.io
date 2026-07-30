@@ -1,5 +1,7 @@
 <script lang="ts">
     import { toast } from "$lib/stores/toast.svelte";
+    import Spinner from "$lib/components/Spinner.svelte";
+    import AppButton from "$lib/components/AppButton.svelte";
 
     let {
         showMediaGallery = $bindable(),
@@ -103,9 +105,7 @@
                         <div
                             class="flex items-center gap-1.5 text-xs text-zinc-400 animate-pulse"
                         >
-                            <div
-                                class="w-3.5 h-3.5 border-2 border-zinc-700 border-t-accent-500 rounded-full animate-spin"
-                            ></div>
+                            <Spinner size="sm" color="accent" />
                             Uploading to storage...
                         </div>
                     {/if}
@@ -150,9 +150,7 @@
                     <div
                         class="flex flex-col items-center justify-center py-20 gap-3 text-zinc-500"
                     >
-                        <div
-                            class="w-8 h-8 border-2 border-zinc-700 border-t-accent-500 rounded-full animate-spin"
-                        ></div>
+                        <Spinner size="xl" color="accent" />
                         <p class="text-sm">Loading gallery assets...</p>
                     </div>
                 {:else if mediaItems.length === 0}
@@ -307,9 +305,7 @@
                                     <div
                                         class="absolute inset-0 bg-black/60 backdrop-blur-xs flex items-center justify-center"
                                     >
-                                        <div
-                                            class="w-6 h-6 border-2 border-zinc-700 border-t-red-500 rounded-full animate-spin"
-                                        ></div>
+                                        <Spinner size="lg" color="danger" />
                                     </div>
                                 {/if}
                             </div>
@@ -317,21 +313,9 @@
                     </div>
                     {#if mediaHasMore && !mediaSearch}
                         <div class="mt-4 flex justify-center">
-                            <button
-                                type="button"
-                                onclick={loadMoreMediaItems}
-                                disabled={mediaLoading}
-                                class="flex items-center gap-2 rounded-lg border border-zinc-700/60 bg-zinc-900 px-5 py-2.5 text-sm font-medium text-zinc-300 transition-all duration-200 hover:border-zinc-600 hover:text-zinc-100 disabled:opacity-50"
-                            >
-                                {#if mediaLoading}
-                                    <div
-                                        class="w-4 h-4 border-2 border-zinc-600 border-t-zinc-300 rounded-full animate-spin"
-                                    ></div>
-                                    Loading…
-                                {:else}
-                                    Load more
-                                {/if}
-                            </button>
+                            <AppButton variant="ghost" size="lg" onclick={loadMoreMediaItems} disabled={mediaLoading} loading={mediaLoading}>
+                                {mediaLoading ? "Loading…" : "Load more"}
+                            </AppButton>
                         </div>
                     {/if}
                 {/if}

@@ -1,4 +1,6 @@
 <script lang="ts">
+    import Spinner from "$lib/components/Spinner.svelte";
+
     let {
         coverImage = $bindable(),
         onCoverUpload,
@@ -61,9 +63,7 @@
                 </label>
                 {#if coverUploading}
                     <div class="flex items-center gap-1 text-xs text-zinc-500">
-                        <div
-                            class="w-3 h-3 border border-zinc-700 border-t-accent-400 rounded-full animate-spin"
-                        ></div>
+                        <Spinner size="xs" color="accent" />
                         Uploading...
                     </div>
                 {/if}

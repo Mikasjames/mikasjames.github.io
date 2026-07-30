@@ -1,6 +1,7 @@
 <script lang="ts">
     import type { MediaItem } from "$lib/firebase/firestore.svelte";
     import { toast } from "$lib/stores/toast.svelte";
+    import Spinner from "$lib/components/Spinner.svelte";
 
     let {
         onOpenMediaGallery,
@@ -75,9 +76,7 @@
 
     {#if contentUploading}
         <div class="flex items-center gap-1.5 text-xs text-zinc-500">
-            <div
-                class="w-3.5 h-3.5 border-2 border-zinc-700 border-t-accent-500 rounded-full animate-spin"
-            ></div>
+            <Spinner size="sm" color="accent" />
             Uploading and indexing asset...
         </div>
     {/if}

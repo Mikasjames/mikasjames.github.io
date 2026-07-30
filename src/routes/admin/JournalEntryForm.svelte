@@ -21,6 +21,9 @@
 	import type { createHabitsStore } from "$lib/firebase/habits.svelte";
 	import MediaGalleryDialog from "$lib/components/MediaGalleryDialog.svelte";
 	import ConfirmDialog from "$lib/components/ConfirmDialog.svelte";
+	import AppButton from "$lib/components/AppButton.svelte";
+	import Spinner from "$lib/components/Spinner.svelte";
+	import HabitsManager from "$lib/components/HabitsManager.svelte";
 	import { toast } from "$lib/stores/toast.svelte";
 
 	type MediaStore = ReturnType<typeof createMediaStore>;
@@ -399,141 +402,14 @@
 		<div
 			class="space-y-3 rounded-xl border border-zinc-800/60 bg-zinc-900/40 p-4"
 		>
-			<div class="flex flex-wrap items-center justify-between gap-3">
-				<p class="text-xs font-semibold uppercase tracking-wide text-zinc-400">
-					Habits
-				</p>
-				<button
-					type="button"
-					onclick={() =>
-						(habitsStore.showHabitManager =
-							!habitsStore.showHabitManager)}
-					class="text-xs font-semibold text-accent-400 transition-colors hover:text-accent-300"
-				>
-					Manage Habits
-				</button>
-			</div>
-
-			{#if habitsStore.habitsLoading}
-				<div class="flex flex-wrap gap-2">
-					<div
-						class="h-9 w-24 animate-pulse rounded-lg bg-zinc-800/70"
-					></div>
-					<div
-						class="h-9 w-28 animate-pulse rounded-lg bg-zinc-800/70"
-					></div>
-					<div
-						class="h-9 w-20 animate-pulse rounded-lg bg-zinc-800/70"
-					></div>
-				</div>
-			{:else if habitsStore.habits.length === 0}
-				<p class="text-xs text-zinc-550">No habits yet.</p>
-			{:else}
-				<div class="flex flex-wrap gap-2">
-					{#each habitsStore.habits as habit (habit.id)}
-						<button
-							type="button"
-							onclick={() => habitsStore.toggleHabit(habit.id)}
-							class="rounded-lg border px-3 py-2 text-sm font-medium transition-all {habitsStore.selectedHabitIds.has(
-								habit.id,
-							)
-								? 'border-accent-500/50 bg-accent-600/20 text-accent-200 shadow-lg shadow-accent-600/10'
-								: 'border-zinc-700/60 bg-zinc-900 text-zinc-300 hover:border-zinc-600 hover:text-zinc-100'}"
-						>
-							{habit.emoji}
-							{habit.name}
-						</button>
-					{/each}
-				</div>
-			{/if}
-
-			{#if habitsStore.showHabitManager}
-				<div class="space-y-3 border-t border-zinc-800/60 pt-4">
-					<div class="space-y-2">
-						{#each habitsStore.habits as habit, index (habit.id)}
-							<div
-								class="flex flex-wrap items-center gap-2 rounded-lg border border-zinc-800/50 bg-zinc-950/30 px-3 py-2"
-							>
-								<span
-									class="min-w-0 flex-1 truncate text-sm text-zinc-300"
-								>
-									{habit.emoji}
-									{habit.name}
-								</span>
-								<button
-									type="button"
-									onclick={() =>
-										habitsStore.moveHabit(
-											index,
-											-1,
-											user!.uid,
-										)}
-									disabled={index === 0}
-									class="rounded border border-zinc-700/60 px-2 py-1 text-xs text-zinc-400 transition hover:border-accent-500/50 hover:text-accent-300 disabled:cursor-not-allowed disabled:opacity-40"
-								>
-									Up
-								</button>
-								<button
-									type="button"
-									onclick={() =>
-										habitsStore.moveHabit(
-											index,
-											1,
-											user!.uid,
-										)}
-									disabled={index ===
-										habitsStore.habits.length - 1}
-									class="rounded border border-zinc-700/60 px-2 py-1 text-xs text-zinc-400 transition hover:border-accent-500/50 hover:text-accent-300 disabled:cursor-not-allowed disabled:opacity-40"
-								>
-									Down
-								</button>
-								<button
-									type="button"
-									onclick={() =>
-										handleConfirmHabitDelete(
-											habit,
-											user!.uid,
-										)}
-									class="rounded border border-red-500/20 px-2 py-1 text-xs text-red-400 transition hover:border-red-500/40 hover:text-red-300"
-								>
-									Delete
-								</button>
-							</div>
-						{/each}
-					</div>
-
-					<div
-						class="grid gap-2 sm:grid-cols-[5rem_minmax(0,1fr)_auto]"
-					>
-						<input
-							type="text"
-							bind:value={habitsStore.habitForm.emoji}
-							placeholder="🙏"
-							class="w-full rounded-lg border border-zinc-700/60 bg-zinc-900 px-3 py-2 text-sm text-zinc-100 placeholder-zinc-600 focus:border-accent-500 focus:outline-none focus:ring-1 focus:ring-accent-500/30"
-						/>
-						<input
-							type="text"
-							bind:value={habitsStore.habitForm.name}
-							placeholder="Habit name"
-							class="w-full rounded-lg border border-zinc-700/60 bg-zinc-900 px-3 py-2 text-sm text-zinc-100 placeholder-zinc-600 focus:border-accent-500 focus:outline-none focus:ring-1 focus:ring-accent-500/30"
-						/>
-						<button
-							type="button"
-							onclick={() =>
-								habitsStore.handleAddHabit(user!.uid)}
-							disabled={habitsStore.habitForm.submitting}
-							class="rounded-lg bg-accent-600 px-4 py-2 text-sm font-semibold text-white transition hover:bg-accent-500 disabled:cursor-not-allowed disabled:opacity-50"
-						>
-							Save
-						</button>
-					</div>
-					{#if habitsStore.habitForm.error}
-						<p class="text-xs text-red-400">
-							{habitsStore.habitForm.error}
-						</p>
-					{/if}
-				</div>
-			{/if}
+			<HabitsManager
+				{habitsStore}
+				userId={user!.uid}
+				manageLabel="Manage Habits"
+				doneLabel="Manage Habits"
+				showAddOneInEmpty={false}
+				onDeleteHabit={(habit, uid) => handleConfirmHabitDelete(habit, uid)}
+			/>
 		</div>
 
 		<div class="rounded-xl border border-zinc-800/60 bg-zinc-900/40 p-4">
@@ -651,26 +527,12 @@
 
 					<div class="space-y-2">
 						<div class="flex justify-end">
-							<button
-								type="button"
-								onclick={insertCurrentJournalTimestamp}
-								class="inline-flex items-center gap-2 rounded-lg border border-zinc-700/60 bg-zinc-900 px-3 py-2 text-xs font-semibold text-zinc-300 transition-all duration-200 hover:border-accent-500/50 hover:text-accent-300"
-							>
-								<svg
-									class="h-3.5 w-3.5"
-									fill="none"
-									stroke="currentColor"
-									viewBox="0 0 24 24"
-								>
-									<path
-										stroke-linecap="round"
-										stroke-linejoin="round"
-										stroke-width="2"
-										d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"
-									/>
+							<AppButton variant="ghost" size="sm" onclick={insertCurrentJournalTimestamp}>
+								<svg class="h-3.5 w-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+									<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
 								</svg>
 								Insert Date & Time
-							</button>
+							</AppButton>
 						</div>
 						<MarkdownEditor
 							id="journal-content"
@@ -707,18 +569,8 @@
 			<div
 				class="flex items-center gap-2 px-3.5 py-2.5 rounded-lg bg-red-500/10 border border-red-500/20 text-red-400 text-sm"
 			>
-				<svg
-					class="w-4 h-4 shrink-0"
-					fill="none"
-					stroke="currentColor"
-					viewBox="0 0 24 24"
-				>
-					<path
-						stroke-linecap="round"
-						stroke-linejoin="round"
-						stroke-width="2"
-						d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
-					/>
+				<svg class="w-4 h-4 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+					<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
 				</svg>
 				{journalForm.error}
 			</div>
@@ -728,18 +580,8 @@
 			<div
 				class="flex items-center gap-2 px-3.5 py-2.5 rounded-lg bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 text-sm"
 			>
-				<svg
-					class="w-4 h-4 shrink-0"
-					fill="none"
-					stroke="currentColor"
-					viewBox="0 0 24 24"
-				>
-					<path
-						stroke-linecap="round"
-						stroke-linejoin="round"
-						stroke-width="2"
-						d="M5 13l4 4L19 7"
-					/>
+				<svg class="w-4 h-4 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+					<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
 				</svg>
 				{journalForm.successMsg}
 			</div>
@@ -747,51 +589,12 @@
 
 		<div class="flex flex-col-reverse gap-3 sm:flex-row sm:justify-end">
 			{#if journalForm.id}
-				<button
-					type="button"
-					onclick={resetJournalForm}
-					class="w-full rounded-lg border border-zinc-700/60 px-6 py-2.5 text-sm font-semibold text-zinc-300 transition-all duration-200 hover:border-zinc-500 hover:text-zinc-100 sm:w-auto"
-				>
-					Cancel Edit
-				</button>
+				<AppButton variant="ghost" size="md" onclick={resetJournalForm}>Cancel Edit</AppButton>
 			{/if}
 
-			<button
-				type="submit"
-				disabled={journalForm.submitting}
-				class="flex w-full items-center justify-center gap-2 rounded-lg bg-accent-600 px-6 py-2.5 text-sm font-semibold text-white shadow-lg shadow-accent-600/20 transition-all duration-200 hover:bg-accent-500 disabled:cursor-not-allowed disabled:opacity-50 sm:w-auto"
-			>
-				{#if journalForm.submitting}
-					<div
-						class="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin"
-					></div>
-					Saving…
-				{:else}
-					<svg
-						class="w-4 h-4"
-						fill="none"
-						stroke="currentColor"
-						viewBox="0 0 24 24"
-					>
-						{#if journalForm.id}
-							<path
-								stroke-linecap="round"
-								stroke-linejoin="round"
-								stroke-width="2"
-								d="M8 7H5a2 2 0 00-2 2v9a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-3m-1 4l-3 3m0 0l-3-3m3 3V4"
-							/>
-						{:else}
-							<path
-								stroke-linecap="round"
-								stroke-linejoin="round"
-								stroke-width="2"
-								d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12"
-							/>
-						{/if}
-					</svg>
-					{#if journalForm.id}Save Changes{:else}Save Entry{/if}
-				{/if}
-			</button>
+			<AppButton variant="primary" size="md" type="submit" disabled={journalForm.submitting} loading={journalForm.submitting}>
+				{#if journalForm.id}Save Changes{:else}Save Entry{/if}
+			</AppButton>
 		</div>
 	</form>
 </section>

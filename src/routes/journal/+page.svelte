@@ -12,6 +12,10 @@
 	} from "$lib/firebase/firestore.svelte";
 	import { renderMarkdown } from "$lib/utils/renderMarkdown";
 	import type { User } from "firebase/auth";
+	import GridBackground from "$lib/components/GridBackground.svelte";
+	import Spinner from "$lib/components/Spinner.svelte";
+	import AppButton from "$lib/components/AppButton.svelte";
+	import UserActions from "$lib/components/UserActions.svelte";
 
 	let user = $state<User | null>(null);
 	let authReady = $state(false);
@@ -254,9 +258,7 @@
 </svelte:head>
 
 <div class="min-h-screen bg-[#09090b] pt-20 pb-12 px-4 md:px-8">
-	<div
-		class="fixed inset-0 bg-[linear-gradient(rgba(99,102,241,0.02)_1px,transparent_1px),linear-gradient(90deg,rgba(99,102,241,0.02)_1px,transparent_1px)] bg-[size:64px_64px] pointer-events-none"
-	></div>
+	<GridBackground opacity="2" />
 	<div
 		class="fixed top-24 left-1/2 h-px w-[min(72rem,calc(100vw-2rem))] -translate-x-1/2 bg-gradient-to-r from-transparent via-accent-500/25 to-transparent pointer-events-none"
 	></div>
@@ -265,9 +267,7 @@
 		<div
 			class="min-h-[70vh] flex flex-col items-center justify-center gap-4"
 		>
-			<div
-				class="w-8 h-8 border-2 border-accent-500/20 border-t-accent-500 rounded-full animate-spin"
-			></div>
+			<Spinner size="xl" color="accent" />
 			<p class="text-zinc-550 font-mono text-xs tracking-wider">
 				SECURE LINK ESTABLISHED...
 			</p>
@@ -300,26 +300,11 @@
 						habit context.
 					</p>
 				</div>
-				<div class="flex flex-wrap items-center gap-3">
-					<a
-						href="/habits/"
-						class="rounded-lg border border-accent-500/30 bg-accent-600/10 px-4 py-2 text-sm font-medium text-accent-300 transition-all duration-200 hover:border-accent-500/50 hover:bg-accent-600/20"
-					>
-						Today
-					</a>
-					<a
-						href="/admin/"
-						class="rounded-lg border border-zinc-800 bg-zinc-900/70 px-4 py-2 text-sm font-medium text-zinc-300 transition-all duration-200 hover:border-zinc-700 hover:text-zinc-100"
-					>
-						Admin Dashboard
-					</a>
-					<button
-						onclick={handleLogout}
-						class="rounded-lg bg-zinc-800 px-4 py-2 text-sm font-medium text-zinc-300 transition-all duration-200 hover:bg-zinc-750"
-					>
-						Sign Out
-					</button>
-				</div>
+				<UserActions todayHref="/habits/" onSignOut={handleLogout}>
+					{#snippet children()}
+						<AppButton variant="ghost" size="sm" href="/admin/">Admin Dashboard</AppButton>
+					{/snippet}
+				</UserActions>
 			</div>
 
 			{#if errorMsg}
@@ -612,21 +597,9 @@
 								{/each}
 								{#if entriesHasMore}
 									<div class="flex justify-center pt-2">
-										<button
-											type="button"
-											onclick={loadMoreEntries}
-											disabled={loadingMore}
-											class="flex w-full items-center justify-center gap-2 rounded-xl border border-zinc-800/80 bg-zinc-950/70 px-4 py-2.5 text-sm font-medium text-zinc-300 transition-all duration-200 hover:border-zinc-700 hover:text-zinc-100 disabled:opacity-50"
-										>
-											{#if loadingMore}
-												<div
-													class="w-4 h-4 border-2 border-zinc-600 border-t-zinc-300 rounded-full animate-spin"
-												></div>
-												Loading…
-											{:else}
-												Load more entries
-											{/if}
-										</button>
+										<AppButton variant="ghost" size="lg" onclick={loadMoreEntries} disabled={loadingMore} loading={loadingMore}>
+											{loadingMore ? "Loading…" : "Load more entries"}
+										</AppButton>
 									</div>
 								{/if}
 							{/if}

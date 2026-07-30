@@ -19,6 +19,10 @@
 	import { createMediaStore } from "$lib/firebase/media.svelte";
 	import { createHabitsStore } from "$lib/firebase/habits.svelte";
 	import { getHappinessLabel, todayDateKey } from "$lib/utils/date";
+	import GridBackground from "$lib/components/GridBackground.svelte";
+	import Spinner from "$lib/components/Spinner.svelte";
+	import AppButton from "$lib/components/AppButton.svelte";
+	import HabitsManager from "$lib/components/HabitsManager.svelte";
 	import BlogPostForm from "./BlogPostForm.svelte";
 	import JournalEntryForm from "./JournalEntryForm.svelte";
 	import InsightsDashboard from "./InsightsDashboard.svelte";
@@ -275,17 +279,13 @@
 
 {#if !authReady}
 	<div class="min-h-screen bg-[#09090b] flex items-center justify-center">
-		<div
-			class="w-6 h-6 border-2 border-accent-500/30 border-t-accent-500 rounded-full animate-spin"
-		></div>
+		<Spinner size="lg" color="accent" />
 	</div>
 {:else if user}
 	<div
 		class="min-h-screen bg-[#09090b] px-3 pt-16 pb-12 sm:px-4 sm:pt-20 sm:pb-16 lg:px-6"
 	>
-		<div
-			class="fixed inset-0 bg-[linear-gradient(rgba(99,102,241,0.03)_1px,transparent_1px),linear-gradient(90deg,rgba(99,102,241,0.03)_1px,transparent_1px)] bg-[size:64px_64px] pointer-events-none"
-		></div>
+		<GridBackground opacity="3" />
 
 		<div class="relative mx-auto w-full max-w-5xl space-y-8 sm:space-y-10">
 			<div
@@ -307,29 +307,18 @@
 				<div
 					class="grid w-full grid-cols-2 gap-2 sm:flex sm:w-auto sm:gap-3 sm:self-auto"
 				>
-					<a
-						href="/blogs/drafts/"
-						class="rounded-lg border border-zinc-700/60 px-3 py-2 text-center text-sm font-medium text-zinc-400 transition-all duration-200 hover:border-zinc-600 hover:text-zinc-200 sm:px-4"
-					>
-						View Drafts
-					</a>
-					<a
+					<AppButton variant="ghost" size="md" href="/blogs/drafts/">View Drafts</AppButton>
+					<AppButton
+						variant="ghost" size="md"
 						href={currentSection === "blogs"
 							? "/blogs/"
 							: currentSection === "journal"
 								? "/journal/"
 								: "/habits/"}
-						class="rounded-lg border border-zinc-700/60 px-3 py-2 text-center text-sm font-medium text-zinc-400 transition-all duration-200 hover:border-zinc-600 hover:text-zinc-200 sm:px-4"
 					>
 						View {currentSection === "blogs" ? "Blog" : currentSection === "journal" ? "Journal" : "Habits"}
-					</a>
-					<button
-						id="admin-logout-btn"
-						onclick={handleLogout}
-						class="rounded-lg bg-zinc-800 px-3 py-2 text-sm font-medium text-zinc-300 transition-all duration-200 hover:bg-zinc-700 sm:px-4"
-					>
-						Sign Out
-					</button>
+					</AppButton>
+					<AppButton variant="secondary" size="md" onclick={handleLogout}>Sign Out</AppButton>
 				</div>
 			</div>
 
@@ -431,108 +420,13 @@
 						</div>
 
 						<div class="space-y-3">
-							<div class="flex items-center justify-between">
-								<p class="text-xs font-semibold uppercase tracking-wide text-zinc-400">Habits</p>
-								<button
-									type="button"
-									onclick={() => (habitsStore.showHabitManager = !habitsStore.showHabitManager)}
-									class="text-xs font-semibold text-accent-400 transition-colors hover:text-accent-300"
-								>
-									{habitsStore.showHabitManager ? "Done" : "Manage"}
-								</button>
-							</div>
-
-							{#if habitsStore.habitsLoading}
-								<div class="flex flex-wrap gap-2">
-									<div class="h-9 w-24 animate-pulse rounded-lg bg-zinc-800/70"></div>
-									<div class="h-9 w-28 animate-pulse rounded-lg bg-zinc-800/70"></div>
-								</div>
-							{:else if habitsStore.habits.length === 0}
-								<p class="text-sm text-zinc-550">
-									No habits yet.
-									<button
-										type="button"
-										onclick={() => (habitsStore.showHabitManager = true)}
-										class="text-accent-400 hover:text-accent-300 underline"
-									>Add one</button>.
-								</p>
-							{:else}
-								<div class="flex flex-wrap gap-2">
-									{#each habitsStore.habits as habit (habit.id)}
-										<button
-											type="button"
-											onclick={() => habitsStore.toggleHabit(habit.id)}
-											class="rounded-lg border px-3 py-2 text-sm font-medium transition-all {habitsStore.selectedHabitIds.has(habit.id)
-												? 'border-accent-500/50 bg-accent-600/20 text-accent-200 shadow-lg shadow-accent-600/10'
-												: 'border-zinc-700/60 bg-zinc-900 text-zinc-300 hover:border-zinc-600 hover:text-zinc-100'}"
-										>
-											{habit.emoji} {habit.name}
-										</button>
-									{/each}
-								</div>
-							{/if}
-
-							{#if habitsStore.showHabitManager}
-								<div class="space-y-3 border-t border-zinc-800/60 pt-4">
-									{#each habitsStore.habits as habit, index (habit.id)}
-										<div class="flex flex-wrap items-center gap-2 rounded-lg border border-zinc-800/50 bg-zinc-950/30 px-3 py-2">
-											<span class="min-w-0 flex-1 truncate text-sm text-zinc-300">
-												{habit.emoji} {habit.name}
-											</span>
-											<button
-												type="button"
-												onclick={() => habitsStore.moveHabit(index, -1, currentUser.uid)}
-												disabled={index === 0}
-												class="rounded border border-zinc-700/60 px-2 py-1 text-xs text-zinc-400 transition hover:border-accent-500/50 hover:text-accent-300 disabled:cursor-not-allowed disabled:opacity-40"
-											>Up</button>
-											<button
-												type="button"
-												onclick={() => habitsStore.moveHabit(index, 1, currentUser.uid)}
-												disabled={index === habitsStore.habits.length - 1}
-												class="rounded border border-zinc-700/60 px-2 py-1 text-xs text-zinc-400 transition hover:border-accent-500/50 hover:text-accent-300 disabled:cursor-not-allowed disabled:opacity-40"
-											>Down</button>
-											<button
-												type="button"
-												onclick={() => habitsStore.handleDeleteHabit(habit, currentUser.uid)}
-												class="rounded border border-red-500/20 px-2 py-1 text-xs text-red-400 transition hover:border-red-500/40 hover:text-red-300"
-											>Delete</button>
-										</div>
-									{/each}
-									<div class="grid gap-2 sm:grid-cols-[5rem_minmax(0,1fr)_auto]">
-										<input
-											type="text"
-											bind:value={habitsStore.habitForm.emoji}
-											placeholder="🙏"
-											class="w-full rounded-lg border border-zinc-700/60 bg-zinc-900 px-3 py-2 text-sm text-zinc-100 placeholder-zinc-600 focus:border-accent-500 focus:outline-none focus:ring-1 focus:ring-accent-500/30"
-										/>
-										<input
-											type="text"
-											bind:value={habitsStore.habitForm.name}
-											placeholder="Habit name"
-											class="w-full rounded-lg border border-zinc-700/60 bg-zinc-900 px-3 py-2 text-sm text-zinc-100 placeholder-zinc-600 focus:border-accent-500 focus:outline-none focus:ring-1 focus:ring-accent-500/30"
-										/>
-										<button
-											type="button"
-											onclick={() => habitsStore.handleAddHabit(currentUser.uid)}
-											disabled={habitsStore.habitForm.submitting}
-											class="rounded-lg bg-accent-600 px-4 py-2 text-sm font-semibold text-white transition hover:bg-accent-500 disabled:cursor-not-allowed disabled:opacity-50"
-										>Save</button>
-									</div>
-								</div>
-							{/if}
+							<HabitsManager {habitsStore} userId={currentUser.uid} />
 						</div>
 
 						<div class="mt-4 flex items-center gap-4 pt-4 border-t border-zinc-800/60">
-							<button
-								onclick={handleHabitsSave}
-								disabled={habitsSaving}
-								class="rounded-lg bg-accent-600 px-5 py-2.5 text-sm font-semibold text-white transition hover:bg-accent-500 disabled:cursor-not-allowed disabled:opacity-50 flex items-center gap-2"
-							>
-								{#if habitsSaving}
-									<div class="h-4 w-4 border-2 border-white/30 border-t-white rounded-full animate-spin"></div>
-								{/if}
+							<AppButton variant="primary" size="md" onclick={handleHabitsSave} disabled={habitsSaving} loading={habitsSaving}>
 								{habitsSaving ? "Saving..." : "Save Today"}
-							</button>
+							</AppButton>
 							{#if habitsSaveMsg}
 								<span class="text-sm {habitsSaveMsg === 'Saved!' ? 'text-emerald-400' : 'text-red-400'}">{habitsSaveMsg}</span>
 							{/if}

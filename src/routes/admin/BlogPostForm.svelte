@@ -18,6 +18,8 @@
 	import type { createMediaStore } from "$lib/firebase/media.svelte";
 	import MediaGalleryDialog from "$lib/components/MediaGalleryDialog.svelte";
 	import ConfirmDialog from "$lib/components/ConfirmDialog.svelte";
+	import AppButton from "$lib/components/AppButton.svelte";
+	import Spinner from "$lib/components/Spinner.svelte";
 	import { toast } from "$lib/stores/toast.svelte";
 
 	type MediaStore = ReturnType<typeof createMediaStore>;
@@ -483,52 +485,16 @@
 
 		<div class="flex flex-col-reverse gap-3 sm:flex-row sm:justify-end">
 			{#if blogForm.id}
-				<button
-					type="button"
-					onclick={resetForm}
-					class="w-full rounded-lg border border-zinc-700/60 px-6 py-2.5 text-sm font-semibold text-zinc-300 transition-all duration-200 hover:border-zinc-500 hover:text-zinc-100 sm:w-auto"
-				>
-					Cancel Edit
-				</button>
+				<AppButton variant="ghost" size="md" onclick={resetForm}>Cancel Edit</AppButton>
 			{/if}
 
-			<button
-				id="publish-btn"
-				type="submit"
-				disabled={blogForm.submitting}
-				class="flex w-full items-center justify-center gap-2 rounded-lg bg-accent-600 px-6 py-2.5 text-sm font-semibold text-white shadow-lg shadow-accent-600/20 transition-all duration-200 hover:bg-accent-500 disabled:cursor-not-allowed disabled:opacity-50 sm:w-auto"
-			>
+			<AppButton id="publish-btn" variant="primary" size="md" type="submit" disabled={blogForm.submitting} loading={blogForm.submitting}>
 				{#if blogForm.submitting}
-					<div
-						class="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin"
-					></div>
 					{#if blogForm.id}Saving…{:else}Publishing…{/if}
 				{:else}
-					<svg
-						class="w-4 h-4"
-						fill="none"
-						stroke="currentColor"
-						viewBox="0 0 24 24"
-					>
-						{#if blogForm.id}
-							<path
-								stroke-linecap="round"
-								stroke-linejoin="round"
-								stroke-width="2"
-								d="M8 7H5a2 2 0 00-2 2v9a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-3m-1 4l-3 3m0 0l-3-3m3 3V4"
-							/>
-						{:else}
-							<path
-								stroke-linecap="round"
-								stroke-linejoin="round"
-								stroke-width="2"
-								d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12"
-							/>
-						{/if}
-					</svg>
 					{#if blogForm.id}Save Changes{:else}Publish Post{/if}
 				{/if}
-			</button>
+			</AppButton>
 		</div>
 	</form>
 </section>

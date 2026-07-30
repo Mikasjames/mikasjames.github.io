@@ -2,6 +2,9 @@
 	import { onMount } from "svelte";
 	import { goto } from "$app/navigation";
 	import { login, getCurrentUser } from "$lib/firebase/auth";
+	import GridBackground from "$lib/components/GridBackground.svelte";
+	import Spinner from "$lib/components/Spinner.svelte";
+	import AppButton from "$lib/components/AppButton.svelte";
 
 	let email = $state("");
 	let password = $state("");
@@ -54,17 +57,13 @@
 
 {#if checkingAuth}
 	<div class="min-h-screen bg-[#09090b] flex items-center justify-center">
-		<div
-			class="w-6 h-6 border-2 border-accent-500/30 border-t-accent-500 rounded-full animate-spin"
-		></div>
+		<Spinner size="lg" color="accent" />
 	</div>
 {:else}
 	<div
 		class="min-h-screen bg-[#09090b] flex items-center justify-center px-4"
 	>
-		<div
-			class="fixed inset-0 bg-[linear-gradient(rgba(99,102,241,0.03)_1px,transparent_1px),linear-gradient(90deg,rgba(99,102,241,0.03)_1px,transparent_1px)] bg-[size:64px_64px] pointer-events-none"
-		></div>
+		<GridBackground opacity="3" />
 
 		<div class="relative w-full max-w-sm">
 			<div
@@ -145,21 +144,9 @@
 						</div>
 					{/if}
 
-					<button
-						id="login-submit-btn"
-						type="submit"
-						disabled={loading}
-						class="w-full py-2.5 rounded-lg bg-accent-600 hover:bg-accent-500 disabled:opacity-50 disabled:cursor-not-allowed text-white text-sm font-semibold transition-all duration-200 flex items-center justify-center gap-2 shadow-lg shadow-accent-600/20 hover:shadow-accent-500/30"
-					>
-						{#if loading}
-							<div
-								class="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin"
-							></div>
-							Signing in…
-						{:else}
-							Sign In
-						{/if}
-					</button>
+					<AppButton id="login-submit-btn" variant="primary" size="lg" type="submit" disabled={loading} loading={loading}>
+						{loading ? "Signing in…" : "Sign In"}
+					</AppButton>
 				</form>
 			</div>
 		</div>

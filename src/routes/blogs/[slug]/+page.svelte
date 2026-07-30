@@ -2,6 +2,7 @@
 	import { onMount } from "svelte";
 	import type { BlogPost } from "$lib/firebase/firestore.svelte";
 	import BlogPostContent from "$lib/components/BlogPostContent.svelte";
+	import GridBackground from "$lib/components/GridBackground.svelte";
 	import { logEvent } from "$lib/firebase/analytics";
 
 	let { data } = $props();
@@ -52,9 +53,7 @@
 </svelte:head>
 
 <div class="min-h-screen bg-[#09090b] pt-28 pb-24 px-4">
-	<div
-		class="fixed inset-0 bg-[linear-gradient(rgba(99,102,241,0.03)_1px,transparent_1px),linear-gradient(90deg,rgba(99,102,241,0.03)_1px,transparent_1px)] bg-[size:64px_64px] pointer-events-none"
-	></div>
+	<GridBackground opacity="3" />
 
 	<div class="relative mx-auto max-w-2xl">
 		{#if post}

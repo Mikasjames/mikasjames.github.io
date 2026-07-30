@@ -4,6 +4,8 @@
 	import { subscribeToAuth } from "$lib/firebase/auth";
 	import { getPostBySlug, type BlogPost } from "$lib/firebase/firestore.svelte";
 	import BlogPostContent from "$lib/components/BlogPostContent.svelte";
+	import GridBackground from "$lib/components/GridBackground.svelte";
+	import Spinner from "$lib/components/Spinner.svelte";
 
 	let user = $state<import("firebase/auth").User | null>(null);
 	let authReady = $state(false);
@@ -41,18 +43,14 @@
 </svelte:head>
 
 <div class="min-h-screen bg-[#09090b] pt-28 pb-24 px-4">
-	<div
-		class="fixed inset-0 bg-[linear-gradient(rgba(99,102,241,0.03)_1px,transparent_1px),linear-gradient(90deg,rgba(99,102,241,0.03)_1px,transparent_1px)] bg-[size:64px_64px] pointer-events-none"
-	></div>
+	<GridBackground opacity="3" />
 
 	<div class="relative mx-auto max-w-2xl">
 		{#if !authReady || loading}
 			<div
-				class="flex items-center justify-center py-20 text-zinc-500 text-sm"
+				class="flex items-center justify-center py-20 gap-3 text-zinc-500 text-sm"
 			>
-				<div
-					class="w-5 h-5 border-2 border-zinc-700/60 border-t-zinc-400 rounded-full animate-spin mr-3"
-				></div>
+				<Spinner size="md" color="zinc" />
 				Loading post…
 			</div>
 		{:else if post}
