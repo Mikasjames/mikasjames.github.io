@@ -221,6 +221,40 @@ export interface JournalEntry {
 
 const JOURNAL_COLLECTION = 'journal';
 
+export async function getJournalEntryByDate(ownerUid: string, date: string): Promise<JournalEntry | null> {
+    const q = query(
+        collection(getDb(), JOURNAL_COLLECTION),
+        where('ownerUid', '==', ownerUid),
+        where('entryDate', '==', date),
+        limit(1)
+    );
+    const snapshot = await getDocs(q);
+    const first = snapshot.docs[0];
+    return first ? docToJournalEntry(first.id, first.data()) : null;
+}
+
+export async function deleteJournalEntryByDate(ownerUid: string, date: string): Promise<void> {
+    const entry = await getJournalEntryByDate(ownerUid, date);
+    if (entry) {
+        await deleteDoc(doc(getDb(), JOURNAL_COLLECTION, entry.id));
+    }
+}
+
+export async function getJournalEntriesByMonth(ownerUid: string, year: number, month: number): Promise<JournalEntry[]> {
+    const startStr = `${year}-${String(month).padStart(2, '0')}-01`;
+    const endDay = new Date(year, month, 0).getDate();
+    const endStr = `${year}-${String(month).padStart(2, '0')}-${String(endDay).padStart(2, '0')}`;
+    const q = query(
+        collection(getDb(), JOURNAL_COLLECTION),
+        where('ownerUid', '==', ownerUid),
+        where('entryDate', '>=', startStr),
+        where('entryDate', '<=', endStr),
+        orderBy('entryDate', 'asc')
+    );
+    const snapshot = await getDocs(q);
+    return snapshot.docs.map((d) => docToJournalEntry(d.id, d.data()));
+}
+
 export async function getJournalEntries(): Promise<JournalEntry[]> {
     const q = query(collection(getDb(), JOURNAL_COLLECTION), orderBy('entryDate', 'desc'));
     const snapshot = await getDocs(q);
@@ -461,6 +495,11 @@ export async function deleteHabitLogsForJournalEntry(
     journalEntryId: string
 ): Promise<void> {
     const logs = await getHabitLogsForJournalEntry(ownerUid, journalEntryId);
+    await Promise.all(logs.map((log) => deleteDoc(doc(getDb(), HABIT_LOGS_COLLECTION, log.id))));
+}
+
+export async function deleteHabitLogsForDate(ownerUid: string, date: string): Promise<void> {
+    const logs = await getHabitLogsForDate(ownerUid, date);
     await Promise.all(logs.map((log) => deleteDoc(doc(getDb(), HABIT_LOGS_COLLECTION, log.id))));
 }
 

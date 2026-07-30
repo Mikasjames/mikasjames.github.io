@@ -73,6 +73,7 @@
 	let confirmHabitDeleteAction = $state<(val: boolean) => void>(() => {});
 	let activeTab = $state<"write" | "preview">("write");
 	let textareaRef = $state<HTMLTextAreaElement | null>(null);
+	let showJournalDetails = $state(false);
 
 	export function startEditJournal(entry: JournalEntry) {
 		journalForm.id = entry.id;
@@ -100,6 +101,7 @@
 				journalForm.id,
 			);
 		}
+		showJournalDetails = !!entry.content || !!entry.title || !!entry.coverImage;
 		window.scrollTo({ top: 0, behavior: "smooth" });
 	}
 
@@ -115,14 +117,11 @@
 		journalForm.error = "";
 		selectedJournalEntryDate = todayDateKey();
 		habitsStore.selectedHabitIds = new Set();
+		showJournalDetails = false;
 	}
 
 	async function handleJournalSubmit(e: Event) {
 		e.preventDefault();
-		if (!journalForm.content) {
-			journalForm.error = "Content is required.";
-			return;
-		}
 
 		journalForm.submitting = true;
 		journalForm.error = "";
@@ -139,7 +138,7 @@
 			journalForm.imageMeta = sanitizedImageMeta;
 
 			const payload = {
-				title: journalForm.title || "Untitled Entry",
+				title: journalForm.title || (journalForm.content ? "Untitled Entry" : ""),
 				excerpt: journalForm.excerpt,
 				content: journalForm.content,
 				coverImage: journalForm.coverImage,
@@ -391,127 +390,19 @@
 				class="rounded-lg bg-amber-500/10 border border-amber-500/20 p-3 mb-4"
 			>
 				<p class="text-sm text-amber-300">
-					⚠️ Editing a past entry from {selectedJournalEntryDate}.
+					Editing a past entry from {selectedJournalEntryDate}.
 					Habits will be saved for this date.
 				</p>
 			</div>
 		{/if}
 
-		<div class="grid grid-cols-1 gap-5 sm:grid-cols-2">
-			<div class="space-y-1.5">
-				<label
-					for="journal-title"
-					class="block text-xs font-medium text-zinc-400 tracking-wide uppercase"
-					>Title (Optional)</label
-				>
-				<input
-					id="journal-title"
-					type="text"
-					bind:value={journalForm.title}
-					placeholder="Untitled Entry"
-					class="w-full px-3.5 py-2.5 rounded-lg bg-zinc-900 border border-zinc-700/60 text-zinc-100 text-sm placeholder-zinc-600 focus:outline-none focus:border-accent-500 focus:ring-1 focus:ring-accent-500/30 transition-all duration-200"
-				/>
-			</div>
-			<div class="space-y-1.5">
-				<label
-					for="journal-excerpt"
-					class="block text-xs font-medium text-zinc-400 tracking-wide uppercase"
-					>Excerpt <span class="normal-case font-normal text-zinc-600"
-						>(Optional)</span
-					></label
-				>
-				<input
-					id="journal-excerpt"
-					type="text"
-					bind:value={journalForm.excerpt}
-					placeholder="A short summary or mood for this entry…"
-					class="w-full px-3.5 py-2.5 rounded-lg bg-zinc-900 border border-zinc-700/60 text-zinc-100 text-sm placeholder-zinc-600 focus:outline-none focus:border-accent-500 focus:ring-1 focus:ring-accent-500/30 transition-all duration-200"
-				/>
-			</div>
-		</div>
-
-		<div class="space-y-1.5">
-			<label
-				for="journal-entry-date"
-				class="block text-xs font-medium text-zinc-400 tracking-wide uppercase"
-				>Entry Date</label
-			>
-			<input
-				id="journal-entry-date"
-				type="date"
-				bind:value={selectedJournalEntryDate}
-				class="w-full px-3.5 py-2.5 rounded-lg bg-zinc-900 border border-zinc-700/60 text-zinc-100 text-sm focus:outline-none focus:border-accent-500 focus:ring-1 focus:ring-accent-500/30 transition-all duration-200 [color-scheme:dark]"
-			/>
-		</div>
-
-		<div class="rounded-xl border border-zinc-800/60 bg-zinc-900/40 p-4">
-			<div
-				class="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between"
-			>
-				<div>
-					<label
-						for="journal-happiness"
-						class="block text-xs font-semibold text-zinc-400 tracking-wide uppercase"
-						>Overall Happiness</label
-					>
-					<p class="mt-1 text-xs text-zinc-550">
-						Daily rating for monthly and yearly insights.
-					</p>
-				</div>
-				<div
-					class="flex items-center gap-2 rounded-lg border border-accent-500/20 bg-accent-500/10 px-3 py-2"
-				>
-					<span class="text-2xl font-bold text-accent-300"
-						>{journalForm.happinessRating}</span
-					>
-					<span class="text-xs font-medium text-accent-200"
-						>{getHappinessLabel(journalForm.happinessRating)}</span
-					>
-				</div>
-			</div>
-			<div class="mt-4">
-				<input
-					id="journal-happiness"
-					type="range"
-					min="1"
-					max="5"
-					step="1"
-					bind:value={journalForm.happinessRating}
-					class="h-2 w-full cursor-pointer appearance-none rounded-full bg-gradient-to-r from-red-500 via-amber-400 to-emerald-400 accent-accent-500"
-				/>
-				<div
-					class="mt-2 flex justify-between text-[10px] font-mono uppercase tracking-wider text-zinc-600"
-				>
-					<span>1 Low</span>
-					<span>3 Steady</span>
-					<span>5 High</span>
-				</div>
-			</div>
-		</div>
-
-		<CoverImage
-			bind:coverImage={journalForm.coverImage}
-			onCoverUpload={handleJournalCoverUpload}
-			coverUploading={mediaStore.mediaUploading}
-			coverError={journalForm.coverError}
-		/>
-
 		<div
 			class="space-y-3 rounded-xl border border-zinc-800/60 bg-zinc-900/40 p-4"
 		>
 			<div class="flex flex-wrap items-center justify-between gap-3">
-				<div>
-					<p
-						class="text-xs font-semibold uppercase tracking-wide text-zinc-400"
-					>
-						{journalForm.id ? "Habits for Entry" : "Habits Today"}
-					</p>
-					{#if habitsStore.habitsError}
-						<p class="mt-1 text-xs text-red-400">
-							{habitsStore.habitsError}
-						</p>
-					{/if}
-				</div>
+				<p class="text-xs font-semibold uppercase tracking-wide text-zinc-400">
+					Habits
+				</p>
 				<button
 					type="button"
 					onclick={() =>
@@ -645,56 +536,172 @@
 			{/if}
 		</div>
 
-		<div class="space-y-2">
-			<div class="flex justify-end">
-				<button
-					type="button"
-					onclick={insertCurrentJournalTimestamp}
-					class="inline-flex items-center gap-2 rounded-lg border border-zinc-700/60 bg-zinc-900 px-3 py-2 text-xs font-semibold text-zinc-300 transition-all duration-200 hover:border-accent-500/50 hover:text-accent-300"
-				>
-					<svg
-						class="h-3.5 w-3.5"
-						fill="none"
-						stroke="currentColor"
-						viewBox="0 0 24 24"
+		<div class="rounded-xl border border-zinc-800/60 bg-zinc-900/40 p-4">
+			<div
+				class="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between"
+			>
+				<div>
+					<label
+						for="journal-happiness"
+						class="block text-xs font-semibold text-zinc-400 tracking-wide uppercase"
+						>Overall Happiness</label
 					>
-						<path
-							stroke-linecap="round"
-							stroke-linejoin="round"
-							stroke-width="2"
-							d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"
-						/>
-					</svg>
-					Insert Date & Time
-				</button>
+					<p class="mt-1 text-xs text-zinc-550">
+						Daily rating for monthly and yearly insights.
+					</p>
+				</div>
+				<div
+					class="flex items-center gap-2 rounded-lg border border-accent-500/20 bg-accent-500/10 px-3 py-2"
+				>
+					<span class="text-2xl font-bold text-accent-300"
+						>{journalForm.happinessRating}</span
+					>
+					<span class="text-xs font-medium text-accent-200"
+						>{getHappinessLabel(journalForm.happinessRating)}</span
+					>
+				</div>
 			</div>
-			<MarkdownEditor
-				id="journal-content"
-				bind:content={journalForm.content}
-				bind:imageMeta={journalForm.imageMeta}
-				bind:textareaRef
-				bind:activeTab
-				onOpenMediaGallery={() => {
-					showMediaGallery = true;
-					mediaStore.openMediaGallery();
-				}}
-				placeholderText="What's on your mind today? Markdown is supported."
-			/>
+			<div class="mt-4">
+				<input
+					id="journal-happiness"
+					type="range"
+					min="1"
+					max="5"
+					step="1"
+					bind:value={journalForm.happinessRating}
+					class="h-2 w-full cursor-pointer appearance-none rounded-full bg-gradient-to-r from-red-500 via-amber-400 to-emerald-400 accent-accent-500"
+				/>
+				<div
+					class="mt-2 flex justify-between text-[10px] font-mono uppercase tracking-wider text-zinc-600"
+				>
+					<span>1 Low</span>
+					<span>3 Steady</span>
+					<span>5 High</span>
+				</div>
+			</div>
 		</div>
 
-		<ContentImagesHelper
-			onOpenMediaGallery={() => {
-				showMediaGallery = true;
-				mediaStore.openMediaGallery();
-			}}
-			{handleContentUpload}
-			contentUploading={mediaStore.mediaUploading}
-			contentUploadError={mediaStore.mediaUploadError}
-			recentMediaItems={mediaStore.recentMediaItems}
-			mediaLoadError={mediaStore.mediaLoadError}
-			{insertMarkdownAtCursor}
-			{setEditorCoverImage}
-		/>
+		<div class="rounded-xl border border-zinc-800/60 bg-zinc-900/40">
+			<button
+				type="button"
+				onclick={() => (showJournalDetails = !showJournalDetails)}
+				class="flex w-full items-center justify-between p-4 text-xs font-semibold uppercase tracking-wide text-zinc-400 transition hover:text-zinc-200"
+			>
+				<span>Journal Details</span>
+				<svg
+					class="h-4 w-4 transition-transform {showJournalDetails ? 'rotate-180' : ''}"
+					fill="none" stroke="currentColor" viewBox="0 0 24 24"
+				>
+					<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
+				</svg>
+			</button>
+			{#if showJournalDetails}
+				<div class="space-y-5 border-t border-zinc-800/60 p-4 pt-5">
+					<div class="grid grid-cols-1 gap-5 sm:grid-cols-2">
+						<div class="space-y-1.5">
+							<label
+								for="journal-title"
+								class="block text-xs font-medium text-zinc-400 tracking-wide uppercase"
+								>Title <span class="normal-case font-normal text-zinc-600">(Optional)</span></label
+							>
+							<input
+								id="journal-title"
+								type="text"
+								bind:value={journalForm.title}
+								placeholder="Untitled Entry"
+								class="w-full px-3.5 py-2.5 rounded-lg bg-zinc-900 border border-zinc-700/60 text-zinc-100 text-sm placeholder-zinc-600 focus:outline-none focus:border-accent-500 focus:ring-1 focus:ring-accent-500/30 transition-all duration-200"
+							/>
+						</div>
+						<div class="space-y-1.5">
+							<label
+								for="journal-excerpt"
+								class="block text-xs font-medium text-zinc-400 tracking-wide uppercase"
+								>Excerpt <span class="normal-case font-normal text-zinc-600">(Optional)</span></label
+							>
+							<input
+								id="journal-excerpt"
+								type="text"
+								bind:value={journalForm.excerpt}
+								placeholder="A short summary or mood for this entry…"
+								class="w-full px-3.5 py-2.5 rounded-lg bg-zinc-900 border border-zinc-700/60 text-zinc-100 text-sm placeholder-zinc-600 focus:outline-none focus:border-accent-500 focus:ring-1 focus:ring-accent-500/30 transition-all duration-200"
+							/>
+						</div>
+					</div>
+
+					<div class="space-y-1.5">
+						<label
+							for="journal-entry-date"
+							class="block text-xs font-medium text-zinc-400 tracking-wide uppercase"
+							>Entry Date</label
+						>
+						<input
+							id="journal-entry-date"
+							type="date"
+							bind:value={selectedJournalEntryDate}
+							class="w-full px-3.5 py-2.5 rounded-lg bg-zinc-900 border border-zinc-700/60 text-zinc-100 text-sm focus:outline-none focus:border-accent-500 focus:ring-1 focus:ring-accent-500/30 transition-all duration-200 [color-scheme:dark]"
+						/>
+					</div>
+
+					<CoverImage
+						bind:coverImage={journalForm.coverImage}
+						onCoverUpload={handleJournalCoverUpload}
+						coverUploading={mediaStore.mediaUploading}
+						coverError={journalForm.coverError}
+					/>
+
+					<div class="space-y-2">
+						<div class="flex justify-end">
+							<button
+								type="button"
+								onclick={insertCurrentJournalTimestamp}
+								class="inline-flex items-center gap-2 rounded-lg border border-zinc-700/60 bg-zinc-900 px-3 py-2 text-xs font-semibold text-zinc-300 transition-all duration-200 hover:border-accent-500/50 hover:text-accent-300"
+							>
+								<svg
+									class="h-3.5 w-3.5"
+									fill="none"
+									stroke="currentColor"
+									viewBox="0 0 24 24"
+								>
+									<path
+										stroke-linecap="round"
+										stroke-linejoin="round"
+										stroke-width="2"
+										d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"
+									/>
+								</svg>
+								Insert Date & Time
+							</button>
+						</div>
+						<MarkdownEditor
+							id="journal-content"
+							bind:content={journalForm.content}
+							bind:imageMeta={journalForm.imageMeta}
+							bind:textareaRef
+							bind:activeTab
+							onOpenMediaGallery={() => {
+								showMediaGallery = true;
+								mediaStore.openMediaGallery();
+							}}
+							placeholderText="What's on your mind today? Markdown is supported."
+						/>
+					</div>
+
+					<ContentImagesHelper
+						onOpenMediaGallery={() => {
+							showMediaGallery = true;
+							mediaStore.openMediaGallery();
+						}}
+						{handleContentUpload}
+						contentUploading={mediaStore.mediaUploading}
+						contentUploadError={mediaStore.mediaUploadError}
+						recentMediaItems={mediaStore.recentMediaItems}
+						mediaLoadError={mediaStore.mediaLoadError}
+						{insertMarkdownAtCursor}
+						{setEditorCoverImage}
+					/>
+				</div>
+			{/if}
+		</div>
 
 		{#if journalForm.error}
 			<div

@@ -302,6 +302,12 @@
 				</div>
 				<div class="flex flex-wrap items-center gap-3">
 					<a
+						href="/habits/"
+						class="rounded-lg border border-accent-500/30 bg-accent-600/10 px-4 py-2 text-sm font-medium text-accent-300 transition-all duration-200 hover:border-accent-500/50 hover:bg-accent-600/20"
+					>
+						Today
+					</a>
+					<a
 						href="/admin/"
 						class="rounded-lg border border-zinc-800 bg-zinc-900/70 px-4 py-2 text-sm font-medium text-zinc-300 transition-all duration-200 hover:border-zinc-700 hover:text-zinc-100"
 					>
@@ -795,15 +801,21 @@
 										{/if}
 									</div>
 
-									<div
-										class="prose-custom max-w-3xl break-words text-left text-[0.98rem] leading-relaxed text-zinc-350"
-									>
-										<!-- eslint-disable-next-line svelte/no-at-html-tags -->
-										{@html renderMarkdown(
-											selectedEntry.content,
-											selectedEntry.imageMeta,
-										)}
-									</div>
+									{#if selectedEntry.content}
+										<div
+											class="prose-custom max-w-3xl break-words text-left text-[0.98rem] leading-relaxed text-zinc-350"
+										>
+											<!-- eslint-disable-next-line svelte/no-at-html-tags -->
+											{@html renderMarkdown(
+												selectedEntry.content,
+												selectedEntry.imageMeta,
+											)}
+										</div>
+									{:else}
+										<p class="text-sm italic text-zinc-600">
+											No journal notes for this day. Just a mood check-in and habit log.
+										</p>
+									{/if}
 								</div>
 							</article>
 						{:else}

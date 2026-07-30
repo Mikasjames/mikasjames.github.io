@@ -4,7 +4,9 @@ import {
 	deleteHabit,
 	updateHabitOrder,
 	getHabitLogsForJournalEntry,
+	getHabitLogsForDate,
 	deleteHabitLogsForJournalEntry,
+	deleteHabitLogsForDate,
 	upsertHabitLog,
 	type Habit,
 } from "./firestore.svelte";
@@ -107,7 +109,7 @@ export function createHabitsStore() {
 				err instanceof Error
 					? err.message
 					: "Failed to reorder habits.";
-			await loadHabits(userUid); // reload to restore server state
+			await loadHabits(userUid);
 		}
 	}
 
@@ -155,6 +157,41 @@ export function createHabitsStore() {
 		);
 	}
 
+	async function loadHabitLogsForDate(userUid: string, date: string) {
+		try {
+			const logs = await getHabitLogsForDate(userUid, date);
+			selectedHabitIds = new Set(logs.map((log) => log.habitId));
+		} catch (err: unknown) {
+			console.error("Failed to load habit logs for date:", err);
+			habitsError =
+				err instanceof Error
+					? err.message
+					: "Failed to load habit logs for this date.";
+			selectedHabitIds = new Set();
+		}
+	}
+
+	async function saveHabitLogsForDate(
+		userUid: string,
+		date: string,
+		journalEntryId: string | null,
+	) {
+		await deleteHabitLogsForDate(userUid, date);
+		const selectedHabits = habits.filter((habit) =>
+			selectedHabitIds.has(habit.id),
+		);
+		await Promise.all(
+			selectedHabits.map((habit) =>
+				upsertHabitLog({
+					habit,
+					ownerUid: userUid,
+					date,
+					journalEntryId,
+				}),
+			),
+		);
+	}
+
 	return {
 		get habits() { return habits; },
 		get selectedHabitIds() { return selectedHabitIds; },
@@ -172,5 +209,7 @@ export function createHabitsStore() {
 		moveHabit,
 		loadSelectedHabitLogs,
 		saveSelectedHabitLogs,
+		loadHabitLogsForDate,
+		saveHabitLogsForDate,
 	};
 }
