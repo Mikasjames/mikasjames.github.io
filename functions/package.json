@@ -3,7 +3,7 @@
   "version": "1.0.0",
   "type": "module",
   "engines": {
-    "node": "20"
+    "node": "22"
   },
   "main": "lib/index.js",
   "scripts": {
@@ -17,7 +17,7 @@
     "@google-cloud/secret-manager": "^4.1.0"
   },
   "devDependencies": {
-    "@types/node": "^20.0.0",
+    "@types/node": ">=22.0.0",
     "typescript": "^5.0.0"
   }
 }
