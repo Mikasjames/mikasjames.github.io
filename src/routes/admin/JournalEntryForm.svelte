@@ -1,5 +1,5 @@
 <script lang="ts">
-	import { tick } from "svelte";
+	import { tick, onMount } from "svelte";
 	import CoverImage from "$lib/components/CoverImage.svelte";
 	import MarkdownEditor from "$lib/components/MarkdownEditor.svelte";
 	import ContentImagesHelper from "$lib/components/ContentImagesHelper.svelte";
@@ -76,6 +76,10 @@
 	let activeTab = $state<"write" | "preview">("write");
 	let textareaRef = $state<HTMLTextAreaElement | null>(null);
 	let showJournalDetails = $state(false);
+
+	onMount(() => {
+		habitsStore.selectedHabitIds = new Set();
+	});
 
 	export function startEditJournal(entry: JournalEntry) {
 		journalForm.id = entry.id;

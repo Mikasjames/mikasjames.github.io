@@ -7,8 +7,6 @@
 		type BlogPost,
 		getJournalEntriesPage,
 		deleteJournalEntry,
-		getJournalEntryByDate,
-		upsertJournalEntry,
 		type JournalEntry,
 		DEFAULT_PAGE_SIZE,
 	} from "$lib/firebase/firestore.svelte";
@@ -17,7 +15,6 @@
 	import { createInsightsStore } from "$lib/firebase/insights.svelte";
 	import { createMediaStore } from "$lib/firebase/media.svelte";
 	import { createHabitsStore } from "$lib/firebase/habits.svelte";
-	import { todayDateKey } from "$lib/utils/date";
 	import GridBackground from "$lib/components/GridBackground.svelte";
 	import Spinner from "$lib/components/Spinner.svelte";
 	import AppButton from "$lib/components/AppButton.svelte";
@@ -40,10 +37,6 @@
 
 	let currentSection = $state<"blogs" | "journal" | "insights">("journal");
 
-	let habitsHappiness = $state(3);
-	let habitsSaving = $state(false);
-	let habitsSaveMsg = $state("");
-
 	$effect(() => {
 		const unsub = subscribeToAuth((u) => {
 			user = u;
@@ -60,56 +53,8 @@
 			loadJournalEntries();
 			habitsStore.loadHabits(user.uid);
 			insightsStore.loadLatest(user.uid);
-			loadTodayCheckin(user.uid);
 		}
 	});
-
-	async function loadTodayCheckin(uid: string) {
-		const today = todayDateKey();
-		try {
-			const entry = await getJournalEntryByDate(uid, today);
-			if (entry) {
-				habitsHappiness = entry.happinessRating ?? 3;
-				await habitsStore.loadHabitLogsForDate(uid, today);
-			} else {
-				habitsHappiness = 3;
-				habitsStore.selectedHabitIds = new Set();
-			}
-		} catch {
-			habitsHappiness = 3;
-			habitsStore.selectedHabitIds = new Set();
-		}
-	}
-
-	async function handleHabitsSave() {
-		if (!user) return;
-		habitsSaving = true;
-		habitsSaveMsg = "";
-		const today = todayDateKey();
-		try {
-			const existing = await getJournalEntryByDate(user.uid, today);
-			const payload = {
-				title: "",
-				excerpt: "",
-				content: "",
-				coverImage: null as string | null,
-				imageMeta: {} as Record<string, { width: number; height: number }>,
-				happinessRating: habitsHappiness,
-				ownerUid: user.uid,
-				entryDate: today,
-			};
-
-			const entryId = await upsertJournalEntry(payload, existing?.id);
-
-			await habitsStore.saveHabitLogsForDate(user.uid, today, entryId);
-			habitsSaveMsg = "Saved!";
-			setTimeout(() => { habitsSaveMsg = ""; }, 2000);
-		} catch (err) {
-			habitsSaveMsg = err instanceof Error ? err.message : "Failed to save.";
-		} finally {
-			habitsSaving = false;
-		}
-	}
 
 	let posts = $state<BlogPost[]>([]);
 	let postsLoading = $state(false);
