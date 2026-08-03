@@ -11,7 +11,14 @@ import {
 	type Habit,
 } from "./firestore.svelte";
 
+let singleton: ReturnType<typeof makeStore> | null = null;
+
 export function createHabitsStore() {
+	if (!singleton) singleton = makeStore();
+	return singleton;
+}
+
+function makeStore() {
 	let habits = $state<Habit[]>([]);
 	let selectedHabitIds = $state<Set<string>>(new Set());
 	let habitsLoading = $state(false);
