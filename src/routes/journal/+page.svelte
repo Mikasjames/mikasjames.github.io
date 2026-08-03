@@ -259,10 +259,7 @@
 
 <div class="min-h-screen bg-[#09090b] pt-20 pb-12 px-4 md:px-8">
 	<GridBackground opacity="2" />
-	<div
-		class="fixed top-24 left-1/2 h-px w-[min(72rem,calc(100vw-2rem))] -translate-x-1/2 bg-gradient-to-r from-transparent via-accent-500/25 to-transparent pointer-events-none"
-	></div>
-
+	
 	{#if !authReady || (user && loading && entries.length === 0)}
 		<div
 			class="min-h-[70vh] flex flex-col items-center justify-center gap-4"
