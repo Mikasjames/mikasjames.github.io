@@ -233,7 +233,12 @@
 						{formattedDate(selectedDate)}
 					</h1>
 				</div>
-				<UserActions onTodayClick={goToday} onSignOut={handleLogout} />
+				<UserActions onTodayClick={goToday} onSignOut={handleLogout}>
+					{#snippet children()}
+						<AppButton variant="ghost" size="sm" href="/admin/">Admin Dashboard</AppButton>
+					{/snippet}
+
+				</UserActions>
 			</div>
 
 			<div class="space-y-5">
