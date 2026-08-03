@@ -1,6 +1,6 @@
 <script lang="ts">
   let {
-    size = 'md' as 'sm' | 'md' | 'lg' | 'xl',
+    size = 'md' as 'xs' | 'sm' | 'md' | 'lg' | 'xl',
     color = 'accent' as 'accent' | 'white' | 'zinc' | 'danger',
     class: className = '',
   } = $props();

@@ -1,28 +1,9 @@
 <script lang="ts">
   import AppButton from "./AppButton.svelte";
+  import type { Habit } from "$lib/firebase/firestore.svelte";
+  import type { createHabitsStore } from "$lib/firebase/habits.svelte";
 
-  interface Habit {
-    id: string;
-    emoji: string;
-    name: string;
-  }
-
-  interface HabitsStore {
-    showHabitManager: boolean;
-    habitsLoading: boolean;
-    habits: Habit[];
-    selectedHabitIds: Set<string>;
-    habitForm: {
-      emoji: string;
-      name: string;
-      submitting: boolean;
-      error: string;
-    };
-    toggleHabit: (id: string) => void;
-    moveHabit: (index: number, direction: number, userId: string) => void;
-    handleDeleteHabit: (habit: Habit, userId: string) => void;
-    handleAddHabit: (userId: string) => void;
-  }
+  type HabitsStore = ReturnType<typeof createHabitsStore>;
 
   let {
     habitsStore,
