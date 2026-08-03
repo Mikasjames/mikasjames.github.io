@@ -1,11 +1,13 @@
 <script lang="ts">
-	import { onMount, onDestroy } from "svelte";
+	import { onMount, onDestroy, untrack } from "svelte";
 	import { goto } from "$app/navigation";
 	import { subscribeToAuth, logout } from "$lib/firebase/auth";
 	import {
 		getJournalEntryByDate,
 		getJournalEntriesByMonth,
+		getHabitLogsForDates,
 		upsertJournalEntry,
+		type HabitLog,
 		type JournalEntry,
 	} from "$lib/firebase/firestore.svelte";
 	import { createHabitsStore } from "$lib/firebase/habits.svelte";
@@ -35,6 +37,7 @@
 	let calendarYear = $state<number>(new Date().getFullYear());
 	let calendarMonth = $state<number>(new Date().getMonth() + 1);
 	let monthEntries = $state<JournalEntry[]>([]);
+	let habitLogsByDate = $state<Record<string, Set<string>>>({});
 	let calendarLoading = $state(false);
 
 	const unsub = subscribeToAuth((u) => {
@@ -48,44 +51,82 @@
 
 	async function loadDate(date: string) {
 		if (!user) return;
+		const uid = user.uid;
+
 		selectedDate = date;
 		content = "";
 		showNote = false;
 		showPreview = false;
 		saveMsg = "";
+		journalEntryId = null;
+		happinessRating = 3;
 
 		try {
-			const entry = await getJournalEntryByDate(user.uid, date);
+			const cached = untrack(() =>
+				monthEntries.find((e) => e.entryDate === date && e.ownerUid === uid),
+			);
+			const entry = cached ?? (await getJournalEntryByDate(uid, date));
+		
+			if (selectedDate !== date) return;
+
 			if (entry) {
 				journalEntryId = entry.id;
 				happinessRating = entry.happinessRating ?? 3;
 				content = entry.content || "";
 				if (content) showNote = true;
-			} else {
-				journalEntryId = null;
-				happinessRating = 3;
 			}
 		} catch {
-			journalEntryId = null;
-			happinessRating = 3;
+			if (selectedDate !== date) return;
 		}
 
-		await habitsStore.loadHabitLogsForDate(user.uid, date);
+		if (selectedDate === date) {
+			const cachedSet = untrack(() => habitLogsByDate[date]);
+			if (cachedSet !== undefined) {
+				habitsStore.selectedHabitIds = new Set(cachedSet);
+			} else {
+				await habitsStore.loadHabitLogsForDate(uid, date);
+			}
+		}
 	}
 
 	async function loadCalendarMonth(year: number, month: number) {
 		if (!user) return;
+		const uid = user.uid;
 		calendarLoading = true;
 		calendarYear = year;
 		calendarMonth = month;
 		try {
-			monthEntries = await getJournalEntriesByMonth(user.uid, year, month);
+			monthEntries = await getJournalEntriesByMonth(uid, year, month);
 		} catch (err) {
 			console.error("Failed to load calendar entries:", err);
 			monthEntries = [];
-		} finally {
-			calendarLoading = false;
 		}
+		await cacheHabitLogsForMonth(uid, year, month);
+		calendarLoading = false;
+	}
+
+	async function cacheHabitLogsForMonth(
+		uid: string,
+		year: number,
+		month: number,
+	) {
+		const dayCount = new Date(year, month, 0).getDate();
+		const dates = Array.from(
+			{ length: dayCount },
+			(_, i) =>
+				`${year}-${String(month).padStart(2, "0")}-${String(i + 1).padStart(2, "0")}`,
+		);
+		const map: Record<string, Set<string>> = {};
+		for (const d of dates) map[d] = new Set();
+		try {
+			const logsByDate = await getHabitLogsForDates(uid, dates);
+			for (const [date, logs] of Object.entries(logsByDate)) {
+				map[date] = new Set(logs.map((log: HabitLog) => log.habitId));
+			}
+		} catch (err) {
+			console.warn("Habit logs unavailable:", err);
+		}
+		habitLogsByDate = map;
 	}
 
 	async function handleSave() {
@@ -108,6 +149,7 @@
 			journalEntryId = entryId;
 
 			await habitsStore.saveHabitLogsForDate(user.uid, selectedDate, entryId);
+			habitLogsByDate[selectedDate] = new Set(habitsStore.selectedHabitIds);
 
 			await loadCalendarMonth(calendarYear, calendarMonth);
 			saveMsg = "Saved!";
