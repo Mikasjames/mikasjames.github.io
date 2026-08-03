@@ -5,8 +5,7 @@
 	import {
 		getJournalEntryByDate,
 		getJournalEntriesByMonth,
-		createJournalEntry,
-		updateJournalEntry,
+		upsertJournalEntry,
 		type JournalEntry,
 	} from "$lib/firebase/firestore.svelte";
 	import { createHabitsStore } from "$lib/firebase/habits.svelte";
@@ -105,14 +104,8 @@
 				entryDate: selectedDate,
 			};
 
-			let entryId: string;
-			if (journalEntryId) {
-				await updateJournalEntry(journalEntryId, payload);
-				entryId = journalEntryId;
-			} else {
-				entryId = await createJournalEntry(payload);
-				journalEntryId = entryId;
-			}
+			const entryId = await upsertJournalEntry(payload, journalEntryId);
+			journalEntryId = entryId;
 
 			await habitsStore.saveHabitLogsForDate(user.uid, selectedDate, entryId);
 

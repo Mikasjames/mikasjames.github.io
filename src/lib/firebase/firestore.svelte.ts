@@ -323,6 +323,26 @@ export async function updateJournalEntry(
     });
 }
 
+export async function upsertJournalEntry(
+    data: {
+        title: string;
+        excerpt?: string;
+        content: string;
+        coverImage?: string | null;
+        imageMeta?: Record<string, ImageMeta>;
+        happinessRating?: number | null;
+        ownerUid?: string;
+        entryDate?: string | null;
+    },
+    existingId?: string | null,
+): Promise<string> {
+    if (existingId) {
+        await updateJournalEntry(existingId, data);
+        return existingId;
+    }
+    return createJournalEntry(data);
+}
+
 export async function deleteJournalEntry(id: string): Promise<void> {
     const entryRef = doc(getDb(), JOURNAL_COLLECTION, id);
     await deleteDoc(entryRef);

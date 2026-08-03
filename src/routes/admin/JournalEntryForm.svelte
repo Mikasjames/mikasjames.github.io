@@ -4,8 +4,7 @@
 	import MarkdownEditor from "$lib/components/MarkdownEditor.svelte";
 	import ContentImagesHelper from "$lib/components/ContentImagesHelper.svelte";
 	import {
-		createJournalEntry,
-		updateJournalEntry,
+		upsertJournalEntry,
 		type ImageMeta,
 		type JournalEntry,
 	} from "$lib/firebase/firestore.svelte";
@@ -152,22 +151,19 @@
 			};
 
 			if (journalForm.id) {
-				await updateJournalEntry(journalForm.id, payload);
-				await habitsStore.saveSelectedHabitLogs(
-					user!.uid,
-					journalForm.id,
-					payload.entryDate,
-				);
 				journalForm.successMsg = "Journal entry updated successfully!";
 			} else {
-				const entryId = await createJournalEntry(payload);
-				await habitsStore.saveSelectedHabitLogs(
-					user!.uid,
-					entryId,
-					payload.entryDate,
-				);
 				journalForm.successMsg = "Journal entry added successfully!";
 			}
+			const entryId = await upsertJournalEntry(
+				payload,
+				journalForm.id,
+			);
+			await habitsStore.saveSelectedHabitLogs(
+				user!.uid,
+				entryId,
+				payload.entryDate,
+			);
 			resetJournalForm();
 			await loadJournalEntries();
 			await habitsStore.loadHabits(user!.uid);

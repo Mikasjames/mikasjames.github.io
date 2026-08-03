@@ -8,8 +8,7 @@
 		getJournalEntriesPage,
 		deleteJournalEntry,
 		getJournalEntryByDate,
-		createJournalEntry,
-		updateJournalEntry,
+		upsertJournalEntry,
 		type JournalEntry,
 		DEFAULT_PAGE_SIZE,
 	} from "$lib/firebase/firestore.svelte";
@@ -102,13 +101,7 @@
 				entryDate: today,
 			};
 
-			let entryId: string;
-			if (existing) {
-				await updateJournalEntry(existing.id, payload);
-				entryId = existing.id;
-			} else {
-				entryId = await createJournalEntry(payload);
-			}
+			const entryId = await upsertJournalEntry(payload, existing?.id);
 
 			await habitsStore.saveHabitLogsForDate(user.uid, today, entryId);
 			habitsSaveMsg = "Saved!";
