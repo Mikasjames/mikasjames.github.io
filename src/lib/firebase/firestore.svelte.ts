@@ -15,7 +15,7 @@ import {
     type DocumentSnapshot,
     limit,
     startAfter,
-    setDoc
+    writeBatch
 } from 'firebase/firestore';
 import app from './firebase';
 
@@ -510,17 +510,78 @@ export async function getHabitLogsForJournalEntry(
     return snapshot.docs.map((d) => docToHabitLog(d.id, d.data()));
 }
 
-export async function deleteHabitLogsForJournalEntry(
+export async function saveHabitLogsForDateAtomic(
     ownerUid: string,
-    journalEntryId: string
+    date: string,
+    journalEntryId: string | null,
+    selectedHabits: Habit[]
 ): Promise<void> {
-    const logs = await getHabitLogsForJournalEntry(ownerUid, journalEntryId);
-    await Promise.all(logs.map((log) => deleteDoc(doc(getDb(), HABIT_LOGS_COLLECTION, log.id))));
+    const existingLogs = await getHabitLogsForDate(ownerUid, date);
+    await replaceHabitLogsInBatch(
+        existingLogs,
+        selectedHabits,
+        ownerUid,
+        date,
+        journalEntryId
+    );
 }
 
-export async function deleteHabitLogsForDate(ownerUid: string, date: string): Promise<void> {
-    const logs = await getHabitLogsForDate(ownerUid, date);
-    await Promise.all(logs.map((log) => deleteDoc(doc(getDb(), HABIT_LOGS_COLLECTION, log.id))));
+export async function saveHabitLogsForJournalEntryAtomic(
+    ownerUid: string,
+    journalEntryId: string,
+    date: string,
+    selectedHabits: Habit[]
+): Promise<void> {
+    const existingLogs = await getHabitLogsForJournalEntry(ownerUid, journalEntryId);
+    await replaceHabitLogsInBatch(
+        existingLogs,
+        selectedHabits,
+        ownerUid,
+        date,
+        journalEntryId
+    );
+}
+
+async function replaceHabitLogsInBatch(
+    existingLogs: HabitLog[],
+    selectedHabits: Habit[],
+    ownerUid: string,
+    date: string,
+    journalEntryId: string | null
+): Promise<void> {
+    if (!date || !/^\d{4}-\d{2}-\d{2}$/.test(date)) {
+        throw new Error(`Invalid date format: ${date}. Expected YYYY-MM-DD`);
+    }
+
+    const batch = writeBatch(getDb());
+    const logRef = (habitId: string) =>
+        doc(getDb(), HABIT_LOGS_COLLECTION, `${ownerUid}_${date}_${habitId}`);
+
+    const selectedIds = new Set(selectedHabits.map((habit) => habit.id));
+    for (const log of existingLogs) {
+        if (!selectedIds.has(log.habitId)) {
+            batch.delete(doc(getDb(), HABIT_LOGS_COLLECTION, log.id));
+        }
+    }
+
+    for (const habit of selectedHabits) {
+        batch.set(
+            logRef(habit.id),
+            {
+                habitId: habit.id,
+                habitName: habit.name,
+                emoji: habit.emoji,
+                ownerUid,
+                completedAt: serverTimestamp(),
+                lastModifiedAt: serverTimestamp(),
+                journalEntryId,
+                date
+            },
+            { merge: true }
+        );
+    }
+
+    await batch.commit();
 }
 
 export async function getHabitLogsForDates(
@@ -542,34 +603,6 @@ export async function getHabitLogsForDates(
         }
     }
     return byDate;
-}
-
-export async function upsertHabitLog(data: {
-    habit: Habit;
-    ownerUid: string;
-    date: string;
-    journalEntryId: string | null;
-}): Promise<void> {
-    // Validate date format
-    if (!data.date || !/^\d{4}-\d{2}-\d{2}$/.test(data.date)) {
-        throw new Error(`Invalid date format: ${data.date}. Expected YYYY-MM-DD`);
-    }
-
-    const logId = `${data.ownerUid}_${data.date}_${data.habit.id}`;
-    await setDoc(
-        doc(getDb(), HABIT_LOGS_COLLECTION, logId),
-        {
-            habitId: data.habit.id,
-            habitName: data.habit.name,
-            emoji: data.habit.emoji,
-            ownerUid: data.ownerUid,
-            completedAt: serverTimestamp(),        // When the habit was actually done
-            lastModifiedAt: serverTimestamp(),     // When this log was last edited
-            journalEntryId: data.journalEntryId,
-            date: data.date                        // The date this habit applies to
-        },
-        { merge: true }
-    );
 }
 
 export async function getLatestMonthlyInsight(ownerUid: string): Promise<MonthlyInsight | null> {

@@ -5,9 +5,8 @@ import {
 	updateHabitOrder,
 	getHabitLogsForJournalEntry,
 	getHabitLogsForDate,
-	deleteHabitLogsForJournalEntry,
-	deleteHabitLogsForDate,
-	upsertHabitLog,
+	saveHabitLogsForDateAtomic,
+	saveHabitLogsForJournalEntryAtomic,
 	type Habit,
 } from "./firestore.svelte";
 
@@ -148,19 +147,14 @@ function makeStore() {
 		journalEntryId: string,
 		date: string,
 	) {
-		await deleteHabitLogsForJournalEntry(userUid, journalEntryId);
 		const selectedHabits = habits.filter((habit) =>
 			selectedHabitIds.has(habit.id),
 		);
-		await Promise.all(
-			selectedHabits.map((habit) =>
-				upsertHabitLog({
-					habit,
-					ownerUid: userUid,
-					date,
-					journalEntryId,
-				}),
-			),
+		await saveHabitLogsForJournalEntryAtomic(
+			userUid,
+			journalEntryId,
+			date,
+			selectedHabits,
 		);
 	}
 
@@ -183,19 +177,14 @@ function makeStore() {
 		date: string,
 		journalEntryId: string | null,
 	) {
-		await deleteHabitLogsForDate(userUid, date);
 		const selectedHabits = habits.filter((habit) =>
 			selectedHabitIds.has(habit.id),
 		);
-		await Promise.all(
-			selectedHabits.map((habit) =>
-				upsertHabitLog({
-					habit,
-					ownerUid: userUid,
-					date,
-					journalEntryId,
-				}),
-			),
+		await saveHabitLogsForDateAtomic(
+			userUid,
+			date,
+			journalEntryId,
+			selectedHabits,
 		);
 	}
 
