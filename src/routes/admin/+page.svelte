@@ -17,11 +17,10 @@
 	import { createInsightsStore } from "$lib/firebase/insights.svelte";
 	import { createMediaStore } from "$lib/firebase/media.svelte";
 	import { createHabitsStore } from "$lib/firebase/habits.svelte";
-	import { getHappinessLabel, todayDateKey } from "$lib/utils/date";
+	import { todayDateKey } from "$lib/utils/date";
 	import GridBackground from "$lib/components/GridBackground.svelte";
 	import Spinner from "$lib/components/Spinner.svelte";
 	import AppButton from "$lib/components/AppButton.svelte";
-	import HabitsManager from "$lib/components/HabitsManager.svelte";
 	import BlogPostForm from "./BlogPostForm.svelte";
 	import JournalEntryForm from "./JournalEntryForm.svelte";
 	import InsightsDashboard from "./InsightsDashboard.svelte";
@@ -39,12 +38,11 @@
 	let blogPostFormRef = $state<ReturnType<typeof BlogPostForm>>();
 	let journalEntryFormRef = $state<ReturnType<typeof JournalEntryForm>>();
 
-	let currentSection = $state<"habits" | "blogs" | "journal" | "insights">("habits");
+	let currentSection = $state<"blogs" | "journal" | "insights">("journal");
 
 	let habitsHappiness = $state(3);
 	let habitsSaving = $state(false);
 	let habitsSaveMsg = $state("");
-	let currentUser = $derived(user!);
 
 	$effect(() => {
 		const unsub = subscribeToAuth((u) => {
@@ -320,21 +318,6 @@
 			>
 				<button
 					type="button"
-					onclick={() => (currentSection = "habits")}
-					class="relative shrink-0 pb-3 text-sm font-semibold tracking-wide transition-all duration-200 {currentSection ===
-					'habits'
-						? 'text-accent-400'
-						: 'text-zinc-400 hover:text-zinc-200'}"
-				>
-					Habits
-					{#if currentSection === "habits"}
-						<span
-							class="absolute bottom-0 left-0 right-0 h-0.5 bg-accent-500 rounded-t-full"
-						></span>
-					{/if}
-				</button>
-				<button
-					type="button"
 					onclick={() => (currentSection = "journal")}
 					class="relative shrink-0 pb-3 text-sm font-semibold tracking-wide transition-all duration-200 {currentSection ===
 					'journal'
@@ -380,56 +363,7 @@
 				</button>
 			</div>
 
-			{#if currentSection === "habits"}
-				<div class="space-y-6">
-					<div class="rounded-xl border border-zinc-800/60 bg-zinc-900/50 p-5">
-						<div class="mb-4">
-							<p class="text-xs font-semibold uppercase tracking-wide text-zinc-400">
-								Today's Check-in
-							</p>
-							<p class="mt-1 text-xs text-zinc-550">
-								{todayDateKey()}
-							</p>
-						</div>
-
-						<div class="mb-4">
-							<p class="mb-2 text-xs font-semibold uppercase tracking-wide text-zinc-400">Mood</p>
-							<div class="flex items-center gap-4">
-								<span class="text-lg font-bold text-zinc-100 min-w-[2rem] text-center tabular-nums">
-									{habitsHappiness}
-								</span>
-								<input
-									type="range"
-									min="1"
-									max="5"
-									step="1"
-									bind:value={habitsHappiness}
-									class="h-2 flex-1 cursor-pointer appearance-none rounded-full bg-gradient-to-r from-red-500 via-amber-400 to-emerald-400 accent-accent-500"
-								/>
-								<span class="text-xs font-semibold text-zinc-300 min-w-[4.5rem] text-right">
-									{getHappinessLabel(habitsHappiness)}
-								</span>
-							</div>
-						</div>
-
-						<div class="space-y-3">
-							<HabitsManager {habitsStore} userId={currentUser.uid} />
-						</div>
-
-						<div class="mt-4 flex items-center gap-4 pt-4 border-t border-zinc-800/60">
-							<AppButton variant="primary" size="md" onclick={handleHabitsSave} disabled={habitsSaving} loading={habitsSaving}>
-								{habitsSaving ? "Saving..." : "Save Today"}
-							</AppButton>
-							{#if habitsSaveMsg}
-								<span class="text-sm {habitsSaveMsg === 'Saved!' ? 'text-emerald-400' : 'text-red-400'}">{habitsSaveMsg}</span>
-							{/if}
-							<a href="/habits/" class="ml-auto text-xs text-accent-400 hover:text-accent-300 underline">
-								Full Check-in Page →
-							</a>
-						</div>
-					</div>
-				</div>
-			{:else if currentSection === "journal"}
+			{#if currentSection === "journal"}
 				<JournalEntryForm
 					bind:this={journalEntryFormRef}
 					{user}
