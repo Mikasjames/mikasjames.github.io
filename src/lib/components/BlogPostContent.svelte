@@ -1,24 +1,11 @@
 <script lang="ts">
 	import type { BlogPost } from "$lib/firebase/firestore.svelte";
 	import { renderMarkdown } from "$lib/utils/renderMarkdown";
+	import { formatDateLong, readingTime } from "$lib/utils/date";
 
 	let { post, backHref = "/blogs/" }: { post: BlogPost; backHref?: string } =
 		$props();
 
-	function formatDate(d: Date | null) {
-		if (!d) return "";
-		return d.toLocaleDateString("en-US", {
-			year: "numeric",
-			month: "long",
-			day: "numeric",
-		});
-	}
-
-	function readingTime(content: string) {
-		const words = content.trim().split(/\s+/).length;
-		const mins = Math.max(1, Math.round(words / 200));
-		return `${mins} min read`;
-	}
 </script>
 
 <a
@@ -61,7 +48,7 @@
 	<div class="flex items-center gap-3 mb-5">
 		{#if post.createdAt}
 			<time class="text-xs text-zinc-650 font-mono"
-				>{formatDate(post.createdAt)}</time
+				>{formatDateLong(post.createdAt)}</time
 			>
 			<span class="w-1 h-1 rounded-full bg-zinc-800"></span>
 		{/if}

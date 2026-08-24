@@ -1,5 +1,12 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
-import { dateKeyFromDate, formatDate, getHappinessLabel, todayDateKey } from './date';
+import {
+	dateKeyFromDate,
+	formatDate,
+	formatDateLong,
+	getHappinessLabel,
+	readingTime,
+	todayDateKey
+} from './date';
 
 afterEach(() => {
   vi.useRealTimers();
@@ -34,6 +41,35 @@ describe('todayDateKey / dateKeyFromDate', () => {
     expect(dateKeyFromDate(null)).toBe(todayDateKey());
     expect(dateKeyFromDate(undefined)).toBe(todayDateKey());
   });
+});
+
+describe('formatDateLong', () => {
+	it('returns empty string for null (unlike formatDate)', () => {
+		expect(formatDateLong(null)).toBe('');
+	});
+
+	it('formats as "Month D, YYYY" in en-US', () => {
+		expect(formatDateLong(NOON(2026, 7, 15))).toBe('July 15, 2026');
+		expect(formatDateLong(NOON(2025, 12, 31))).toBe('December 31, 2025');
+	});
+});
+
+describe('readingTime', () => {
+	const words = (n: number) => Array.from({ length: n }, (_, i) => `w${i}`).join(' ');
+
+	it('floors at one minute for empty or whitespace-only content', () => {
+		expect(readingTime('')).toBe('1 min read');
+		expect(readingTime('    ')).toBe('1 min read');
+	});
+
+	it('stays at one minute under the rounding boundary', () => {
+		expect(readingTime(words(199))).toBe('1 min read');
+	});
+
+	it('rounds up past the boundary', () => {
+		expect(readingTime(words(300))).toBe('2 min read');
+		expect(readingTime(words(600))).toBe('3 min read');
+	});
 });
 
 describe('getHappinessLabel', () => {
