@@ -11,7 +11,9 @@
 		"prepare": "svelte-kit sync || echo ''",
 		"check": "svelte-kit sync && svelte-check --tsconfig ./tsconfig.json",
 		"check:watch": "svelte-kit sync && svelte-check --tsconfig ./tsconfig.json --watch",
-		"test": "pnpm -r --if-present run test",
+		"test": "pnpm run test:app && pnpm run test:functions",
+		"test:app": "vitest run",
+		"test:functions": "pnpm --filter firebase-functions test",
 		"test:e2e": "playwright test"
 	},
 	"devDependencies": {
@@ -20,11 +22,15 @@
 		"@sveltejs/kit": "^2.57.0",
 		"@sveltejs/vite-plugin-svelte": "^7.0.0",
 		"@tailwindcss/vite": "^4.1.8",
+		"@testing-library/jest-dom": "^7.0.1",
+		"@testing-library/svelte": "^5.4.2",
+		"jsdom": "^30.0.1",
 		"svelte": "^5.55.2",
 		"svelte-check": "^4.4.6",
 		"tailwindcss": "^4.1.8",
 		"typescript": "^6.0.2",
-		"vite": "^8.0.7"
+		"vite": "^8.0.7",
+		"vitest": "^4.1.11"
 	},
 	"dependencies": {
 		"@fontsource-variable/inter": "^5.2.8",
