@@ -11,7 +11,7 @@ export function oljCookieHeader(jar: OljCookieJar): string {
   return [...jar.entries()].map(([name, value]) => `${name}=${value}`).join('; ');
 }
 
-function mergeOljSetCookies(jar: OljCookieJar, setCookies: readonly string[] | undefined): void {
+export function mergeOljSetCookies(jar: OljCookieJar, setCookies: readonly string[] | undefined): void {
   for (const cookie of setCookies ?? []) {
     const pair = cookie.split(';')[0] ?? '';
     const separatorIndex = pair.indexOf('=');

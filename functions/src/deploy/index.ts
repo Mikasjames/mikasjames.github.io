@@ -1,5 +1,6 @@
 import { onDocumentWritten } from 'firebase-functions/v2/firestore';
 import { triggerGitHubDispatch } from '../shared/github.js';
+import { decideDeploy } from './decide.js';
 
 export const deployOnPostChange = onDocumentWritten(
   {
@@ -10,22 +11,11 @@ export const deployOnPostChange = onDocumentWritten(
     try {
       const newStatus = event.data?.after?.data()?.status;
       const oldStatus = event.data?.before?.data()?.status;
+      const deleted = !event.data?.after?.exists;
 
-      const isLive = (status?: string) => status === 'published' || status === 'unlisted';
-
-      const wasLive = isLive(oldStatus);
-      const isNowLive = isLive(newStatus);
-
-      if (!event.data?.after?.exists) {
-        console.log('Post deleted — triggering deploy to remove from site');
-      } else if (!wasLive && !isNowLive) {
-        console.log('Post is a draft — skipping deploy');
-        return;
-      } else if (wasLive && !isNowLive) {
-        console.log('Post moved to draft — triggering deploy to remove from site');
-      } else {
-        console.log(`Post status is "${newStatus}" — triggering deploy`);
-      }
+      const decision = decideDeploy(oldStatus, newStatus, deleted);
+      console.log(decision.reason);
+      if (!decision.trigger) return;
 
       const token = process.env.GITHUB_PAT;
       const githubOwner = process.env.GITHUB_OWNER;
