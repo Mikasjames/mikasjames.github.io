@@ -136,24 +136,26 @@ export async function runOljLogin(): Promise<OljLoginResult> {
   };
 }
 
+export const OLJ_POINTS_CAP = 60;
+
+const OLJ_LOGIN_LOG_DOC = 'latest';
+
 export async function recordOljLogin(result: OljLoginResult): Promise<void> {
   const date = new Date().toLocaleDateString('en-CA', { timeZone: 'Asia/Manila' });
+  const ref = db.collection('oljLoginLogs').doc(OLJ_LOGIN_LOG_DOC);
 
-  const previousSnapshot = await db
-    .collection('oljLoginLogs')
-    .where('date', '<', date)
-    .orderBy('date', 'desc')
-    .limit(1)
-    .get();
-
-  const previousData = previousSnapshot.docs[0]?.data();
-  const previousBalance = typeof previousData?.pointsBalance === 'number' ? previousData.pointsBalance : null;
+  const snapshot = await ref.get();
+  const current = snapshot.data();
+  const isNewDay = current?.date !== date;
+  const previousBalance =
+    isNewDay && typeof current?.pointsBalance === 'number' ? current.pointsBalance : (current?.previousBalance ?? null);
 
   const doc: Record<string, unknown> = {
     date,
     status: result.ok ? 'success' : 'failed',
     pointsBalance: result.pointsBalance,
     previousBalance,
+    atCap: result.pointsBalance !== null && result.pointsBalance >= OLJ_POINTS_CAP,
     ranAt: Timestamp.now(),
   };
 
@@ -162,7 +164,7 @@ export async function recordOljLogin(result: OljLoginResult): Promise<void> {
     doc.debug = result.debug ?? null;
   }
 
-  await db.collection('oljLoginLogs').doc(date).set(doc);
+  await ref.set(doc);
 }
 
 export const oljDailyLogin = onSchedule(

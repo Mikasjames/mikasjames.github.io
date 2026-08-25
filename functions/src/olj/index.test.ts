@@ -151,21 +151,21 @@ describe('runOljLogin', () => {
 });
 
 describe('recordOljLogin', () => {
-	function makeChain(previous?: { pointsBalance: number }) {
+	function makeChain(current?: { date: string; pointsBalance: number; previousBalance?: number | null }) {
 		const state = {
 			docId: '',
-			set: vi.fn(async () => {}),
+			set: vi.fn<(doc: Record<string, unknown>) => Promise<void>>(async () => {}),
 		};
 		const query = {
-			where: () => query,
-			orderBy: () => query,
-			limit: () => query,
-			get: async () => ({
-				docs: previous ? [{ data: () => ({ pointsBalance: previous.pointsBalance }) }] : [],
-			}),
 			doc: (id: string) => {
 				state.docId = id;
-				return { set: state.set };
+				return {
+					get: async () => ({
+						exists: current !== undefined,
+						data: () => current,
+					}),
+					set: state.set,
+				};
 			},
 		};
 		return Object.assign(query, { state });
@@ -174,27 +174,57 @@ describe('recordOljLogin', () => {
 	it('records success with previous balance and Manila date key', async () => {
 		vi.useFakeTimers();
 		vi.setSystemTime(new Date(Date.UTC(2026, 7, 23, 18, 0, 0))); // Aug 24, 02:00 Manila
-		const chain = makeChain({ pointsBalance: 1000 });
+		const chain = makeChain({ date: '2026-08-23', pointsBalance: 1000 });
 		dbSpies.collection.mockReturnValue(chain);
 
 		await recordOljLogin({ ok: true, pointsBalance: 1250, detail: 'Authenticated (x)' });
 
 		expect(dbSpies.collection).toHaveBeenCalledWith('oljLoginLogs');
-		expect(chain.state.docId).toBe('2026-08-24');
+		expect(chain.state.docId).toBe('latest');
 		const [payload] = chain.state.set.mock.calls[0];
 		expect(payload).toMatchObject({
 			date: '2026-08-24',
 			status: 'success',
 			pointsBalance: 1250,
 			previousBalance: 1000,
+			atCap: true,
 		});
-		expect((payload as Record<string, unknown>).ranAt).toBeInstanceOf(Timestamp);
-		expect((payload as Record<string, unknown>).detail).toBeUndefined();
+		expect(payload.ranAt).toBeInstanceOf(Timestamp);
+		expect(payload.detail).toBeUndefined();
+		vi.useRealTimers();
+	});
+
+	it('flags atCap when the balance reaches the points cap', async () => {
+		vi.useFakeTimers();
+		vi.setSystemTime(new Date(Date.UTC(2026, 7, 23, 18, 0, 0)));
+		const chain = makeChain({ date: '2026-08-23', pointsBalance: 58 });
+		dbSpies.collection.mockReturnValue(chain);
+
+		await recordOljLogin({ ok: true, pointsBalance: 60, detail: 'Authenticated (x)' });
+
+		const [payload] = chain.state.set.mock.calls[0];
+		expect(payload.atCap).toBe(true);
+
+		await recordOljLogin({ ok: true, pointsBalance: 59, detail: 'Authenticated (x)' });
+		expect(chain.state.set.mock.calls[1][0].atCap).toBe(false);
+		vi.useRealTimers();
+	});
+
+	it('keeps previousBalance when re-running on the same day', async () => {
+		vi.useFakeTimers();
+		vi.setSystemTime(new Date(Date.UTC(2026, 7, 23, 18, 0, 0)));
+		const chain = makeChain({ date: '2026-08-24', pointsBalance: 1300, previousBalance: 1000 });
+		dbSpies.collection.mockReturnValue(chain);
+
+		await recordOljLogin({ ok: true, pointsBalance: 1250, detail: 'Authenticated (x)' });
+
+		const [payload] = chain.state.set.mock.calls[0];
+		expect(payload.previousBalance).toBe(1000);
 		vi.useRealTimers();
 	});
 
 	it('includes detail and debug for failed logins', async () => {
-		const chain = makeChain();
+		const chain = makeChain({ date: '2026-08-23', pointsBalance: 900 });
 		dbSpies.collection.mockReturnValue(chain);
 
 		await recordOljLogin({
@@ -205,9 +235,9 @@ describe('recordOljLogin', () => {
 		});
 
 		const [payload] = chain.state.set.mock.calls[0];
-		expect(chain.state.docId).toMatch(/^\d{4}-\d{2}-\d{2}$/);
+		expect(chain.state.docId).toBe('latest');
 		expect(payload.status).toBe('failed');
-		expect(payload.previousBalance).toBeNull();
+		expect(payload.previousBalance).toBe(900);
 		expect(payload.detail).toContain('CAPTCHA');
 		expect(payload.debug).toEqual({ authStatus: 200 });
 	});
