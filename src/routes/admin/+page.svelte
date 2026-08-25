@@ -15,6 +15,7 @@
 	import { createInsightsStore } from "$lib/firebase/insights.svelte";
 	import { createMediaStore } from "$lib/firebase/media.svelte";
 	import { createHabitsStore } from "$lib/firebase/habits.svelte";
+	import { createOljStore } from "$lib/firebase/olj.svelte";
 	import GridBackground from "$lib/components/GridBackground.svelte";
 	import Spinner from "$lib/components/Spinner.svelte";
 	import AppButton from "$lib/components/AppButton.svelte";
@@ -22,6 +23,7 @@
 	import JournalEntryForm from "./JournalEntryForm.svelte";
 	import InsightsDashboard from "./InsightsDashboard.svelte";
 	import EntryList from "./EntryList.svelte";
+	import OljLoginPanel from "./OljLoginPanel.svelte";
 	import ConfirmDialog from "$lib/components/ConfirmDialog.svelte";
 	import { toast } from "$lib/stores/toast.svelte";
 
@@ -31,11 +33,12 @@
 	const insightsStore = createInsightsStore();
 	const mediaStore = createMediaStore();
 	const habitsStore = createHabitsStore();
+	const oljStore = createOljStore();
 
 	let blogPostFormRef = $state<ReturnType<typeof BlogPostForm>>();
 	let journalEntryFormRef = $state<ReturnType<typeof JournalEntryForm>>();
 
-	let currentSection = $state<"blogs" | "journal" | "insights">("journal");
+	let currentSection = $state<"blogs" | "journal" | "insights" | "olj">("journal");
 
 	$effect(() => {
 		const unsub = subscribeToAuth((u) => {
@@ -53,6 +56,7 @@
 			loadJournalEntries();
 			habitsStore.loadHabits(user.uid);
 			insightsStore.loadLatest(user.uid);
+			oljStore.loadLog();
 		}
 	});
 
@@ -246,14 +250,16 @@
 					<AppButton variant="ghost" size="md" href="/blogs/drafts/">View Drafts</AppButton>
 					<AppButton
 						variant="ghost" size="md"
-						href={currentSection === "blogs"
-							? "/blogs/"
-							: currentSection === "journal"
-								? "/journal/"
+					href={currentSection === "blogs"
+						? "/blogs/"
+						: currentSection === "journal"
+							? "/journal/"
+							: currentSection === "olj"
+								? "/"
 								: "/habits/"}
 					>
-						View {currentSection === "blogs" ? "Blog" : currentSection === "journal" ? "Journal" : "Habits"}
-					</AppButton>
+					View {currentSection === "blogs" ? "Blog" : currentSection === "journal" ? "Journal" : currentSection === "olj" ? "Home" : "Habits"}
+				</AppButton>
 					<AppButton variant="secondary" size="md" onclick={handleLogout}>Sign Out</AppButton>
 				</div>
 			</div>
@@ -306,6 +312,21 @@
 						></span>
 					{/if}
 				</button>
+				<button
+					type="button"
+					onclick={() => (currentSection = "olj")}
+					class="relative shrink-0 pb-3 text-sm font-semibold tracking-wide transition-all duration-200 {currentSection ===
+					'olj'
+						? 'text-accent-400'
+						: 'text-zinc-400 hover:text-zinc-200'}"
+				>
+					OLJ Logins
+					{#if currentSection === "olj"}
+						<span
+							class="absolute bottom-0 left-0 right-0 h-0.5 bg-accent-500 rounded-t-full"
+						></span>
+					{/if}
+				</button>
 			</div>
 
 			{#if currentSection === "journal"}
@@ -353,6 +374,8 @@
 				/>
 			{:else if currentSection === "insights"}
 				<InsightsDashboard {user} {insightsStore} />
+			{:else if currentSection === "olj"}
+				<OljLoginPanel {oljStore} />
 			{/if}
 		</div>
 	</div>
