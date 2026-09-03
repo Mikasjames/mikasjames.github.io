@@ -24,13 +24,15 @@
 		"@tailwindcss/vite": "^4.1.8",
 		"@testing-library/jest-dom": "^7.0.1",
 		"@testing-library/svelte": "^5.4.2",
+		"@vite-pwa/sveltekit": "^1.1.0",
 		"jsdom": "^30.0.1",
 		"svelte": "^5.55.2",
 		"svelte-check": "^4.4.6",
 		"tailwindcss": "^4.1.8",
 		"typescript": "^6.0.2",
 		"vite": "^8.0.7",
-		"vitest": "^4.1.11"
+		"vitest": "^4.1.11",
+		"workbox-window": "^7.4.1"
 	},
 	"dependencies": {
 		"@fontsource-variable/inter": "^5.2.8",
