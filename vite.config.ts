@@ -31,9 +31,9 @@ export default defineConfig({
 				globPatterns: ['**/*.{js,css,html,ico,png,svg,woff2}'],
 				navigateFallback: undefined
 			},
-			devOptions: {
-				enabled: false
-			}
+devOptions: {
+			enabled: true
+		}
 		})
 	]
 });

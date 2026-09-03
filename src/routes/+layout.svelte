@@ -9,7 +9,8 @@
 	import { page } from "$app/stores";
 	import { afterNavigate } from "$app/navigation";
 	import { logPageView } from "$lib/firebase/analytics";
-	import { getIsOnline, getSyncStatus, getLastSynced, processQueue } from "$lib/offline/store.svelte";
+	import { getIsOnline, getSyncStatus, getLastSynced, processQueue, initOnlineStatus } from "$lib/offline/store.svelte";
+	import { registerSW } from 'virtual:pwa-register';
 
 	const isHome = $derived($page.url.pathname === "/");
 
@@ -37,16 +38,13 @@
 		syncStatus = getSyncStatus();
 		lastSynced = getLastSynced();
 
-		// Listen for online/offline events
-		window.addEventListener('online', () => {
-			isOnline = true;
-			if (syncStatus === 'idle') {
-				processQueue();
-			}
-		});
-		window.addEventListener('offline', () => {
-			isOnline = false;
-		});
+		// Register service worker (only in production)
+		if (import.meta.env.PROD) {
+			registerSW({ immediate: true });
+		}
+
+		// Initialize offline store (sets up online/offline listeners)
+		initOnlineStatus();
 
 		return () => {
 			clearTimeout(timer);
