@@ -11,13 +11,16 @@ import {
   newHabitLogId,
   newHabitId,
   newBlogPostId,
-  processQueue,
+  getPendingMutations,
   markProcessed,
   markFailed,
   incrementRetries,
-  getPendingMutations,
-  offlineDB,
+  isBrowser,
 } from './store.svelte';
+
+function isBrowserEnv() {
+  return typeof window !== 'undefined' && typeof indexedDB !== 'undefined';
+}
 
 // --- Idempotent Mutation Execution ---
 
@@ -80,12 +83,12 @@ async function executeUpsertJournalEntry(payload: {
   if (existingSnap.exists()) {
     const existingData = existingSnap.data();
     if (existingData.clientUpdatedAt && existingData.clientUpdatedAt > payload.clientUpdatedAt) {
-      // Server has newer version - backup local to revisions
-      await offlineDB.journalEntries.add({
+      // Server has newer version - backup local to conflicts collection
+      await setDoc(doc(db, 'journalConflicts', existingSnap.id), {
         ...existingData,
         id: existingSnap.id,
         conflict: true,
-        backedUpAt: new Date(),
+        backedUpAt: Timestamp.now(),
       });
       // LWW: apply server version (skip local write)
       return;

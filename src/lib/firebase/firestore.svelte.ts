@@ -10,20 +10,23 @@ import {
     serverTimestamp,
     updateDoc,
     deleteDoc,
-    getFirestore,
     type DocumentData,
     type DocumentSnapshot,
     limit,
     startAfter,
     writeBatch
 } from 'firebase/firestore';
-import app from './firebase';
-
-let dbInstance: ReturnType<typeof getFirestore> | null = null;
-function getDb() {
-    if (!dbInstance) dbInstance = getFirestore(app);
-    return dbInstance;
-}
+import { getDb } from './firebase';
+import {
+    getCachedHabits,
+    cacheHabits,
+    getCachedJournalEntries,
+    cacheJournalEntries,
+    getCachedHabitLogs,
+    cacheHabitLogs,
+    queueMutation,
+    isOnline,
+} from '$lib/offline/store.svelte';
 
 export const DEFAULT_PAGE_SIZE = 12;
 
@@ -46,10 +49,46 @@ export interface BlogPost {
 
 const COLLECTION = 'blogs';
 
+// --- SWR Pattern Helper ---
+async function swrRead<T>(
+    cacheKey: string,
+    cachedGetter: () => Promise<T[]>,
+    networkFetcher: () => Promise<T[]>,
+    cacheSetter: (data: T[]) => Promise<void>
+): Promise<T[]> {
+    const cached = await cachedGetter();
+    if (cached.length > 0) {
+        // Fire-and-forget background refresh
+        networkFetcher()
+            .then(async (fresh) => {
+                await cacheSetter(fresh);
+            })
+            .catch(() => {}); // Silent fail - keep cached
+        return cached;
+    }
+
+    // Cold load: no cache, must await network
+    try {
+        const fresh = await networkFetcher();
+        await cacheSetter(fresh);
+        return fresh;
+    } catch {
+        return [];
+    }
+}
+
+// --- Blog Posts ---
 export async function getPosts(): Promise<BlogPost[]> {
-    const q = query(collection(getDb(), COLLECTION), orderBy('createdAt', 'desc'));
-    const snapshot = await getDocs(q);
-    return snapshot.docs.map((d) => docToPost(d.id, d.data()));
+    return swrRead(
+        'posts',
+        () => getCachedJournalEntries('__posts__'), // reuse function, different cache key
+        async () => {
+            const q = query(collection(getDb(), COLLECTION), orderBy('createdAt', 'desc'));
+            const snapshot = await getDocs(q);
+            return snapshot.docs.map((d) => docToPost(d.id, d.data()));
+        },
+        (data) => cacheJournalEntries('__posts__', data)
+    );
 }
 
 export async function getPostsPage(
@@ -57,6 +96,7 @@ export async function getPostsPage(
     pageSize = DEFAULT_PAGE_SIZE,
     options?: { status?: 'draft' | 'published' | 'unlisted' }
 ): Promise<{ items: BlogPost[]; nextCursor: DocumentSnapshot | null; hasMore: boolean }> {
+    // Paginated reads don't cache well - fetch directly
     let q = query(collection(getDb(), COLLECTION), orderBy('createdAt', 'desc'));
     if (options?.status) {
         q = query(q, where('status', '==', options.status));
@@ -84,10 +124,8 @@ export async function getPrerenderPosts(): Promise<BlogPost[]> {
 }
 
 export async function getPostBySlug(slug: string): Promise<BlogPost | null> {
-    const snapshot = await getDocs(collection(getDb(), COLLECTION));
-    const match = snapshot.docs.find((d) => d.data().slug === slug);
-    if (!match) return null;
-    return docToPost(match.id, match.data());
+    const posts = await getPosts();
+    return posts.find((p) => p.slug === slug) ?? null;
 }
 
 export async function createPost(data: {
@@ -99,11 +137,17 @@ export async function createPost(data: {
     status: 'draft' | 'published' | 'unlisted';
     imageMeta?: Record<string, ImageMeta>;
 }): Promise<string> {
-    const ref = await addDoc(collection(getDb(), COLLECTION), {
-        ...data,
-        createdAt: serverTimestamp()
-    });
-    return ref.id;
+    try {
+        const ref = await addDoc(collection(getDb(), COLLECTION), {
+            ...data,
+            createdAt: serverTimestamp()
+        });
+        return ref.id;
+    } catch {
+        await queueMutation('createPost', { ...data, clientUpdatedAt: new Date().toISOString() });
+        // Optimistic: caller should update local state
+        throw new Error('OFFLINE_QUEUED');
+    }
 }
 
 export async function updatePost(
@@ -118,13 +162,23 @@ export async function updatePost(
         imageMeta?: Record<string, ImageMeta>;
     }
 ): Promise<void> {
-    const postRef = doc(getDb(), COLLECTION, id);
-    await updateDoc(postRef, data);
+    try {
+        const postRef = doc(getDb(), COLLECTION, id);
+        await updateDoc(postRef, data);
+    } catch {
+        await queueMutation('updatePost', { id, ...data, clientUpdatedAt: new Date().toISOString() });
+        throw new Error('OFFLINE_QUEUED');
+    }
 }
 
 export async function deletePost(id: string): Promise<void> {
-    const postRef = doc(getDb(), COLLECTION, id);
-    await deleteDoc(postRef);
+    try {
+        const postRef = doc(getDb(), COLLECTION, id);
+        await deleteDoc(postRef);
+    } catch {
+        await queueMutation('deletePost', { id, clientUpdatedAt: new Date().toISOString() });
+        throw new Error('OFFLINE_QUEUED');
+    }
 }
 
 function docToPost(id: string, data: DocumentData): BlogPost {
@@ -141,6 +195,7 @@ function docToPost(id: string, data: DocumentData): BlogPost {
     };
 }
 
+// --- Media ---
 export interface MediaItem {
     id: string;
     url: string;
@@ -205,6 +260,7 @@ function docToMediaItem(id: string, data: DocumentData): MediaItem {
     };
 }
 
+// --- Journal Entries ---
 export interface JournalEntry {
     id: string;
     title: string;
@@ -217,26 +273,41 @@ export interface JournalEntry {
     entryDate: string;
     createdAt: Date | null;
     updatedAt: Date | null;
+    clientUpdatedAt?: string;
 }
 
 const JOURNAL_COLLECTION = 'journal';
 
 export async function getJournalEntryByDate(ownerUid: string, date: string): Promise<JournalEntry | null> {
-    const q = query(
-        collection(getDb(), JOURNAL_COLLECTION),
-        where('ownerUid', '==', ownerUid),
-        where('entryDate', '==', date),
-        limit(1)
-    );
-    const snapshot = await getDocs(q);
-    const first = snapshot.docs[0];
-    return first ? docToJournalEntry(first.id, first.data()) : null;
+    const cached = await getCachedJournalEntries(ownerUid, date, date);
+    if (cached.length > 0) return cached[0];
+
+    try {
+        const q = query(
+            collection(getDb(), JOURNAL_COLLECTION),
+            where('ownerUid', '==', ownerUid),
+            where('entryDate', '==', date),
+            limit(1)
+        );
+        const snapshot = await getDocs(q);
+        const first = snapshot.docs[0];
+        const entry = first ? docToJournalEntry(first.id, first.data()) : null;
+        if (entry) await cacheJournalEntries(ownerUid, [entry]);
+        return entry;
+    } catch {
+        return null;
+    }
 }
 
 export async function deleteJournalEntryByDate(ownerUid: string, date: string): Promise<void> {
     const entry = await getJournalEntryByDate(ownerUid, date);
     if (entry) {
-        await deleteDoc(doc(getDb(), JOURNAL_COLLECTION, entry.id));
+        try {
+            await deleteDoc(doc(getDb(), JOURNAL_COLLECTION, entry.id));
+        } catch {
+            await queueMutation('deleteJournalEntry', { id: entry.id, clientUpdatedAt: new Date().toISOString() });
+            throw new Error('OFFLINE_QUEUED');
+        }
     }
 }
 
@@ -244,6 +315,20 @@ export async function getJournalEntriesByMonth(ownerUid: string, year: number, m
     const startStr = `${year}-${String(month).padStart(2, '0')}-01`;
     const endDay = new Date(year, month, 0).getDate();
     const endStr = `${year}-${String(month).padStart(2, '0')}-${String(endDay).padStart(2, '0')}`;
+
+    const cached = await getCachedJournalEntries(ownerUid, startStr, endStr);
+    if (cached.length > 0) {
+        // Background refresh
+        fetchJournalEntriesMonth(ownerUid, startStr, endStr).then(async (fresh) => {
+            await cacheJournalEntries(ownerUid, fresh);
+        }).catch(() => {});
+        return cached;
+    }
+
+    return fetchJournalEntriesMonth(ownerUid, startStr, endStr);
+}
+
+async function fetchJournalEntriesMonth(ownerUid: string, startStr: string, endStr: string): Promise<JournalEntry[]> {
     const q = query(
         collection(getDb(), JOURNAL_COLLECTION),
         where('ownerUid', '==', ownerUid),
@@ -252,13 +337,22 @@ export async function getJournalEntriesByMonth(ownerUid: string, year: number, m
         orderBy('entryDate', 'asc')
     );
     const snapshot = await getDocs(q);
-    return snapshot.docs.map((d) => docToJournalEntry(d.id, d.data()));
+    const entries = snapshot.docs.map((d) => docToJournalEntry(d.id, d.data()));
+    await cacheJournalEntries(ownerUid, entries);
+    return entries;
 }
 
 export async function getJournalEntries(): Promise<JournalEntry[]> {
-    const q = query(collection(getDb(), JOURNAL_COLLECTION), orderBy('entryDate', 'desc'));
-    const snapshot = await getDocs(q);
-    return snapshot.docs.map((d) => docToJournalEntry(d.id, d.data()));
+    return swrRead(
+        'journal_all',
+        () => getCachedJournalEntries('__all__'),
+        async () => {
+            const q = query(collection(getDb(), JOURNAL_COLLECTION), orderBy('entryDate', 'desc'));
+            const snapshot = await getDocs(q);
+            return snapshot.docs.map((d) => docToJournalEntry(d.id, d.data()));
+        },
+        (data) => cacheJournalEntries('__all__', data)
+    );
 }
 
 export async function getJournalEntriesPage(
@@ -295,12 +389,17 @@ export async function createJournalEntry(data: {
     ownerUid?: string;
     entryDate?: string | null;
 }): Promise<string> {
-    const ref = await addDoc(collection(getDb(), JOURNAL_COLLECTION), {
-        ...data,
-        createdAt: serverTimestamp(),
-        updatedAt: serverTimestamp()
-    });
-    return ref.id;
+    try {
+        const ref = await addDoc(collection(getDb(), JOURNAL_COLLECTION), {
+            ...data,
+            createdAt: serverTimestamp(),
+            updatedAt: serverTimestamp()
+        });
+        return ref.id;
+    } catch {
+        await queueMutation('upsertJournalEntry', { ...data, clientUpdatedAt: new Date().toISOString() });
+        throw new Error('OFFLINE_QUEUED');
+    }
 }
 
 export async function updateJournalEntry(
@@ -316,11 +415,16 @@ export async function updateJournalEntry(
         entryDate?: string | null;
     }
 ): Promise<void> {
-    const entryRef = doc(getDb(), JOURNAL_COLLECTION, id);
-    await updateDoc(entryRef, {
-        ...data,
-        updatedAt: serverTimestamp()
-    });
+    try {
+        const entryRef = doc(getDb(), JOURNAL_COLLECTION, id);
+        await updateDoc(entryRef, {
+            ...data,
+            updatedAt: serverTimestamp()
+        });
+    } catch {
+        await queueMutation('upsertJournalEntry', { id, ...data, clientUpdatedAt: new Date().toISOString() });
+        throw new Error('OFFLINE_QUEUED');
+    }
 }
 
 export async function upsertJournalEntry(
@@ -344,8 +448,13 @@ export async function upsertJournalEntry(
 }
 
 export async function deleteJournalEntry(id: string): Promise<void> {
-    const entryRef = doc(getDb(), JOURNAL_COLLECTION, id);
-    await deleteDoc(entryRef);
+    try {
+        const entryRef = doc(getDb(), JOURNAL_COLLECTION, id);
+        await deleteDoc(entryRef);
+    } catch {
+        await queueMutation('deleteJournalEntry', { id, clientUpdatedAt: new Date().toISOString() });
+        throw new Error('OFFLINE_QUEUED');
+    }
 }
 
 function docToJournalEntry(id: string, data: DocumentData): JournalEntry {
@@ -360,10 +469,12 @@ function docToJournalEntry(id: string, data: DocumentData): JournalEntry {
         ownerUid: data.ownerUid ?? '',
         entryDate: data.entryDate ?? '',
         createdAt: data.createdAt?.toDate?.() ?? null,
-        updatedAt: data.updatedAt?.toDate?.() ?? null
+        updatedAt: data.updatedAt?.toDate?.() ?? null,
+        clientUpdatedAt: data.clientUpdatedAt,
     };
 }
 
+// --- Habits ---
 export interface Habit {
     id: string;
     name: string;
@@ -379,91 +490,30 @@ export interface HabitLog {
     habitName: string;
     emoji?: string;
     ownerUid: string;
-    completedAt: Date | null;     // When the habit was actually done
-    lastModifiedAt: Date | null;  // When this log was last edited
+    completedAt: Date | null;
+    lastModifiedAt: Date | null;
     journalEntryId: string | null;
-    date: string;                 // The date the habit applies to (YYYY-MM-DD)
-}
-
-export interface CalculatedHabitCorrelation {
-    habitId: string;
-    habitName: string;
-    averageRatingOnCompletedDays: number | null;
-    averageRatingOnMissedDays: number | null;
-    completedDaysCount: number;
-    missedDaysCount: number;
-    insight?: string;
-}
-
-export type HabitSummary = {
-    totalCheckIns: number;
-    byHabit: Record<string, { name: string; count: number; dates: string[] }>;
-};
-
-export interface AiAnalysisResult {
-	briefSummary?: string;
-	overallSentiment?: string;
-	primaryEmotion?: string;
-	keyThemes?: string[];
-	patterns?: string[];
-	ratingCorrelations?: Array<{ factor: string; impact: string; averageRating: number }>;
-}
-
-export interface LocalAnalysis {
-	keywordFrequencyByRating?: {
-		highRated?: Record<string, number>;
-		lowRated?: Record<string, number>;
-	};
-	sentimentVsRating?: {
-		lexicalSentimentScore?: number;
-	};
-}
-
-export type TextAnalysis = {
-	source: 'groq-api' | 'gemini-api';
-	result: AiAnalysisResult;
-	fallback?: LocalAnalysis;
-} | {
-	source: 'local-fallback';
-} & LocalAnalysis;
-
-export type InsightScope = {
-    entryCount: number;
-    ratedDayCount?: number;
-    averageRating: number | null;
-    trendSlopePerDay: number | null;
-    variance: number | null;
-    streaks: {
-        longestHighDays: number;
-        longestLowDays: number;
-    };
-    dailyRatings: Array<{ date: string; time: number; rating: number }>;
-    textAnalysis?: TextAnalysis;
-    habitSummary?: HabitSummary;
-    habitCorrelations?: CalculatedHabitCorrelation[];
-};
-
-export interface MonthlyInsight {
-    id: string;
-    period: string;
-    periodStart: Date | null;
-    periodEnd: Date | null;
-    generatedAt: Date | null;
-    monthly?: InsightScope;
-    yearToDate?: InsightScope;
+    date: string;
 }
 
 const HABITS_COLLECTION = 'habits';
 const HABIT_LOGS_COLLECTION = 'habitLogs';
 
 export async function getHabits(ownerUid: string): Promise<Habit[]> {
-    const q = query(
-        collection(getDb(), HABITS_COLLECTION),
-        where('ownerUid', '==', ownerUid),
-        orderBy('order', 'asc')
+    return swrRead(
+        `habits_${ownerUid}`,
+        () => getCachedHabits(ownerUid),
+        async () => {
+            const q = query(
+                collection(getDb(), HABITS_COLLECTION),
+                where('ownerUid', '==', ownerUid),
+                orderBy('order', 'asc')
+            );
+            const snapshot = await getDocs(q);
+            return snapshot.docs.map((d) => docToHabit(d.id, d.data()));
+        },
+        (data) => cacheHabits(ownerUid, data)
     );
-    const snapshot = await getDocs(q);
-    return snapshot.docs.map((d) => docToHabit(d.id, d.data()));
 }
 
 export async function addHabit(data: {
@@ -472,42 +522,70 @@ export async function addHabit(data: {
     ownerUid: string;
     order: number;
 }): Promise<string> {
-    const ref = await addDoc(collection(getDb(), HABITS_COLLECTION), {
-        ...data,
-        createdAt: serverTimestamp()
-    });
-    return ref.id;
+    try {
+        const ref = await addDoc(collection(getDb(), HABITS_COLLECTION), {
+            ...data,
+            createdAt: serverTimestamp()
+        });
+        return ref.id;
+    } catch {
+        await queueMutation('addHabit', { ...data, clientUpdatedAt: new Date().toISOString() });
+        throw new Error('OFFLINE_QUEUED');
+    }
 }
 
 export async function deleteHabit(id: string): Promise<void> {
-    await deleteDoc(doc(getDb(), HABITS_COLLECTION, id));
+    try {
+        await deleteDoc(doc(getDb(), HABITS_COLLECTION, id));
+    } catch {
+        await queueMutation('deleteHabit', { id, clientUpdatedAt: new Date().toISOString() });
+        throw new Error('OFFLINE_QUEUED');
+    }
 }
 
 export async function updateHabitOrder(id: string, order: number): Promise<void> {
-    await updateDoc(doc(getDb(), HABITS_COLLECTION, id), { order });
+    try {
+        await updateDoc(doc(getDb(), HABITS_COLLECTION, id), { order });
+    } catch {
+        await queueMutation('updateHabitOrder', { id, order, clientUpdatedAt: new Date().toISOString() });
+        throw new Error('OFFLINE_QUEUED');
+    }
 }
 
 export async function getHabitLogsForDate(ownerUid: string, date: string): Promise<HabitLog[]> {
-    const q = query(
-        collection(getDb(), HABIT_LOGS_COLLECTION),
-        where('ownerUid', '==', ownerUid),
-        where('date', '==', date)
-    );
-    const snapshot = await getDocs(q);
-    return snapshot.docs.map((d) => docToHabitLog(d.id, d.data()));
+    const cached = await getCachedHabitLogs(ownerUid, [date]);
+    if (cached[date]?.length) return cached[date];
+
+    try {
+        const q = query(
+            collection(getDb(), HABIT_LOGS_COLLECTION),
+            where('ownerUid', '==', ownerUid),
+            where('date', '==', date)
+        );
+        const snapshot = await getDocs(q);
+        const logs = snapshot.docs.map((d) => docToHabitLog(d.id, d.data()));
+        await cacheHabitLogs(ownerUid, { [date]: logs });
+        return logs;
+    } catch {
+        return [];
+    }
 }
 
 export async function getHabitLogsForJournalEntry(
     ownerUid: string,
     journalEntryId: string
 ): Promise<HabitLog[]> {
-    const q = query(
-        collection(getDb(), HABIT_LOGS_COLLECTION),
-        where('ownerUid', '==', ownerUid),
-        where('journalEntryId', '==', journalEntryId)
-    );
-    const snapshot = await getDocs(q);
-    return snapshot.docs.map((d) => docToHabitLog(d.id, d.data()));
+    try {
+        const q = query(
+            collection(getDb(), HABIT_LOGS_COLLECTION),
+            where('ownerUid', '==', ownerUid),
+            where('journalEntryId', '==', journalEntryId)
+        );
+        const snapshot = await getDocs(q);
+        return snapshot.docs.map((d) => docToHabitLog(d.id, d.data()));
+    } catch {
+        return [];
+    }
 }
 
 export async function saveHabitLogsForDateAtomic(
@@ -516,14 +594,40 @@ export async function saveHabitLogsForDateAtomic(
     journalEntryId: string | null,
     selectedHabits: Habit[]
 ): Promise<void> {
-    const existingLogs = await getHabitLogsForDate(ownerUid, date);
-    await replaceHabitLogsInBatch(
-        existingLogs,
-        selectedHabits,
-        ownerUid,
-        date,
-        journalEntryId
-    );
+    const clientUpdatedAt = new Date().toISOString();
+    try {
+        const existingLogs = await getHabitLogsForDate(ownerUid, date);
+        await replaceHabitLogsInBatch(
+            existingLogs,
+            selectedHabits,
+            ownerUid,
+            date,
+            journalEntryId
+        );
+        // Update local cache
+        const logs = selectedHabits.map((h) => ({
+            id: `${ownerUid}_${date}_${h.id}`,
+            habitId: h.id,
+            habitName: h.name,
+            emoji: h.emoji,
+            ownerUid,
+            completedAt: new Date(),
+            lastModifiedAt: new Date(),
+            journalEntryId,
+            date,
+            clientUpdatedAt,
+        }));
+        await cacheHabitLogs(ownerUid, { [date]: logs });
+    } catch {
+        await queueMutation('saveHabitLogsForDate', {
+            ownerUid,
+            date,
+            journalEntryId,
+            selectedHabits,
+            clientUpdatedAt,
+        });
+        throw new Error('OFFLINE_QUEUED');
+    }
 }
 
 export async function saveHabitLogsForJournalEntryAtomic(
@@ -532,14 +636,39 @@ export async function saveHabitLogsForJournalEntryAtomic(
     date: string,
     selectedHabits: Habit[]
 ): Promise<void> {
-    const existingLogs = await getHabitLogsForJournalEntry(ownerUid, journalEntryId);
-    await replaceHabitLogsInBatch(
-        existingLogs,
-        selectedHabits,
-        ownerUid,
-        date,
-        journalEntryId
-    );
+    const clientUpdatedAt = new Date().toISOString();
+    try {
+        const existingLogs = await getHabitLogsForJournalEntry(ownerUid, journalEntryId);
+        await replaceHabitLogsInBatch(
+            existingLogs,
+            selectedHabits,
+            ownerUid,
+            date,
+            journalEntryId
+        );
+        const logs = selectedHabits.map((h) => ({
+            id: `${ownerUid}_${date}_${h.id}`,
+            habitId: h.id,
+            habitName: h.name,
+            emoji: h.emoji,
+            ownerUid,
+            completedAt: new Date(),
+            lastModifiedAt: new Date(),
+            journalEntryId,
+            date,
+            clientUpdatedAt,
+        }));
+        await cacheHabitLogs(ownerUid, { [date]: logs });
+    } catch {
+        await queueMutation('saveHabitLogsForJournalEntry', {
+            ownerUid,
+            journalEntryId,
+            date,
+            selectedHabits,
+            clientUpdatedAt,
+        });
+        throw new Error('OFFLINE_QUEUED');
+    }
 }
 
 async function replaceHabitLogsInBatch(
@@ -575,7 +704,8 @@ async function replaceHabitLogsInBatch(
                 completedAt: serverTimestamp(),
                 lastModifiedAt: serverTimestamp(),
                 journalEntryId,
-                date
+                date,
+                clientUpdatedAt: new Date().toISOString(),
             },
             { merge: true }
         );
@@ -589,20 +719,87 @@ export async function getHabitLogsForDates(
     dates: string[]
 ): Promise<Record<string, HabitLog[]>> {
     const uniqueDates = [...new Set(dates)].filter(Boolean);
-    const byDate: Record<string, HabitLog[]> = {};
-    for (let i = 0; i < uniqueDates.length; i += 10) {
-        const batch = uniqueDates.slice(i, i + 10);
-        const q = query(
-            collection(getDb(), HABIT_LOGS_COLLECTION),
-            where('ownerUid', '==', ownerUid),
-            where('date', 'in', batch)
-        );
-        const snapshot = await getDocs(q);
-        for (const log of snapshot.docs.map((d) => docToHabitLog(d.id, d.data()))) {
-            byDate[log.date] = [...(byDate[log.date] ?? []), log];
+    const cached = await getCachedHabitLogs(ownerUid, uniqueDates);
+    const cachedDates = Object.keys(cached);
+    const missingDates = uniqueDates.filter((d) => !cachedDates.includes(d));
+
+    if (missingDates.length === 0) return cached;
+
+    // Fetch missing dates
+    const byDate: Record<string, HabitLog[]> = { ...cached };
+    for (let i = 0; i < missingDates.length; i += 10) {
+        const batch = missingDates.slice(i, i + 10);
+        try {
+            const q = query(
+                collection(getDb(), HABIT_LOGS_COLLECTION),
+                where('ownerUid', '==', ownerUid),
+                where('date', 'in', batch)
+            );
+            const snapshot = await getDocs(q);
+            for (const log of snapshot.docs.map((d) => docToHabitLog(d.id, d.data()))) {
+                byDate[log.date] = [...(byDate[log.date] ?? []), log];
+            }
+        } catch {
+            // Keep cached
         }
     }
+
+    await cacheHabitLogs(ownerUid, byDate);
     return byDate;
+}
+
+// --- Insights ---
+export interface AiAnalysisResult {
+    briefSummary?: string;
+    overallSentiment?: string;
+    primaryEmotion?: string;
+    keyThemes?: string[];
+    patterns?: string[];
+    ratingCorrelations?: Array<{ factor: string; impact: string; averageRating: number }>;
+}
+
+export interface LocalAnalysis {
+    keywordFrequencyByRating?: {
+        highRated?: Record<string, number>;
+        lowRated?: Record<string, number>;
+    };
+    sentimentVsRating?: {
+        lexicalSentimentScore?: number;
+    };
+}
+
+export type TextAnalysis = {
+    source: 'groq-api' | 'gemini-api';
+    result: AiAnalysisResult;
+    fallback?: LocalAnalysis;
+} | {
+    source: 'local-fallback';
+} & LocalAnalysis;
+
+export type InsightScope = {
+    entryCount: number;
+    ratedDayCount?: number;
+    averageRating: number | null;
+    trendSlopePerDay: number | null;
+    variance: number | null;
+    streaks: {
+        longestHighDays: number;
+        longestLowDays: number;
+    };
+    dailyRatings: Array<{ date: string; time: number; rating: number }>;
+    textAnalysis?: TextAnalysis;
+    habitSummary?: HabitSummary;
+    habitCorrelations?: CalculatedHabitCorrelation[];
+};
+
+export interface MonthlyInsight {
+    id: string;
+    period: string;
+    periodStart: Date | null;
+    periodEnd: Date | null;
+    generatedAt: Date | null;
+    monthly?: InsightScope;
+    yearToDate?: InsightScope;
 }
 
 export async function getLatestMonthlyInsight(ownerUid: string): Promise<MonthlyInsight | null> {
@@ -659,4 +856,19 @@ function docToMonthlyInsight(id: string, data: DocumentData): MonthlyInsight {
         monthly: data.monthly,
         yearToDate: data.yearToDate
     };
+}
+
+export type HabitSummary = {
+    totalCheckIns: number;
+    byHabit: Record<string, { name: string; count: number; dates: string[] }>;
+};
+
+export interface CalculatedHabitCorrelation {
+    habitId: string;
+    habitName: string;
+    averageRatingOnCompletedDays: number | null;
+    averageRatingOnMissedDays: number | null;
+    completedDaysCount: number;
+    missedDaysCount: number;
+    insight?: string;
 }

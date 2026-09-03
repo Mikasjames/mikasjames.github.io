@@ -1,28 +1,46 @@
-import { state } from 'svelte';
-import { offlineDB } from './db';
+import { getOfflineDB } from './db';
 import { newJournalEntryId, newHabitLogId, newHabitId, newBlogPostId } from './ids';
 
-// --- State ---
-export const isOnline = $state(true);
-export const syncStatus = $state<'idle' | 'syncing' | 'error'>('idle');
-export const lastSynced = $state<Date | null>(null);
-export const pendingCount = $state(0);
+function db() { return getOfflineDB(); }
+
+// --- State (wrapped in object to allow mutation) ---
+const offlineState = {
+    isOnline: true,
+    syncStatus: 'idle' as 'idle' | 'syncing' | 'error',
+    lastSynced: null as Date | null,
+    pendingCount: 0,
+};
+
+// --- Reactive getters/setters ---
+export function getIsOnline() { return offlineState.isOnline; }
+export function setIsOnline(v: boolean) { offlineState.isOnline = v; }
+// Alias for backwards compatibility
+export const isOnline = { get: getIsOnline, set: setIsOnline };
+export function getSyncStatus() { return offlineState.syncStatus; }
+export function setSyncStatus(v: 'idle' | 'syncing' | 'error') { offlineState.syncStatus = v; }
+export function getLastSynced() { return offlineState.lastSynced; }
+export function setLastSynced(v: Date | null) { offlineState.lastSynced = v; }
+export function getPendingCount() { return offlineState.pendingCount; }
+export function setPendingCount(v: number) { offlineState.pendingCount = v; }
 
 // --- Cache getters/setters ---
 export async function cacheHabits(uid: string, habits: any[]) {
-  await offlineDB.habits.bulkPut(
+  if (!isBrowser()) return;
+  await db().habits.bulkPut(
     habits.map((h: any) => ({ ...h, ownerUid: uid, syncedAt: new Date() })),
     uid,
   );
 }
 export async function getCachedHabits(uid: string) {
-  return await offlineDB.habits
+  if (!isBrowser()) return [];
+  return await db().habits
     .where('ownerUid')
     .equals(uid)
     .reverse();
 }
 export async function cacheJournalEntries(uid: string, entries: any[]) {
-  await offlineDB.journalEntries.bulkPut(
+  if (!isBrowser()) return;
+  await db().journalEntries.bulkPut(
     entries.map((e: any) => ({ ...e, ownerUid: uid, syncedAt: new Date() })),
   );
 }
@@ -31,20 +49,23 @@ export async function getCachedJournalEntries(
   from?: string,
   to?: string,
 ) {
-  let query = offlineDB.journalEntries.where('ownerUid').equals(uid);
+  if (!isBrowser()) return [];
+  let query = db().journalEntries.where('ownerUid').equals(uid);
   if (from) query = query.and((entry) => entry.entryDate >= from);
   if (to) query = query.and((entry) => entry.entryDate <= to);
   return await query.reverse();
 }
 export async function cacheHabitLogs(uid: string, logsByDate: Record<string, any[]>) {
+  if (!isBrowser()) return;
   const entries = Object.entries(logsByDate).flatMap(([date, logs]) =>
     logs.map((l: any) => ({ ...l, ownerUid: uid, date })),
   );
-  await offlineDB.habitLogs.bulkPut(entries);
+  await db().habitLogs.bulkPut(entries);
 }
 export async function getCachedHabitLogs(uid: string, dates: string[]) {
+  if (!isBrowser()) return {};
   if (!dates?.length) return {};
-  return await offlineDB.habitLogs
+  return await db().habitLogs
     .where('ownerUid')
     .equals(uid)
     .and((log) => dates.includes(log.date));
@@ -52,8 +73,9 @@ export async function getCachedHabitLogs(uid: string, dates: string[]) {
 
 // --- Mutation Queue ---
 export async function queueMutation(type: string, payload: any) {
+  if (!isBrowser()) return '';
   const id = `tmp_${Date.now()}_${Math.random().toString(36).slice(2)}`;
-  await offlineDB.pendingMutations.add({
+  await db().pendingMutations.add({
     id,
     type,
     payload,
@@ -64,37 +86,46 @@ export async function queueMutation(type: string, payload: any) {
   return id;
 }
 export async function getPendingMutations() {
-  return await offlineDB.pendingMutations
+  if (!isBrowser()) return [];
+  return await db().pendingMutations
     .where('status')
     .equals('pending')
     .reverse();
 }
 export async function markProcessed(id: string) {
-  await offlineDB.pendingMutations.update(id, { status: 'synced' });
+  if (!isBrowser()) return;
+  await db().pendingMutations.update(id, { status: 'synced' });
 }
 export async function incrementRetries(id: string) {
-  const mut = await offlineDB.pendingMutations.get(id);
+  if (!isBrowser()) return;
+  const mut = await db().pendingMutations.get(id);
   if (mut) {
-    await offlineDB.pendingMutations.update(id, {
+    await db().pendingMutations.update(id, {
       retries: (mut.retries ?? 0) + 1,
     });
   }
 }
 export async function markFailed(id: string) {
-  await offlineDB.pendingMutations.update(id, { status: 'failed' });
+  if (!isBrowser()) return;
+  await db().pendingMutations.update(id, { status: 'failed' });
+}
+
+function isBrowser() {
+  return typeof window !== 'undefined' && typeof indexedDB !== 'undefined';
 }
 
 // --- Initialization ---
 export async function initOnlineStatus() {
-  isOnline = navigator.onLine;
+  if (!isBrowser()) return;
+  setIsOnline(navigator.onLine);
   window.addEventListener('online', () => {
-    isOnline = true;
-    if (syncStatus === 'idle') {
+    setIsOnline(true);
+    if (getSyncStatus() === 'idle') {
       processQueue();
     }
   });
   window.addEventListener('offline', () => {
-    isOnline = false;
+    setIsOnline(false);
   });
 }
 
@@ -102,16 +133,17 @@ export async function initOnlineStatus() {
 let isSyncing = false;
 
 export async function processQueue() {
-  if (isSyncing || !isOnline) return;
+  if (!isBrowser()) return;
+  if (isSyncing || !getIsOnline()) return;
   isSyncing = true;
-  syncStatus = 'syncing';
+  setSyncStatus('syncing');
   try {
     const mutations = await getPendingMutations();
     for (const mut of mutations) {
       try {
         await executeMutationIdempotent(mut);
         await markProcessed(mut.id);
-        lastSynced = new Date();
+        setLastSynced(new Date());
       } catch (e) {
         const retries = (mut.retries ?? 0) + 1;
         if (retries >= 3) {
@@ -121,11 +153,11 @@ export async function processQueue() {
         }
       }
     }
-    syncStatus = 'idle';
-    pendingCount = await offlineDB.pendingMutations.where('status').equals('pending').count();
+    setSyncStatus('idle');
+    setPendingCount(await db().pendingMutations.where('status').equals('pending').count());
   } finally {
     isSyncing = false;
-    syncStatus = 'idle';
+    setSyncStatus('idle');
   }
 }
 

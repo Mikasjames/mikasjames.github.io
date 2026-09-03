@@ -1,4 +1,5 @@
 import { initializeApp, getApps, getApp } from 'firebase/app';
+import { getFirestore } from 'firebase/firestore';
 import {
     PUBLIC_FIREBASE_API_KEY,
     PUBLIC_FIREBASE_AUTH_DOMAIN,
@@ -20,5 +21,11 @@ const firebaseConfig = {
 };
 
 const app = getApps().length ? getApp() : initializeApp(firebaseConfig);
+
+let dbInstance: ReturnType<typeof getFirestore> | null = null;
+export function getDb() {
+    if (!dbInstance) dbInstance = getFirestore(app);
+    return dbInstance;
+}
 
 export default app;
