@@ -1,29 +1,38 @@
 <script lang="ts">
-	import { onMount, onDestroy, untrack } from "svelte";
-	import { goto } from "$app/navigation";
-	import { subscribeToAuth, logout } from "$lib/firebase/auth";
-	import {
-		getJournalEntryByDate,
-		getJournalEntriesByMonth,
-		getHabitLogsForDates,
-		upsertJournalEntry,
-		type HabitLog,
-		type JournalEntry,
-	} from "$lib/firebase/firestore.svelte";
-	import { createHabitsStore } from "$lib/firebase/habits.svelte";
-	import { renderMarkdown } from "$lib/utils/renderMarkdown";
-	import { getHappinessLabel, todayDateKey } from "$lib/utils/date";
-	import type { User } from "firebase/auth";
-	import GridBackground from "$lib/components/GridBackground.svelte";
-	import Spinner from "$lib/components/Spinner.svelte";
-	import AppButton from "$lib/components/AppButton.svelte";
-	import UserActions from "$lib/components/UserActions.svelte";
-	import HabitsManager from "$lib/components/HabitsManager.svelte";
+import { onMount, onDestroy, untrack } from "svelte";
+import { goto } from "$app/navigation";
+import { subscribeToAuth, logout } from "$lib/firebase/auth";
+import {
+	getJournalEntryByDate,
+	getJournalEntriesByMonth,
+	getHabitLogsForDates,
+	upsertJournalEntry,
+	type HabitLog,
+	type JournalEntry,
+} from "$lib/firebase/firestore.svelte";
+import { createHabitsStore } from "$lib/firebase/habits.svelte";
+import { renderMarkdown } from "$lib/utils/renderMarkdown";
+import { getHappinessLabel, todayDateKey } from "$lib/utils/date";
+import type { User } from "firebase/auth";
+import GridBackground from "$lib/components/GridBackground.svelte";
+import Spinner from "$lib/components/Spinner.svelte";
+import AppButton from "$lib/components/AppButton.svelte";
+import UserActions from "$lib/components/UserActions.svelte";
+import HabitsManager from "$lib/components/HabitsManager.svelte";
+import { getPendingCount, getSyncStatus } from "$lib/offline/store.svelte";
 
-	let user = $state<User | null>(null);
-	let authReady = $state(false);
+let user = $state<User | null>(null);
+let authReady = $state(false);
 
-	const habitsStore = createHabitsStore();
+const habitsStore = createHabitsStore();
+
+let pendingCount = $state(0);
+let syncStatus = $state<'idle' | 'syncing' | 'error'>('idle');
+
+$effect(() => {
+	pendingCount = getPendingCount();
+	syncStatus = getSyncStatus();
+});
 
 	let selectedDate = $state(todayDateKey());
 	let happinessRating = $state(3);
@@ -353,6 +362,14 @@
 				</AppButton>
 					{#if saveMsg}
 						<span class="text-sm {saveMsg === 'Saved!' ? 'text-emerald-400' : 'text-red-400'}">{saveMsg}</span>
+					{/if}
+					{#if pendingCount > 0}
+						<span class="flex items-center gap-1.5 text-amber-400 text-xs font-medium">
+							<svg class="w-3 h-3 animate-spin" viewBox="0 0 24 24">
+								<circle cx="12" cy="12" r="10" stroke="currentColor" stroke-width="3" fill="none" stroke-dasharray="30 30" stroke-linecap="round"/>
+							</svg>
+							Pending sync ({pendingCount})
+						</span>
 					{/if}
 				</div>
 			</div>

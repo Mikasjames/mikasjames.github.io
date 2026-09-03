@@ -1,44 +1,76 @@
 <script lang="ts">
-	import { goto } from "$app/navigation";
-	import { subscribeToAuth, logout } from "$lib/firebase/auth";
-	import {
-		getPostsPage,
-		deletePost,
-		type BlogPost,
-		getJournalEntriesPage,
-		deleteJournalEntry,
-		type JournalEntry,
-		DEFAULT_PAGE_SIZE,
-	} from "$lib/firebase/firestore.svelte";
-	import type { DocumentSnapshot } from "firebase/firestore";
-	import type { User } from "firebase/auth";
-	import { createInsightsStore } from "$lib/firebase/insights.svelte";
-	import { createMediaStore } from "$lib/firebase/media.svelte";
-	import { createHabitsStore } from "$lib/firebase/habits.svelte";
-	import { createOljStore } from "$lib/firebase/olj.svelte";
-	import GridBackground from "$lib/components/GridBackground.svelte";
-	import Spinner from "$lib/components/Spinner.svelte";
-	import AppButton from "$lib/components/AppButton.svelte";
-	import BlogPostForm from "./BlogPostForm.svelte";
-	import JournalEntryForm from "./JournalEntryForm.svelte";
-	import InsightsDashboard from "./InsightsDashboard.svelte";
-	import EntryList from "./EntryList.svelte";
-	import OljLoginPanel from "./OljLoginPanel.svelte";
-	import ConfirmDialog from "$lib/components/ConfirmDialog.svelte";
-	import { toast } from "$lib/stores/toast.svelte";
+import { goto } from "$app/navigation";
+import { subscribeToAuth, logout } from "$lib/firebase/auth";
+import {
+	getPostsPage,
+	deletePost,
+	type BlogPost,
+	getJournalEntriesPage,
+	deleteJournalEntry,
+	type JournalEntry,
+	DEFAULT_PAGE_SIZE,
+} from "$lib/firebase/firestore.svelte";
+import type { DocumentSnapshot } from "firebase/firestore";
+import type { User } from "firebase/auth";
+import { createInsightsStore } from "$lib/firebase/insights.svelte";
+import { createMediaStore } from "$lib/firebase/media.svelte";
+import { createHabitsStore } from "$lib/firebase/habits.svelte";
+import { createOljStore } from "$lib/firebase/olj.svelte";
+import GridBackground from "$lib/components/GridBackground.svelte";
+import Spinner from "$lib/components/Spinner.svelte";
+import AppButton from "$lib/components/AppButton.svelte";
+import BlogPostForm from "./BlogPostForm.svelte";
+import JournalEntryForm from "./JournalEntryForm.svelte";
+import InsightsDashboard from "./InsightsDashboard.svelte";
+import EntryList from "./EntryList.svelte";
+import OljLoginPanel from "./OljLoginPanel.svelte";
+import ConfirmDialog from "$lib/components/ConfirmDialog.svelte";
+import { toast } from "$lib/stores/toast.svelte";
+import { getSyncStatus, getLastSynced, processQueue, getPendingCount } from "$lib/offline/store.svelte";
 
-	let user = $state<User | null>(null);
-	let authReady = $state(false);
+let user = $state<User | null>(null);
+let authReady = $state(false);
 
-	const insightsStore = createInsightsStore();
-	const mediaStore = createMediaStore();
-	const habitsStore = createHabitsStore();
-	const oljStore = createOljStore();
+const insightsStore = createInsightsStore();
+const mediaStore = createMediaStore();
+const habitsStore = createHabitsStore();
+const oljStore = createOljStore();
 
-	let blogPostFormRef = $state<ReturnType<typeof BlogPostForm>>();
-	let journalEntryFormRef = $state<ReturnType<typeof JournalEntryForm>>();
+let blogPostFormRef = $state<ReturnType<typeof BlogPostForm>>();
+let journalEntryFormRef = $state<ReturnType<typeof JournalEntryForm>>();
 
-	let currentSection = $state<"blogs" | "journal" | "insights" | "olj">("journal");
+let currentSection = $state<"blogs" | "journal" | "insights" | "olj">("journal");
+
+let syncStatus = $state<'idle' | 'syncing' | 'error'>('idle');
+let lastSynced = $state<Date | null>(null);
+let pendingCount = $state(0);
+
+$effect(() => {
+	syncStatus = getSyncStatus();
+	lastSynced = getLastSynced();
+	pendingCount = getPendingCount();
+});
+
+function formatTimeAgo(date: Date | null): string {
+	if (!date) return 'Never';
+	const diff = Date.now() - date.getTime();
+	const mins = Math.floor(diff / 60000);
+	if (mins < 1) return 'Just now';
+	if (mins < 60) return `${mins}m ago`;
+	const hours = Math.floor(mins / 60);
+	if (hours < 24) return `${hours}h ago`;
+	const days = Math.floor(hours / 24);
+	return `${days}d ago`;
+}
+
+async function handleSyncNow() {
+	await processQueue();
+	// Update local state after sync
+	syncStatus = getSyncStatus();
+	lastSynced = getLastSynced();
+	pendingCount = getPendingCount();
+	toast('Sync complete', 'success');
+}
 
 	$effect(() => {
 		const unsub = subscribeToAuth((u) => {
@@ -260,6 +292,15 @@
 					>
 					View {currentSection === "blogs" ? "Blog" : currentSection === "journal" ? "Journal" : currentSection === "olj" ? "Home" : "Habits"}
 				</AppButton>
+					{#if pendingCount > 0}
+						<AppButton variant="secondary" size="md" onclick={handleSyncNow} loading={syncStatus === 'syncing'} disabled={syncStatus === 'syncing'}>
+							Sync ({pendingCount})
+						</AppButton>
+					{:else}
+						<AppButton variant="ghost" size="md" onclick={handleSyncNow} loading={syncStatus === 'syncing'} disabled={syncStatus === 'syncing'}>
+							Sync {syncStatus === 'syncing' ? '...' : `(Last: ${formatTimeAgo(lastSynced)})`}
+						</AppButton>
+					{/if}
 					<AppButton variant="secondary" size="md" onclick={handleLogout}>Sign Out</AppButton>
 				</div>
 			</div>

@@ -9,12 +9,17 @@
 	import { page } from "$app/stores";
 	import { afterNavigate } from "$app/navigation";
 	import { logPageView } from "$lib/firebase/analytics";
+	import { getIsOnline, getSyncStatus, getLastSynced, processQueue } from "$lib/offline/store.svelte";
 
 	const isHome = $derived($page.url.pathname === "/");
 
 	let { children } = $props();
 	let isLoaded = $state(false);
 	let showLoaderDOM = $state(true);
+
+	let isOnline = $state(true);
+	let syncStatus = $state<'idle' | 'syncing' | 'error'>('idle');
+	let lastSynced = $state<Date | null>(null);
 
 	onMount(() => {
 		document.body.classList.add("overflow-hidden");
@@ -26,6 +31,22 @@
 				document.body.classList.remove("overflow-hidden");
 			}, 400);
 		}, 800);
+
+		// Initialize offline status
+		isOnline = getIsOnline();
+		syncStatus = getSyncStatus();
+		lastSynced = getLastSynced();
+
+		// Listen for online/offline events
+		window.addEventListener('online', () => {
+			isOnline = true;
+			if (syncStatus === 'idle') {
+				processQueue();
+			}
+		});
+		window.addEventListener('offline', () => {
+			isOnline = false;
+		});
 
 		return () => {
 			clearTimeout(timer);
@@ -58,6 +79,18 @@
 
 	function closeMobile() {
 		mobileOpen = false;
+	}
+
+	function formatTimeAgo(date: Date | null): string {
+		if (!date) return 'Never';
+		const diff = Date.now() - date.getTime();
+		const mins = Math.floor(diff / 60000);
+		if (mins < 1) return 'Just now';
+		if (mins < 60) return `${mins}m ago`;
+		const hours = Math.floor(mins / 60);
+		if (hours < 24) return `${hours}h ago`;
+		const days = Math.floor(hours / 24);
+		return `${days}d ago`;
 	}
 </script>
 
@@ -211,6 +244,12 @@
 		</div>
 	{/if}
 </header>
+
+{#if !isOnline}
+<div class="fixed top-0 left-0 right-0 z-50 bg-amber-600/95 text-zinc-950 text-center py-2 text-sm font-mono text-xs tracking-widest uppercase border-b border-amber-500/30 animate-pulse">
+	Offline — changes will sync when reconnected
+</div>
+{/if}
 
 <main class="relative">
 	{@render children()}
