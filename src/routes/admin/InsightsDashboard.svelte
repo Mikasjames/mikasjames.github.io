@@ -1,6 +1,8 @@
 <script lang="ts">
 	import type { User } from "firebase/auth";
 	import type { createInsightsStore } from "$lib/firebase/insights.svelte";
+	import { toast } from "$lib/stores/toast.svelte";
+	import AppButton from "$lib/components/AppButton.svelte";
 
 	interface HabitSummary {
 		name: string;
@@ -14,6 +16,15 @@
 		user: User;
 		insightsStore: InsightsStore;
 	}>();
+
+	async function handleGenerateInsights() {
+		const result = await insightsStore.generateInsightsNow(user.uid);
+		if (result.ok) {
+			toast(`Insights generated for ${result.period}`, "success");
+		} else {
+			toast(result.message || "Failed to generate insights", "error");
+		}
+	}
 </script>
 
 <section class="space-y-5">
@@ -89,6 +100,15 @@
 					Year to Date
 				</button>
 			</div>
+			<AppButton
+				variant="primary"
+				size="sm"
+				loading={insightsStore.generating}
+				onclick={handleGenerateInsights}
+				class="sm:ml-auto"
+			>
+				Run AI Analysis
+			</AppButton>
 		</div>
 
 		{#if insightsStore.selectedPeriod === insightsStore.currentPeriodKey()}
