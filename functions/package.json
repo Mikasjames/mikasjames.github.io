@@ -2,15 +2,13 @@
   "name": "functions",
   "version": "1.0.0",
   "type": "module",
-  "packageManager": "pnpm@11.3.0",
   "engines": {
-    "node": "20"
+    "node": "22"
   },
   "main": "lib/index.js",
   "scripts": {
-    "preinstall": "npx only-allow pnpm",
     "build": "tsc",
-    "serve": "pnpm run build && firebase emulators:start --only functions",
+    "serve": "npm run build && firebase emulators:start --only functions",
     "deploy": "firebase deploy --only functions",
     "test": "vitest run",
     "test:watch": "vitest"
@@ -22,7 +20,7 @@
     "firebase-functions": "^5.0.0"
   },
   "devDependencies": {
-    "@types/node": "^20.0.0",
+    "@types/node": "^22.0.0",
     "typescript": "^5.0.0",
     "vitest": "^4.1.11"
   }
