@@ -199,9 +199,23 @@ export const oljLoginNow = onCall(
   {
     memory: '256MiB',
     timeoutSeconds: 60,
-    secrets: ['OLJ_EMAIL', 'OLJ_PASSWORD'],
+    secrets: ['OLJ_EMAIL', 'OLJ_PASSWORD', 'OWNER_UID'],
   },
-  async () => {
+  async (request) => {
+    const ownerUid = process.env.OWNER_UID;
+
+    if (!ownerUid) {
+      throw new HttpsError('failed-precondition', 'OWNER_UID secret is not set on the backend');
+    }
+
+    if (!request.auth) {
+      throw new HttpsError('unauthenticated', 'The function must be called while authenticated.');
+    }
+
+    if (request.auth.uid !== ownerUid) {
+      throw new HttpsError('permission-denied', 'You do not have permission to run this login.');
+    }
+
     try {
       const result = await runOljLogin();
       await recordOljLogin(result);

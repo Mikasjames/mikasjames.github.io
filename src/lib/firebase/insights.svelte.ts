@@ -6,10 +6,12 @@ import {
 	type AiAnalysisResult,
 	type LocalAnalysis,
 } from "./firestore.svelte";
+import { callGenerateInsightsNow, type GenerateInsightsResult } from "./insights";
 
 export function createInsightsStore() {
 	let insight = $state<MonthlyInsight | null>(null);
 	let loading = $state(false);
+	let generating = $state(false);
 	let error = $state("");
 	let tab = $state<"monthly" | "yearToDate">("monthly");
 	let selectedPeriod = $state("");
@@ -59,6 +61,27 @@ export function createInsightsStore() {
 			error = err instanceof Error ? err.message : "Failed to load insight.";
 		} finally {
 			loading = false;
+		}
+	}
+
+	async function generateInsightsNow(userUid: string): Promise<GenerateInsightsResult> {
+		generating = true;
+		error = "";
+		try {
+			const result = await callGenerateInsightsNow();
+			if (result.ok) {
+				await loadLatest(userUid);
+			} else {
+				error = result.message || "Failed to generate insights.";
+			}
+			return result;
+		} catch (err: unknown) {
+			console.error("Failed to generate insights:", err);
+			const message = err instanceof Error ? err.message : "Failed to generate insights.";
+			error = message;
+			return { ok: false, message };
+		} finally {
+			generating = false;
 		}
 	}
 
@@ -138,6 +161,7 @@ export function createInsightsStore() {
 	return {
 		get insight() { return insight; },
 		get loading() { return loading; },
+		get generating() { return generating; },
 		get error() { return error; },
 		get tab() { return tab; },
 		set tab(v) { tab = v; },
@@ -147,6 +171,7 @@ export function createInsightsStore() {
 		get selectedLocalAnalysis() { return selectedLocalAnalysis; },
 		loadLatest,
 		loadPeriod,
+		generateInsightsNow,
 		shiftPeriod,
 		currentPeriodKey,
 		nextMonthReadyLabel,
