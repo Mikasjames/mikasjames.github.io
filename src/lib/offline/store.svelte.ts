@@ -36,7 +36,8 @@ export async function getCachedHabits(uid: string) {
   return await db().habits
     .where('ownerUid')
     .equals(uid)
-    .reverse();
+    .reverse()
+    .toArray();
 }
 export async function cacheJournalEntries(uid: string, entries: any[]) {
   if (!isBrowser()) return;
@@ -53,7 +54,7 @@ export async function getCachedJournalEntries(
   let query = db().journalEntries.where('ownerUid').equals(uid);
   if (from) query = query.and((entry) => entry.entryDate >= from);
   if (to) query = query.and((entry) => entry.entryDate <= to);
-  return await query.reverse();
+  return await query.reverse().toArray();
 }
 export async function cacheHabitLogs(uid: string, logsByDate: Record<string, any[]>) {
   if (!isBrowser()) return;
@@ -68,7 +69,8 @@ export async function getCachedHabitLogs(uid: string, dates: string[]) {
   return await db().habitLogs
     .where('ownerUid')
     .equals(uid)
-    .and((log) => dates.includes(log.date));
+    .and((log) => dates.includes(log.date))
+    .toArray();
 }
 
 // --- Mutation Queue ---
@@ -90,7 +92,8 @@ export async function getPendingMutations() {
   return await db().pendingMutations
     .where('status')
     .equals('pending')
-    .reverse();
+    .reverse()
+    .toArray();
 }
 export async function markProcessed(id: string) {
   if (!isBrowser()) return;
