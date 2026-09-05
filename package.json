@@ -6,8 +6,10 @@
 	"type": "module",
 	"scripts": {
 		"dev": "vite dev",
+		"dev:tunnel": "vite dev --host --port 5173 --strictPort & cloudflared tunnel --protocol http2 --url http://localhost:5173",
 		"build": "vite build",
 		"preview": "vite preview",
+		"preview:tunnel": "vite preview --host --port 4173 --strictPort & cloudflared tunnel --protocol http2 --url http://localhost:4173",
 		"prepare": "svelte-kit sync || echo ''",
 		"check": "svelte-kit sync && svelte-check --tsconfig ./tsconfig.json",
 		"check:watch": "svelte-kit sync && svelte-check --tsconfig ./tsconfig.json --watch",
