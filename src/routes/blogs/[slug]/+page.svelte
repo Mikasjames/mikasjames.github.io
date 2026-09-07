@@ -57,7 +57,7 @@
 
 	<div class="relative mx-auto max-w-2xl">
 		{#if post}
-			<BlogPostContent {post} />
+			<BlogPostContent {post} postId={post.id} />
 		{/if}
 	</div>
 </div>
