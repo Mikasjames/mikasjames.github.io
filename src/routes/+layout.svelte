@@ -2,8 +2,9 @@
 	import "@fontsource-variable/inter/index.css";
 	import "@fontsource/jetbrains-mono/index.css";
 
-	import Load from "$lib/components/Load.svelte";
-	import Toast from "$lib/components/Toast.svelte";
+import Load from "$lib/components/Load.svelte";
+import Toast from "$lib/components/Toast.svelte";
+import PwaInstallPrompt from "$lib/components/PwaInstallPrompt.svelte";
 	import "../app.css";
 	import { onMount } from "svelte";
 	import { page } from "$app/stores";
@@ -217,3 +218,4 @@
 </main>
 
 <Toast />
+<PwaInstallPrompt />
