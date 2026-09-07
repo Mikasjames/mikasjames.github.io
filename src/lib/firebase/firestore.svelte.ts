@@ -84,10 +84,19 @@ export async function getPrerenderPosts(): Promise<BlogPost[]> {
 }
 
 export async function getPostBySlug(slug: string): Promise<BlogPost | null> {
-    const snapshot = await getDocs(collection(getDb(), COLLECTION));
-    const match = snapshot.docs.find((d) => d.data().slug === slug);
-    if (!match) return null;
-    return docToPost(match.id, match.data());
+	const snapshot = await getDocs(collection(getDb(), COLLECTION));
+	const match = snapshot.docs.find((d) => d.data().slug === slug);
+	if (!match) return null;
+	return docToPost(match.id, match.data());
+}
+
+export async function getDraftBySlug(slug: string): Promise<BlogPost | null> {
+	const snapshot = await getDocs(
+		query(collection(getDb(), COLLECTION), where('status', '==', 'draft'))
+	);
+	const match = snapshot.docs.find((d) => d.data().slug === slug);
+	if (!match) return null;
+	return docToPost(match.id, match.data());
 }
 
 export async function createPost(data: {
