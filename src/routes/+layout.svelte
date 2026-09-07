@@ -5,6 +5,7 @@
 import Load from "$lib/components/Load.svelte";
 import Toast from "$lib/components/Toast.svelte";
 import PwaInstallPrompt from "$lib/components/PwaInstallPrompt.svelte";
+import AdminNav from "$lib/components/AdminNav.svelte";
 	import "../app.css";
 	import { onMount } from "svelte";
 	import { page } from "$app/stores";
@@ -113,25 +114,7 @@ import PwaInstallPrompt from "$lib/components/PwaInstallPrompt.svelte";
 			</li>
 		</ul>
 
-		<a
-			href="mailto:mikasjames@gmail.com"
-			class="hidden md:inline-flex items-center gap-2 px-4 py-1.5 rounded-full border border-accent-500/40 text-accent-400 text-sm font-medium hover:bg-accent-500/10 hover:border-accent-400 transition-all duration-200"
-		>
-			<svg
-				class="w-3.5 h-3.5"
-				fill="none"
-				stroke="currentColor"
-				viewBox="0 0 24 24"
-			>
-				<path
-					stroke-linecap="round"
-					stroke-linejoin="round"
-					stroke-width="2"
-					d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"
-				/>
-			</svg>
-			Get in touch
-		</a>
+		<AdminNav />
 
 		<button
 			id="mobile-menu-btn"
@@ -198,6 +181,9 @@ import PwaInstallPrompt from "$lib/components/PwaInstallPrompt.svelte";
 					>
 						Blog
 					</a>
+				</li>
+				<li>
+					<AdminNav mobileMode={true} />
 				</li>
 				<li class="mt-2 pt-2 border-t border-zinc-800/60">
 					<a
