@@ -1,7 +1,8 @@
 <script lang="ts">
-	import { goto } from "$app/navigation";
-	import { subscribeToAuth, logout } from "$lib/firebase/auth";
-	import {
+import { goto } from "$app/navigation";
+import { subscribeToAuth, logout } from "$lib/firebase/auth";
+import { page } from "$app/stores";
+import {
 		getPostsPage,
 		deletePost,
 		type BlogPost,
@@ -57,6 +58,18 @@
 			habitsStore.loadHabits(user.uid);
 			insightsStore.loadLatest(user.uid);
 			oljStore.loadLog();
+		}
+	});
+
+	$effect(() => {
+		if (!authReady || !user || posts.length === 0) return;
+		const editId = $page.url.searchParams.get("edit");
+		if (editId) {
+			const post = posts.find((p) => p.id === editId);
+			if (post) {
+				currentSection = "blogs";
+				blogPostFormRef?.startEdit(post);
+			}
 		}
 	});
 
