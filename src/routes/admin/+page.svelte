@@ -244,27 +244,9 @@
 						>
 					</p>
 				</div>
-				<div
-					class="grid w-full grid-cols-2 gap-2 sm:flex sm:w-auto sm:gap-3 sm:self-auto"
-				>
-					<AppButton variant="ghost" size="md" href="/blogs/drafts/">View Drafts</AppButton>
-					<AppButton
-						variant="ghost" size="md"
-					href={currentSection === "blogs"
-						? "/blogs/"
-						: currentSection === "journal"
-							? "/journal/"
-							: currentSection === "olj"
-								? "/"
-								: "/habits/"}
-					>
-					View {currentSection === "blogs" ? "Blog" : currentSection === "journal" ? "Journal" : currentSection === "olj" ? "Home" : "Habits"}
-				</AppButton>
-					<AppButton variant="secondary" size="md" onclick={handleLogout}>Sign Out</AppButton>
-				</div>
-			</div>
+		</div>
 
-			<div
+		<div
 				class="flex gap-5 overflow-x-auto border-b border-zinc-800/40 sm:gap-6"
 			>
 				<button
