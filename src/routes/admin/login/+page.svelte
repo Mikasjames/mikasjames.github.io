@@ -27,7 +27,7 @@
 		loading = true;
 		try {
 			await login(email, password);
-			goto("/admin/");
+			window.location.href = "/admin/";
 		} catch (err: unknown) {
 			const msg =
 				err instanceof Error
