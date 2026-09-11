@@ -2,6 +2,7 @@
 	import { onMount } from "svelte";
 	import { goto } from "$app/navigation";
 	import { fly, slide } from "svelte/transition";
+	import { onAdminSession } from "$lib/utils/admin-session";
 	import type { User } from "firebase/auth";
 
 	let { mobileMode = false }: { mobileMode?: boolean } = $props();
@@ -12,21 +13,10 @@
 	let containerRef = $state<HTMLDivElement>();
 
 	onMount(() => {
-		if (!localStorage.getItem("mj_admin_session")) return;
-
-		const initAuth = async () => {
-			const { subscribeToAuth } = await import("$lib/firebase/auth");
-			return subscribeToAuth((u) => {
-				user = u;
-				authReady = true;
-			});
-		};
-
-		if ("requestIdleCallback" in window) {
-			window.requestIdleCallback(() => initAuth());
-		} else {
-			setTimeout(initAuth, 100);
-		}
+		const authCleanup = onAdminSession((u) => {
+			user = u;
+			authReady = true;
+		});
 
 		function handleClickOutside(e: MouseEvent) {
 			if (containerRef && !containerRef.contains(e.target as Node)) {
@@ -35,7 +25,10 @@
 		}
 
 		document.addEventListener("click", handleClickOutside);
-		return () => document.removeEventListener("click", handleClickOutside);
+		return () => {
+			authCleanup?.();
+			document.removeEventListener("click", handleClickOutside);
+		};
 	});
 
 	async function handleLogout() {

@@ -1,11 +1,21 @@
 <script lang="ts">
+	import { onMount } from "svelte";
 	import type { BlogPost } from "$lib/firebase/firestore.svelte";
 	import { renderMarkdown } from "$lib/utils/renderMarkdown";
 	import { formatDateLong, readingTime } from "$lib/utils/date";
+	import { onAdminSession } from "$lib/utils/admin-session";
 
-	let { post, backHref = "/blogs/" }: { post: BlogPost; backHref?: string } =
+	let { post, backHref = "/blogs/", postId, backLabel }: { post: BlogPost; backHref?: string; postId?: string; backLabel?: string } =
 		$props();
 
+	let showEdit = $state(false);
+
+	onMount(() => {
+		if (!postId) return;
+		return onAdminSession(() => {
+			showEdit = true;
+		});
+	});
 </script>
 
 <a
@@ -25,7 +35,7 @@
 			d="M7 16l-4-4m0 0l4-4m-4 4h18"
 		/>
 	</svg>
-	{backHref === "/admin/" ? "Back" : "All posts"}
+	{backLabel || (backHref === "/admin/" ? "Back" : "All posts")}
 </a>
 
 <header class="mb-10">
@@ -53,6 +63,18 @@
 			<span class="w-1 h-1 rounded-full bg-zinc-800"></span>
 		{/if}
 		<span class="text-xs text-zinc-650">{readingTime(post.content)}</span>
+		{#if showEdit}
+			<span class="w-1 h-1 rounded-full bg-zinc-800"></span>
+			<a
+				href="/admin/?edit={postId}"
+				class="inline-flex items-center gap-1 font-mono text-xs text-accent-400 hover:text-accent-300 transition-colors"
+			>
+				<svg class="h-3 w-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+					<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />
+				</svg>
+				Edit
+			</a>
+		{/if}
 	</div>
 
 	<h1 class="text-3xl md:text-4xl font-bold text-zinc-100 leading-tight mb-5">
@@ -93,7 +115,7 @@
 				d="M7 16l-4-4m0 0l4-4m-4 4h18"
 			/>
 		</svg>
-		{backHref === "/admin/" ? "Back" : "All posts"}
+		{backLabel || (backHref === "/admin/" ? "Back" : "All posts")}
 	</a>
 	<span class="font-mono text-xs text-zinc-700"
 		>/{post.status === "draft" ? "drafts" : "blogs"}/{post.slug}</span

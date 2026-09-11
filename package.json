@@ -15,7 +15,7 @@
 		"check:watch": "svelte-kit sync && svelte-check --tsconfig ./tsconfig.json --watch",
 		"test": "pnpm run test:app && pnpm run test:functions",
 		"test:app": "vitest run",
-		"test:functions": "pnpm --filter firebase-functions test",
+		"test:functions": "cd functions && pnpm test && cd ..",
 		"test:e2e": "playwright test"
 	},
 	"devDependencies": {
