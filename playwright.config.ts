@@ -12,7 +12,7 @@ export default defineConfig({
 		headless: true,
 	},
 	webServer: {
-		command: 'npm run build && npm run preview',
+		command: 'pnpm build && pnpm preview',
 		port: 4173,
 		reuseExistingServer: !process.env.CI,
 	},
