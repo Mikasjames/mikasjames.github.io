@@ -185,7 +185,10 @@ describe("Draft Preview Page (/blogs/drafts/[slug]/)", () => {
 		fireAllCallbacks();
 		await flushTimers();
 
-		expect(screen.getByRole("link", { name: /All Drafts/i })).toBeInTheDocument();
-		expect(screen.getByRole("link", { name: /All Drafts/i })).toHaveAttribute("href", "/blogs/drafts/");
+		const backLinks = screen.getAllByRole("link", { name: /All Drafts/i });
+		expect(backLinks.length).toBeGreaterThanOrEqual(1);
+		for (const link of backLinks) {
+			expect(link).toHaveAttribute("href", "/blogs/drafts/");
+		}
 	});
 });

@@ -121,8 +121,8 @@ describe("BlogPostContent", () => {
 
 		render(BlogPostContent, { props: { post: mockPost, backHref: "/custom/", backLabel: "Custom Label" } });
 
-		const backLink = screen.getByRole("link", { name: /Custom Label/i });
-		expect(backLink).toBeInTheDocument();
+		const backLinks = screen.getAllByRole("link", { name: /Custom Label/i });
+		expect(backLinks.length).toBeGreaterThanOrEqual(1);
 	});
 
 	it("falls back to 'All posts' / 'Back'", () => {
