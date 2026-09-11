@@ -13,11 +13,10 @@
 	let containerRef = $state<HTMLDivElement>();
 
 	onMount(() => {
-		const cleanup = onAdminSession((u) => {
+		const authCleanup = onAdminSession((u) => {
 			user = u;
 			authReady = true;
 		});
-		if (cleanup) return cleanup;
 
 		function handleClickOutside(e: MouseEvent) {
 			if (containerRef && !containerRef.contains(e.target as Node)) {
@@ -26,7 +25,10 @@
 		}
 
 		document.addEventListener("click", handleClickOutside);
-		return () => document.removeEventListener("click", handleClickOutside);
+		return () => {
+			authCleanup?.();
+			document.removeEventListener("click", handleClickOutside);
+		};
 	});
 
 	async function handleLogout() {
