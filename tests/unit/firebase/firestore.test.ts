@@ -1,5 +1,5 @@
 import { vi, describe, it, expect, beforeEach, afterEach } from "vitest";
-import type { QueryDocumentSnapshot, QuerySnapshot, DocumentData } from "firebase/firestore";
+import type { QueryDocumentSnapshot, QuerySnapshot } from "firebase/firestore";
 
 vi.mock("firebase/app", () => ({
 	getApps: vi.fn().mockReturnValue([]),
@@ -14,13 +14,9 @@ vi.mock("firebase/firestore", () => ({
 	getFirestore: vi.fn().mockReturnValue({}),
 }));
 
-import { collection, query, where, getDocs, getFirestore } from "firebase/firestore";
+import { where, getDocs } from "firebase/firestore";
 
-const mockCollection = vi.mocked(collection);
-const mockQuery = vi.mocked(query);
-const mockWhere = vi.mocked(where);
 const mockGetDocs = vi.mocked(getDocs);
-const mockGetFirestore = vi.mocked(getFirestore);
 
 function createMockDocSnapshot(id: string, data: Record<string, unknown>): QueryDocumentSnapshot {
 	return {

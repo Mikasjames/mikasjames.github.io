@@ -3,7 +3,6 @@ import { render, screen } from "@testing-library/svelte";
 import DraftsPage from "../../../src/routes/blogs/drafts/+page.svelte";
 import { subscribeToAuth } from "$lib/firebase/auth";
 import { getPostsPage } from "$lib/firebase/firestore.svelte";
-import { goto } from "$app/navigation";
 import { MOCK_USER } from "../../fixtures/user";
 
 vi.mock("$lib/firebase/auth", () => ({
@@ -13,10 +12,6 @@ vi.mock("$lib/firebase/auth", () => ({
 vi.mock("$lib/firebase/firestore.svelte", () => ({
 	getPostsPage: vi.fn(),
 	DEFAULT_PAGE_SIZE: 10,
-}));
-
-vi.mock("$app/navigation", () => ({
-	goto: vi.fn(),
 }));
 
 describe("Drafts List (/blogs/drafts/)", () => {
@@ -42,9 +37,7 @@ describe("Drafts List (/blogs/drafts/)", () => {
 
 		mockGetPostsPage.mockResolvedValue({ items: mockPosts, nextCursor: null, hasMore: false });
 
-		let authCallback: ((user: typeof MOCK_USER | null) => void) | undefined;
 		mockSubscribeToAuth.mockImplementation((cb: (user: typeof MOCK_USER | null) => void) => {
-			authCallback = cb;
 			cb(MOCK_USER);
 			return () => {};
 		});
@@ -66,9 +59,7 @@ describe("Drafts List (/blogs/drafts/)", () => {
 
 		mockGetPostsPage.mockResolvedValue({ items: mockPosts, nextCursor: null, hasMore: false });
 
-		let authCallback: ((user: typeof MOCK_USER | null) => void) | undefined;
 		mockSubscribeToAuth.mockImplementation((cb: (user: typeof MOCK_USER | null) => void) => {
-			authCallback = cb;
 			cb(MOCK_USER);
 			return () => {};
 		});
@@ -88,9 +79,7 @@ describe("Drafts List (/blogs/drafts/)", () => {
 
 		mockGetPostsPage.mockResolvedValue({ items: mockPosts, nextCursor: null, hasMore: false });
 
-		let authCallback: ((user: typeof MOCK_USER | null) => void) | undefined;
 		mockSubscribeToAuth.mockImplementation((cb: (user: typeof MOCK_USER | null) => void) => {
-			authCallback = cb;
 			cb(MOCK_USER);
 			return () => {};
 		});
@@ -111,9 +100,7 @@ describe("Drafts List (/blogs/drafts/)", () => {
 
 		mockGetPostsPage.mockResolvedValue({ items: mockPosts, nextCursor: null, hasMore: false });
 
-		let authCallback: ((user: typeof MOCK_USER | null) => void) | undefined;
 		mockSubscribeToAuth.mockImplementation((cb: (user: typeof MOCK_USER | null) => void) => {
-			authCallback = cb;
 			cb(MOCK_USER);
 			return () => {};
 		});

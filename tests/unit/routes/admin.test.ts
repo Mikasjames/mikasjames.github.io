@@ -2,7 +2,6 @@ import { vi, describe, it, expect, beforeEach } from "vitest";
 import { render, screen, waitFor } from "@testing-library/svelte";
 import AdminPage from "../../../src/routes/admin/+page.svelte";
 import { subscribeToAuth } from "$lib/firebase/auth";
-import { getPostsPage, getJournalEntriesPage } from "$lib/firebase/firestore.svelte";
 import { goto } from "$app/navigation";
 import { MOCK_USER } from "../../fixtures/user";
 
