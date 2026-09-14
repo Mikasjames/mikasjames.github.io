@@ -22,7 +22,6 @@ export async function insertMarkdownAtCursor(
 	url: string,
 	altText: string,
 	textareaRef: HTMLTextAreaElement | null,
-	activeTab: "write" | "preview",
 	setActiveTab: (tab: "write" | "preview") => void,
 	dims: { width?: number; height?: number } | undefined,
 	getForm: () => EditorForm,

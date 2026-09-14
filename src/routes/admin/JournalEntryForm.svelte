@@ -215,7 +215,7 @@
 		dims?: { width?: number; height?: number },
 	) {
 		await sharedInsertMarkdown(
-			url, altText, textareaRef, activeTab,
+			url, altText, textareaRef,
 			(tab) => { activeTab = tab; },
 			dims,
 			() => journalForm,
