@@ -1,4 +1,4 @@
-import { vi, type Mock } from "vitest";
+import { vi } from "vitest";
 import type { User } from "firebase/auth";
 
 let currentCallback: ((user: User | null) => void) | null = null;
@@ -12,7 +12,7 @@ const mockSubscribeToAuth = vi.fn((cb: (user: User | null) => void) => {
 	};
 });
 
-const mockLogin = vi.fn(async (email: string, password: string): Promise<User> => {
+const mockLogin = vi.fn(async (email: string, _password: string): Promise<User> => {
 	const user = { uid: "test-uid", email, displayName: "Test User" } as User;
 	currentUser = user;
 	if (currentCallback) currentCallback(user);

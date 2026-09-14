@@ -1,7 +1,4 @@
 <script lang="ts">
-	import { page } from "$app/stores";
-	import type { BlogPost } from "$lib/firebase/firestore.svelte";
-
 	let { data } = $props();
 	let posts = $derived(data.posts ?? []);
 

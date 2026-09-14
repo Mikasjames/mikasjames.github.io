@@ -1,6 +1,5 @@
 <script lang="ts">
 	import AppButton from "$lib/components/AppButton.svelte";
-	import Spinner from "$lib/components/Spinner.svelte";
 	import { toast } from "$lib/stores/toast.svelte";
 	import type { createOljStore } from "$lib/firebase/olj.svelte";
 

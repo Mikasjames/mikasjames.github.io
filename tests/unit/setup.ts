@@ -12,7 +12,7 @@ if (!Element.prototype.animate) {
 
 // jsdom lacks requestIdleCallback
 if (!window.requestIdleCallback) {
-	window.requestIdleCallback = (cb: IdleRequestCallback, options?: IdleRequestOptions) => {
+	window.requestIdleCallback = (cb: IdleRequestCallback, _options?: IdleRequestOptions) => {
 		const start = Date.now();
 		return setTimeout(() => {
 			cb({

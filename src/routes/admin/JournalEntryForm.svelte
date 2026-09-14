@@ -21,7 +21,6 @@
 	import MediaGalleryDialog from "$lib/components/MediaGalleryDialog.svelte";
 	import ConfirmDialog from "$lib/components/ConfirmDialog.svelte";
 	import AppButton from "$lib/components/AppButton.svelte";
-	import Spinner from "$lib/components/Spinner.svelte";
 	import HabitsManager from "$lib/components/HabitsManager.svelte";
 	import { toast } from "$lib/stores/toast.svelte";
 

@@ -1,5 +1,5 @@
 <script lang="ts">
-	import { onMount, onDestroy, untrack } from "svelte";
+	import { onDestroy, untrack } from "svelte";
 	import { goto } from "$app/navigation";
 	import { subscribeToAuth, logout } from "$lib/firebase/auth";
 	import {
