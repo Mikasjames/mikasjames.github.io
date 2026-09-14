@@ -23,7 +23,7 @@
 			return unsubscribe;
 		}
 
-		const cleanup = onAdminSession(async (user) => {
+		const cleanup = onAdminSession(async (_user) => {
 			authReady = true;
 			try {
 				if (!slug) {

@@ -495,7 +495,7 @@
 						Habit Overview
 					</p>
 					<div class="space-y-4">
-						{#each Object.entries(insightsStore.selectedScope.habitSummary.byHabit) as [habitId, habitData]}
+						{#each Object.entries(insightsStore.selectedScope.habitSummary.byHabit) as [_habitId, habitData]}
 							{@const habit = habitData as HabitSummary}
 							<div>
 								<div

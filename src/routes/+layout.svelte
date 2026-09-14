@@ -15,14 +15,12 @@ import AdminNav from "$lib/components/AdminNav.svelte";
 	const isHome = $derived($page.url.pathname === "/");
 
 	let { children } = $props();
-	let isLoaded = $state(false);
 	let showLoaderDOM = $state(true);
 
 	onMount(() => {
 		document.body.classList.add("overflow-hidden");
 
 		const timer = setTimeout(() => {
-			isLoaded = true;
 			setTimeout(() => {
 				showLoaderDOM = false;
 				document.body.classList.remove("overflow-hidden");

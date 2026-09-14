@@ -167,11 +167,8 @@
         showPrompt = true;
     }
 
-    let pendingImageUrl = $state("");
-
     function promptInsertImage() {
         openPrompt("Insert Image", "Image URL", "https://example.com/image.jpg", (url) => {
-            pendingImageUrl = url;
             openPrompt("Insert Image", "Alt text", "Image description", async (alt) => {
                 const trimmed = url.trim();
                 const altText = alt.trim() || "Image";

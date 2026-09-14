@@ -1,6 +1,6 @@
 <script lang="ts">
 import { goto } from "$app/navigation";
-import { subscribeToAuth, logout } from "$lib/firebase/auth";
+import { subscribeToAuth } from "$lib/firebase/auth";
 import { page } from "$app/stores";
 import {
 		getPostsPage,
@@ -19,7 +19,6 @@ import {
 	import { createOljStore } from "$lib/firebase/olj.svelte";
 	import GridBackground from "$lib/components/GridBackground.svelte";
 	import Spinner from "$lib/components/Spinner.svelte";
-	import AppButton from "$lib/components/AppButton.svelte";
 	import BlogPostForm from "./BlogPostForm.svelte";
 	import JournalEntryForm from "./JournalEntryForm.svelte";
 	import InsightsDashboard from "./InsightsDashboard.svelte";
@@ -213,11 +212,6 @@ import {
 				}
 			},
 		);
-	}
-
-	async function handleLogout() {
-		await logout();
-		goto("/admin/login/");
 	}
 
 	function handlePostsStatusFilterChange(status: string | undefined) {

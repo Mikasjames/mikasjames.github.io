@@ -8,7 +8,6 @@
 		getHabitLogsForDates,
 		type JournalEntry,
 		type HabitLog,
-		DEFAULT_PAGE_SIZE,
 	} from "$lib/firebase/firestore.svelte";
 	import { renderMarkdown } from "$lib/utils/renderMarkdown";
 	import type { User } from "firebase/auth";
