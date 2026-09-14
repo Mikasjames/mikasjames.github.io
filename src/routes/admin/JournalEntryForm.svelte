@@ -18,10 +18,16 @@
 	import type { MediaItem, Habit } from "$lib/firebase/firestore.svelte";
 	import type { createMediaStore } from "$lib/firebase/media.svelte";
 	import type { createHabitsStore } from "$lib/firebase/habits.svelte";
+	import {
+		insertMarkdownAtCursor as sharedInsertMarkdown,
+		handleContentUpload as sharedHandleContentUpload,
+		copyToClipboard as sharedCopyToClipboard,
+		setEditorCoverImage as sharedSetEditorCoverImage,
+		handleDeleteMediaWrapper as sharedHandleDeleteMediaWrapper,
+	} from "$lib/utils/editorActions";
 	import MediaGalleryDialog from "$lib/components/MediaGalleryDialog.svelte";
 	import ConfirmDialog from "$lib/components/ConfirmDialog.svelte";
 	import AppButton from "$lib/components/AppButton.svelte";
-	import Spinner from "$lib/components/Spinner.svelte";
 	import HabitsManager from "$lib/components/HabitsManager.svelte";
 	import { toast } from "$lib/stores/toast.svelte";
 
@@ -198,25 +204,9 @@
 	}
 
 	async function handleContentUpload(e: Event) {
-		const target = e.target as HTMLInputElement;
-		if (!target.files || target.files.length === 0) return;
-		const file = target.files[0];
-		try {
-			const { url, width, height, name } =
-				await mediaStore.handleGalleryUpload(file);
-			journalForm.imageMeta = {
-				...journalForm.imageMeta,
-				[url]: { width, height },
-			};
-			await insertMarkdownAtCursor(url, name.split(".")[0], {
-				width,
-				height,
-			});
-		} catch (err: unknown) {
-			// error handled by store
-		} finally {
-			target.value = "";
-		}
+		await sharedHandleContentUpload(e, mediaStore, () => journalForm, (patch) => {
+			journalForm = { ...journalForm, ...patch };
+		}, insertMarkdownAtCursor);
 	}
 
 	async function insertMarkdownAtCursor(
@@ -224,42 +214,13 @@
 		altText: string,
 		dims?: { width?: number; height?: number },
 	) {
-		activeTab = "write";
-		await tick();
-		if (!textareaRef) return;
-
-		if (dims?.width && dims?.height) {
-			journalForm.imageMeta = {
-				...journalForm.imageMeta,
-				[url]: { width: dims.width, height: dims.height },
-			};
-		}
-
-		const start = textareaRef.selectionStart;
-		const end = textareaRef.selectionEnd;
-		const text = journalForm.content;
-
-		const before = text.substring(0, start);
-		const after = text.substring(end, text.length);
-		const tag = `![${altText}](${url})`;
-		const newValue = before + tag + after;
-
-		textareaRef.value = newValue;
-		journalForm.content = newValue;
-
-		textareaRef.focus();
-		textareaRef.selectionStart = textareaRef.selectionEnd =
-			start + tag.length;
-
-		await tick();
-
-		if (textareaRef) {
-			textareaRef.focus();
-			textareaRef.selectionStart = textareaRef.selectionEnd =
-				start + tag.length;
-		}
-
-		toast("Image inserted into editor", "success");
+		await sharedInsertMarkdown(
+			url, altText, textareaRef, activeTab,
+			(tab) => { activeTab = tab; },
+			dims,
+			() => journalForm,
+			(patch) => { journalForm = { ...journalForm, ...patch }; },
+		);
 	}
 
 	async function insertTextAtCursor(textToInsert: string) {
@@ -300,34 +261,33 @@
 	}
 
 	function setEditorCoverImage(url: string | null) {
-		journalForm.coverImage = url;
+		sharedSetEditorCoverImage(url, (u) => { journalForm.coverImage = u; });
 	}
 
 	function copyToClipboard(text: string) {
-		navigator.clipboard.writeText(text).then(() => {
-			toast("Copied markdown image tag to clipboard!", "success");
-		});
+		sharedCopyToClipboard(text);
 	}
 
 	async function handleDeleteMediaWrapper(item: MediaItem) {
-		await mediaStore.handleDeleteMedia(
-			item,
-			(url: string) => {
-				journalForm.imageMeta = { ...journalForm.imageMeta };
-				delete journalForm.imageMeta[url];
-				journalForm.content = journalForm.content.replace(
-					new RegExp(`!\\[.*?\\]\\(${url}\\)`, "g"),
-					"",
-				);
-			},
-			(message: string) =>
+		await sharedHandleDeleteMediaWrapper(item, mediaStore, {
+			onBeforeConfirm: (message: string) =>
 				new Promise<boolean>((resolve) => {
 					confirmDeleteMessage = message;
 					confirmDeleteAction = resolve;
 					showConfirmDelete = true;
 				}),
-			(message: string) => toast(message, "error"),
-		);
+			onError: (message: string) => toast(message, "error"),
+			onRemoveImage: (url: string) => {
+				journalForm.imageMeta = { ...journalForm.imageMeta };
+				delete journalForm.imageMeta[url];
+			},
+			onRemoveMarkdown: (url: string) => {
+				journalForm.content = journalForm.content.replace(
+					new RegExp(`!\\[.*?\\]\\(${url}\\)`, "g"),
+					"",
+				);
+			},
+		});
 	}
 
 	function handleConfirmHabitDelete(habit: Habit, userUid: string) {

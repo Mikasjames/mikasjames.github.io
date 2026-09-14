@@ -1,5 +1,4 @@
 <script lang="ts">
-	import { tick } from "svelte";
 	import CoverImage from "$lib/components/CoverImage.svelte";
 	import MarkdownEditor from "$lib/components/MarkdownEditor.svelte";
 	import ContentImagesHelper from "$lib/components/ContentImagesHelper.svelte";
@@ -16,10 +15,16 @@
 	} from "$lib/utils/imageMeta";
 	import type { MediaItem } from "$lib/firebase/firestore.svelte";
 	import type { createMediaStore } from "$lib/firebase/media.svelte";
+	import {
+		insertMarkdownAtCursor as sharedInsertMarkdown,
+		handleContentUpload as sharedHandleContentUpload,
+		copyToClipboard as sharedCopyToClipboard,
+		setEditorCoverImage as sharedSetEditorCoverImage,
+		handleDeleteMediaWrapper as sharedHandleDeleteMediaWrapper,
+	} from "$lib/utils/editorActions";
 	import MediaGalleryDialog from "$lib/components/MediaGalleryDialog.svelte";
 	import ConfirmDialog from "$lib/components/ConfirmDialog.svelte";
 	import AppButton from "$lib/components/AppButton.svelte";
-	import Spinner from "$lib/components/Spinner.svelte";
 	import { toast } from "$lib/stores/toast.svelte";
 
 	type MediaStore = ReturnType<typeof createMediaStore>;
@@ -182,25 +187,9 @@
 	}
 
 	async function handleContentUpload(e: Event) {
-		const target = e.target as HTMLInputElement;
-		if (!target.files || target.files.length === 0) return;
-		const file = target.files[0];
-		try {
-			const { url, width, height, name } =
-				await mediaStore.handleGalleryUpload(file);
-			blogForm.imageMeta = {
-				...blogForm.imageMeta,
-				[url]: { width, height },
-			};
-			await insertMarkdownAtCursor(url, name.split(".")[0], {
-				width,
-				height,
-			});
-		} catch (err: unknown) {
-			// Content upload error handled by store
-		} finally {
-			target.value = "";
-		}
+		await sharedHandleContentUpload(e, mediaStore, () => blogForm, (patch) => {
+			blogForm = { ...blogForm, ...patch };
+		}, insertMarkdownAtCursor);
 	}
 
 	async function insertMarkdownAtCursor(
@@ -208,73 +197,43 @@
 		altText: string,
 		dims?: { width?: number; height?: number },
 	) {
-		activeTab = "write";
-		await tick();
-		if (!textareaRef) return;
-
-		if (dims?.width && dims?.height) {
-			blogForm.imageMeta = {
-				...blogForm.imageMeta,
-				[url]: { width: dims.width, height: dims.height },
-			};
-		}
-
-		const start = textareaRef.selectionStart;
-		const end = textareaRef.selectionEnd;
-		const text = blogForm.content;
-
-		const before = text.substring(0, start);
-		const after = text.substring(end, text.length);
-		const tag = `![${altText}](${url})`;
-		const newValue = before + tag + after;
-
-		textareaRef.value = newValue;
-		blogForm.content = newValue;
-
-		textareaRef.focus();
-		textareaRef.selectionStart = textareaRef.selectionEnd =
-			start + tag.length;
-
-		await tick();
-
-		if (textareaRef) {
-			textareaRef.focus();
-			textareaRef.selectionStart = textareaRef.selectionEnd =
-				start + tag.length;
-		}
-
-		toast("Image inserted into editor", "success");
+		await sharedInsertMarkdown(
+			url, altText, textareaRef, activeTab,
+			(tab) => { activeTab = tab; },
+			dims,
+			() => blogForm,
+			(patch) => { blogForm = { ...blogForm, ...patch }; },
+		);
 	}
 
 	function setEditorCoverImage(url: string | null) {
-		blogForm.coverImage = url;
+		sharedSetEditorCoverImage(url, (u) => { blogForm.coverImage = u; });
 	}
 
 	function copyToClipboard(text: string) {
-		navigator.clipboard.writeText(text).then(() => {
-			toast("Copied markdown image tag to clipboard!", "success");
-		});
+		sharedCopyToClipboard(text);
 	}
 
 	async function handleDeleteMediaWrapper(item: MediaItem) {
-		await mediaStore.handleDeleteMedia(
-			item,
-			(url: string) => {
-				blogForm.imageMeta = { ...blogForm.imageMeta };
-				delete blogForm.imageMeta[url];
-				blogForm.content = blogForm.content.replace(
-					new RegExp(`!\\[.*?\\]\\(${url}\\)`, "g"),
-					"",
-				);
-			},
-			(message: string) =>
+		await sharedHandleDeleteMediaWrapper(item, mediaStore, {
+			onBeforeConfirm: (message: string) =>
 				new Promise<boolean>((resolve) => {
 					confirmDeleteMessage = message;
 					confirmDeleteAction = resolve;
 					showConfirmDelete = true;
 				}),
-			(message: string) => toast(message, "error"),
-		);
+			onError: (message: string) => toast(message, "error"),
+			onRemoveImage: (url: string) => {
+				blogForm.imageMeta = { ...blogForm.imageMeta };
+				delete blogForm.imageMeta[url];
+			},
+			onRemoveMarkdown: (url: string) => {
+				blogForm.content = blogForm.content.replace(
+					new RegExp(`!\\[.*?\\]\\(${url}\\)`, "g"),
+					"",
+				);
+			},
+		});
 	}
 
 	$effect(() => {
