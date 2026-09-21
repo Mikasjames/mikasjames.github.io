@@ -10,6 +10,12 @@ import {
 	type Habit,
 } from "./firestore.svelte";
 
+const DRAFT_PREFIX = "mj_habit_draft_";
+
+function draftKey(userId: string, date: string) {
+	return `${DRAFT_PREFIX}${userId}_${date}`;
+}
+
 let singleton: ReturnType<typeof makeStore> | null = null;
 
 export function createHabitsStore() {
@@ -30,6 +36,9 @@ function makeStore() {
 		error: "",
 	});
 
+	let draftDate = $state<string | null>(null);
+	let showDraftRestoreDialog = $state(false);
+
 	async function loadHabits(userUid: string) {
 		habitsLoading = true;
 		habitsError = "";
@@ -44,7 +53,40 @@ function makeStore() {
 		}
 	}
 
-	function toggleHabit(habitId: string) {
+	function saveDraft(userId: string, date: string) {
+		try {
+			const ids = Array.from(selectedHabitIds);
+			localStorage.setItem(
+				draftKey(userId, date),
+				JSON.stringify({ selectedHabitIds: ids, timestamp: Date.now() }),
+			);
+		} catch {
+			// localStorage full or unavailable — silently ignore
+		}
+	}
+
+	function loadDraft(userId: string, date: string): string[] | null {
+		try {
+			const raw = localStorage.getItem(draftKey(userId, date));
+			if (!raw) return null;
+			const parsed = JSON.parse(raw) as { selectedHabitIds?: string[] };
+			return Array.isArray(parsed.selectedHabitIds)
+				? parsed.selectedHabitIds
+				: null;
+		} catch {
+			return null;
+		}
+	}
+
+	function clearDraft(userId: string, date: string) {
+		try {
+			localStorage.removeItem(draftKey(userId, date));
+		} catch {
+			// ignore
+		}
+	}
+
+	function toggleHabit(habitId: string, userId?: string, date?: string) {
 		const next = new Set(selectedHabitIds);
 		if (next.has(habitId)) {
 			next.delete(habitId);
@@ -52,6 +94,7 @@ function makeStore() {
 			next.add(habitId);
 		}
 		selectedHabitIds = next;
+		if (userId && date) saveDraft(userId, date);
 	}
 
 	async function handleAddHabit(userUid: string) {
@@ -198,6 +241,10 @@ function makeStore() {
 		get showHabitManager() { return showHabitManager; },
 		set showHabitManager(v) { showHabitManager = v; },
 		get habitForm() { return habitForm; },
+		get draftDate() { return draftDate; },
+		set draftDate(v) { draftDate = v; },
+		get showDraftRestoreDialog() { return showDraftRestoreDialog; },
+		set showDraftRestoreDialog(v) { showDraftRestoreDialog = v; },
 		loadHabits,
 		toggleHabit,
 		handleAddHabit,
@@ -207,5 +254,8 @@ function makeStore() {
 		saveSelectedHabitLogs,
 		loadHabitLogsForDate,
 		saveHabitLogsForDate,
+		saveDraft,
+		loadDraft,
+		clearDraft,
 	};
 }
