@@ -30,6 +30,13 @@ export function dateKeyFromDate(date: Date | null | undefined): string {
 	return date ? date.toLocaleDateString("en-CA") : todayDateKey();
 }
 
+export function formattedDate(dateStr: string): string {
+	const d = new Date(dateStr + "T00:00:00");
+	return d.toLocaleDateString("en-US", {
+		weekday: "long", year: "numeric", month: "long", day: "numeric",
+	});
+}
+
 export function getHappinessLabel(rating: number): string {
 	if (rating <= 1) return "Very low";
 	if (rating === 2) return "Low";
