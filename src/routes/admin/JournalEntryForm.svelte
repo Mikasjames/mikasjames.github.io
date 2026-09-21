@@ -1,10 +1,11 @@
 <script lang="ts">
-	import { tick, onMount } from "svelte";
+	import { tick, onMount, onDestroy } from "svelte";
 	import CoverImage from "$lib/components/CoverImage.svelte";
 	import MarkdownEditor from "$lib/components/MarkdownEditor.svelte";
 	import ContentImagesHelper from "$lib/components/ContentImagesHelper.svelte";
 	import {
 		upsertJournalEntry,
+		getJournalEntryByDate,
 		type ImageMeta,
 		type JournalEntry,
 	} from "$lib/firebase/firestore.svelte";
@@ -13,7 +14,8 @@
 		sanitizeImageMetaFromMarkdown,
 		enrichImageMetaFromGallery,
 	} from "$lib/utils/imageMeta";
-	import { todayDateKey, getHappinessLabel } from "$lib/utils/date";
+	import { todayDateKey, getHappinessLabel, formattedDate } from "$lib/utils/date";
+	import { saveNoteDraft, loadNoteDraft, clearNoteDraft } from "$lib/utils/noteDraft";
 	import type { User } from "firebase/auth";
 	import type { MediaItem, Habit } from "$lib/firebase/firestore.svelte";
 	import type { createMediaStore } from "$lib/firebase/media.svelte";
@@ -83,8 +85,30 @@
 	let textareaRef = $state<HTMLTextAreaElement | null>(null);
 	let showJournalDetails = $state(false);
 
+	// Note draft state
+	let noteDraftDate = $state<string | null>(null);
+	let showNoteRestoreDialog = $state(false);
+	let noteDraftTimer: ReturnType<typeof setTimeout> | null = null;
+
+	function debouncedSaveNoteDraft() {
+		if (noteDraftTimer) clearTimeout(noteDraftTimer);
+		noteDraftTimer = setTimeout(() => {
+			if (user && selectedJournalEntryDate) {
+				saveNoteDraft(user.uid, selectedJournalEntryDate, {
+					content: journalForm.content,
+					happinessRating: journalForm.happinessRating,
+					showNote: true,
+				});
+			}
+		}, 500);
+	}
+
 	onMount(() => {
 		habitsStore.selectedHabitIds = new Set();
+	});
+
+	onDestroy(() => {
+		if (noteDraftTimer) clearTimeout(noteDraftTimer);
 	});
 
 	export function startEditJournal(entry: JournalEntry) {
@@ -107,11 +131,26 @@
 		journalForm.successMsg = "";
 		journalForm.error = "";
 		if (user) {
-			habitsStore.loadSelectedHabitLogs(
-				user.uid,
-				entry.id,
-				journalForm.id,
-			);
+			// Check for unsaved habit draft BEFORE loading from DB
+			const draftIds = habitsStore.loadDraft(user.uid, entry.entryDate);
+			if (draftIds && draftIds.length > 0) {
+				// Don't apply yet — wait for user to confirm restore
+				habitsStore.draftDate = entry.entryDate;
+				habitsStore.showDraftRestoreDialog = true;
+			} else {
+				habitsStore.loadSelectedHabitLogs(
+					user.uid,
+					entry.id,
+					journalForm.id,
+				);
+			}
+
+			// Check for unsaved note draft
+			const noteDraft = loadNoteDraft(user.uid, entry.entryDate);
+			if (noteDraft && noteDraft.content !== journalForm.content) {
+				noteDraftDate = entry.entryDate;
+				showNoteRestoreDialog = true;
+			}
 		}
 		showJournalDetails = !!entry.content || !!entry.title || !!entry.coverImage;
 		window.scrollTo({ top: 0, behavior: "smooth" });
@@ -129,6 +168,9 @@
 		journalForm.error = "";
 		selectedJournalEntryDate = todayDateKey();
 		habitsStore.selectedHabitIds = new Set();
+		if (user && selectedJournalEntryDate) {
+			habitsStore.clearDraft(user.uid, selectedJournalEntryDate);
+		}
 		showJournalDetails = false;
 	}
 
@@ -174,6 +216,8 @@
 				entryId,
 				payload.entryDate,
 			);
+			habitsStore.clearDraft(user!.uid, payload.entryDate);
+			clearNoteDraft(user!.uid, payload.entryDate);
 			resetJournalForm();
 			await loadJournalEntries();
 			await habitsStore.loadHabits(user!.uid);
@@ -365,6 +409,7 @@
 			<HabitsManager
 				{habitsStore}
 				userId={user!.uid}
+				date={selectedJournalEntryDate ?? undefined}
 				manageLabel="Manage Habits"
 				doneLabel="Manage Habits"
 				showAddOneInEmpty={false}
@@ -405,6 +450,15 @@
 					max="5"
 					step="1"
 					bind:value={journalForm.happinessRating}
+					onchange={() => {
+						if (user && selectedJournalEntryDate) {
+							saveNoteDraft(user.uid, selectedJournalEntryDate, {
+								content: journalForm.content,
+								happinessRating: journalForm.happinessRating,
+								showNote: true,
+							});
+						}
+					}}
 					class="h-2 w-full cursor-pointer appearance-none rounded-full bg-gradient-to-r from-red-500 via-amber-400 to-emerald-400 accent-accent-500"
 				/>
 				<div
@@ -474,6 +528,29 @@
 							id="journal-entry-date"
 							type="date"
 							bind:value={selectedJournalEntryDate}
+							onchange={() => {
+								if (user && selectedJournalEntryDate) {
+									// Check habit draft
+									const draftIds = habitsStore.loadDraft(user.uid, selectedJournalEntryDate);
+									const currentIds = Array.from(habitsStore.selectedHabitIds).sort();
+									const draftSorted = draftIds?.sort();
+									if (
+										draftSorted &&
+										draftSorted.length > 0 &&
+										JSON.stringify(draftSorted) !== JSON.stringify(currentIds)
+									) {
+										habitsStore.draftDate = selectedJournalEntryDate;
+										habitsStore.showDraftRestoreDialog = true;
+									}
+
+									// Check note draft
+									const noteDraft = loadNoteDraft(user.uid, selectedJournalEntryDate);
+									if (noteDraft && noteDraft.content !== journalForm.content) {
+										noteDraftDate = selectedJournalEntryDate;
+										showNoteRestoreDialog = true;
+									}
+								}
+							}}
 							class="w-full px-3.5 py-2.5 rounded-lg bg-zinc-900 border border-zinc-700/60 text-zinc-100 text-sm focus:outline-none focus:border-accent-500 focus:ring-1 focus:ring-accent-500/30 transition-all duration-200 [color-scheme:dark]"
 						/>
 					</div>
@@ -504,6 +581,7 @@
 								showMediaGallery = true;
 								mediaStore.openMediaGallery();
 							}}
+							onInput={debouncedSaveNoteDraft}
 							placeholderText="What's on your mind today? Markdown is supported."
 						/>
 					</div>
@@ -607,5 +685,87 @@
 	onCancel={() => {
 		confirmHabitDeleteAction(false);
 		confirmHabitDeleteAction = () => {};
+	}}
+/>
+
+<ConfirmDialog
+	bind:show={habitsStore.showDraftRestoreDialog}
+	title="Restore unsaved habits?"
+	message={habitsStore.draftDate ? `You have unsaved habit selections for ${formattedDate(habitsStore.draftDate)}. Would you like to restore them?` : ""}
+	confirmText="Restore"
+	cancelText="Discard"
+	variant="primary"
+	onConfirm={() => {
+		if (habitsStore.draftDate && user) {
+			const draftIds = habitsStore.loadDraft(user.uid, habitsStore.draftDate);
+			if (draftIds) {
+				habitsStore.selectedHabitIds = new Set(draftIds);
+			}
+		}
+		habitsStore.draftDate = null;
+	}}
+	onCancel={() => {
+		if (habitsStore.draftDate && user) {
+			habitsStore.clearDraft(user.uid, habitsStore.draftDate);
+			// Reload from DB since the draft branch skipped it
+			if (journalForm.id) {
+				habitsStore.loadSelectedHabitLogs(user.uid, journalForm.id, journalForm.id);
+			}
+		}
+		habitsStore.draftDate = null;
+	}}
+/>
+
+<ConfirmDialog
+	bind:show={showNoteRestoreDialog}
+	title="Restore unsaved note?"
+	message={noteDraftDate ? `You have an unsaved journal note for ${formattedDate(noteDraftDate)}. Would you like to restore it?` : ""}
+	confirmText="Restore"
+	cancelText="Discard"
+	variant="primary"
+	onConfirm={() => {
+		if (noteDraftDate && user) {
+			const noteDraft = loadNoteDraft(user.uid, noteDraftDate);
+			if (noteDraft) {
+				journalForm.content = noteDraft.content;
+				journalForm.happinessRating = noteDraft.happinessRating;
+			}
+		}
+		// If a habit draft was pending, apply it now that note is restored
+		if (habitsStore.draftDate && user) {
+			const draftIds = habitsStore.loadDraft(user.uid, habitsStore.draftDate);
+			if (draftIds) {
+				habitsStore.selectedHabitIds = new Set(draftIds);
+			}
+			habitsStore.draftDate = null;
+		}
+		noteDraftDate = null;
+	}}
+	onCancel={() => {
+		if (noteDraftDate && user) {
+			clearNoteDraft(user.uid, noteDraftDate);
+			// Reload note from DB since the draft branch may have skipped it
+			const date = noteDraftDate;
+			getJournalEntryByDate(user.uid, date).then((entry) => {
+				if (entry && selectedJournalEntryDate === date) {
+					journalForm.content = entry.content;
+					journalForm.happinessRating = entry.happinessRating ?? 3;
+				} else if (selectedJournalEntryDate === date) {
+					journalForm.content = "";
+					journalForm.happinessRating = 3;
+				}
+			}).catch(() => {
+				// If reload fails, leave the form as-is
+			});
+		}
+		// If a habit draft was pending, discard it and reload habits from DB
+		if (habitsStore.draftDate && user) {
+			habitsStore.clearDraft(user.uid, habitsStore.draftDate);
+			if (journalForm.id) {
+				habitsStore.loadSelectedHabitLogs(user.uid, journalForm.id, journalForm.id);
+			}
+			habitsStore.draftDate = null;
+		}
+		noteDraftDate = null;
 	}}
 />
