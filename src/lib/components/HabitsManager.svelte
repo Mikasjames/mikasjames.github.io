@@ -8,6 +8,7 @@
   let {
     habitsStore,
     userId,
+    date,
     manageLabel = "Manage",
     doneLabel = "Done",
     onDeleteHabit,
@@ -15,6 +16,7 @@
   }: {
     habitsStore: HabitsStore;
     userId: string;
+    date?: string;
     manageLabel?: string;
     doneLabel?: string;
     onDeleteHabit?: (habit: Habit, userId: string) => void;
@@ -57,7 +59,7 @@
     {#each habitsStore.habits as habit (habit.id)}
       <button
         type="button"
-        onclick={() => habitsStore.toggleHabit(habit.id)}
+        onclick={() => habitsStore.toggleHabit(habit.id, userId, date)}
         class="rounded-lg border px-3 py-2 text-sm font-medium transition-all {habitsStore.selectedHabitIds.has(habit.id)
           ? 'border-accent-500/50 bg-accent-600/20 text-accent-200 shadow-lg shadow-accent-600/10'
           : 'border-zinc-700/60 bg-zinc-900 text-zinc-300 hover:border-zinc-600 hover:text-zinc-100'}"

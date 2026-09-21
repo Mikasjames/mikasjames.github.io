@@ -20,6 +20,7 @@
         id,
         placeholderText = "Write content here… Markdown is supported.",
         onOpenMediaGallery,
+        onInput,
     } = $props<{
         content: string;
         imageMeta: Record<string, ImageMeta>;
@@ -28,6 +29,7 @@
         id: string;
         placeholderText?: string;
         onOpenMediaGallery?: () => void;
+        onInput?: () => void;
     }>();
 
     async function applyFormat(action: FormatAction) {
@@ -445,6 +447,7 @@
             bind:value={content}
             bind:this={textareaRef}
             onkeydown={handleKeyDown}
+            oninput={() => onInput?.()}
             required
             rows="14"
             placeholder={placeholderText}
