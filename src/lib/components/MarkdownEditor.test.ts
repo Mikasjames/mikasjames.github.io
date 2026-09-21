@@ -145,4 +145,32 @@ describe('MarkdownEditor', () => {
 		const textarea = container.querySelector('textarea');
 		expect(textarea).toHaveAttribute('id', 'my-editor');
 	});
+
+	it('calls onInput when textarea content changes', async () => {
+		const onInput = vi.fn();
+		const { container } = render(MarkdownEditor, {
+			props: {
+				content: '',
+				imageMeta: {},
+				id: 'test-editor',
+				onInput,
+			},
+		});
+		const textarea = container.querySelector('textarea') as HTMLTextAreaElement;
+		await fireEvent.input(textarea, { target: { value: 'Hello' } });
+		expect(onInput).toHaveBeenCalledTimes(1);
+	});
+
+	it('does not throw when onInput is not provided', async () => {
+		const { container } = render(MarkdownEditor, {
+			props: {
+				content: '',
+				imageMeta: {},
+				id: 'test-editor',
+			},
+		});
+		const textarea = container.querySelector('textarea') as HTMLTextAreaElement;
+		await fireEvent.input(textarea, { target: { value: 'Hello' } });
+		// No error thrown
+	});
 });

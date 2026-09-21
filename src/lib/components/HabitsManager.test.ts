@@ -68,7 +68,7 @@ describe('HabitsManager', () => {
 			props: { habitsStore: store, userId: 'test-uid' },
 		});
 		await fireEvent.click(getByText('💪 Exercise'));
-		expect(toggleHabit).toHaveBeenCalledWith('1');
+		expect(toggleHabit).toHaveBeenCalledWith('1', 'test-uid', undefined);
 	});
 
 	it('shows habit manager when Manage is clicked', async () => {

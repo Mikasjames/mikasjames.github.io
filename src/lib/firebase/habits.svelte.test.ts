@@ -201,3 +201,121 @@ describe('habits store', () => {
 		consoleSpy.mockRestore();
 	});
 });
+
+describe('habit draft persistence', () => {
+	const STORAGE_KEY_PREFIX = 'mj_habit_draft_';
+
+	beforeEach(() => {
+		localStorage.clear();
+	});
+
+	it('saveDraft writes selected habit ids to localStorage', async () => {
+		const { store } = await freshStore();
+		store.toggleHabit('h1');
+		store.toggleHabit('h2');
+		store.saveDraft('user-1', '2026-09-21');
+
+		const raw = localStorage.getItem(`${STORAGE_KEY_PREFIX}user-1_2026-09-21`);
+		expect(raw).not.toBeNull();
+		const parsed = JSON.parse(raw!);
+		expect(parsed.selectedHabitIds).toEqual(expect.arrayContaining(['h1', 'h2']));
+		expect(parsed.timestamp).toBeTypeOf('number');
+	});
+
+	it('saveDraft saves even when selection is empty', async () => {
+		const { store } = await freshStore();
+		// No toggles — selectedHabitIds is empty
+		store.saveDraft('user-1', '2026-09-21');
+
+		const raw = localStorage.getItem(`${STORAGE_KEY_PREFIX}user-1_2026-09-21`);
+		expect(raw).not.toBeNull();
+		const parsed = JSON.parse(raw!);
+		expect(parsed.selectedHabitIds).toEqual([]);
+	});
+
+	it('loadDraft returns the saved habit ids', async () => {
+		const { store } = await freshStore();
+		store.toggleHabit('h1');
+		store.toggleHabit('h3');
+		store.saveDraft('user-1', '2026-09-21');
+
+		const loaded = store.loadDraft('user-1', '2026-09-21');
+		expect(loaded).toEqual(expect.arrayContaining(['h1', 'h3']));
+	});
+
+	it('loadDraft returns null when no draft exists', async () => {
+		const { store } = await freshStore();
+		const loaded = store.loadDraft('user-1', '2026-09-21');
+		expect(loaded).toBeNull();
+	});
+
+	it('loadDraft returns null on corrupted data', async () => {
+		localStorage.setItem(`${STORAGE_KEY_PREFIX}user-1_2026-09-21`, 'not-json');
+		const { store } = await freshStore();
+		const loaded = store.loadDraft('user-1', '2026-09-21');
+		expect(loaded).toBeNull();
+	});
+
+	it('loadDraft returns null when data has no selectedHabitIds array', async () => {
+		localStorage.setItem(
+			`${STORAGE_KEY_PREFIX}user-1_2026-09-21`,
+			JSON.stringify({ foo: 'bar' }),
+		);
+		const { store } = await freshStore();
+		const loaded = store.loadDraft('user-1', '2026-09-21');
+		expect(loaded).toBeNull();
+	});
+
+	it('clearDraft removes the entry from localStorage', async () => {
+		const { store } = await freshStore();
+		store.toggleHabit('h1');
+		store.saveDraft('user-1', '2026-09-21');
+		expect(localStorage.getItem(`${STORAGE_KEY_PREFIX}user-1_2026-09-21`)).not.toBeNull();
+
+		store.clearDraft('user-1', '2026-09-21');
+		expect(localStorage.getItem(`${STORAGE_KEY_PREFIX}user-1_2026-09-21`)).toBeNull();
+	});
+
+	it('toggleHabit with userId and date auto-saves a draft', async () => {
+		const { store } = await freshStore();
+		store.toggleHabit('h1', 'user-1', '2026-09-21');
+
+		const raw = localStorage.getItem(`${STORAGE_KEY_PREFIX}user-1_2026-09-21`);
+		expect(raw).not.toBeNull();
+		const parsed = JSON.parse(raw!);
+		expect(parsed.selectedHabitIds).toEqual(['h1']);
+	});
+
+	it('toggleHabit without userId and date does not save a draft', async () => {
+		const { store } = await freshStore();
+		store.toggleHabit('h1');
+
+		const raw = localStorage.getItem(`${STORAGE_KEY_PREFIX}user-1_2026-09-21`);
+		expect(raw).toBeNull();
+	});
+
+	it('drafts are keyed per user and per date', async () => {
+		const { store } = await freshStore();
+		store.toggleHabit('h1');
+		store.saveDraft('user-1', '2026-09-21');
+		store.toggleHabit('h2');
+		store.saveDraft('user-1', '2026-09-22');
+		store.toggleHabit('h3');
+		store.saveDraft('user-2', '2026-09-21');
+
+		expect(store.loadDraft('user-1', '2026-09-21')).toEqual(expect.arrayContaining(['h1']));
+		expect(store.loadDraft('user-1', '2026-09-22')).toEqual(expect.arrayContaining(['h2']));
+		expect(store.loadDraft('user-2', '2026-09-21')).toEqual(expect.arrayContaining(['h3']));
+	});
+
+	it('saveDraft overwrites a previous draft for the same key', async () => {
+		const { store } = await freshStore();
+		store.toggleHabit('h1');
+		store.saveDraft('user-1', '2026-09-21');
+		store.toggleHabit('h2');
+		store.saveDraft('user-1', '2026-09-21');
+
+		const loaded = store.loadDraft('user-1', '2026-09-21');
+		expect(loaded).toEqual(expect.arrayContaining(['h1', 'h2']));
+	});
+});
