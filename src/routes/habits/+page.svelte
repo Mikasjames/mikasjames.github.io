@@ -12,13 +12,15 @@
 	} from "$lib/firebase/firestore.svelte";
 	import { createHabitsStore } from "$lib/firebase/habits.svelte";
 	import { renderMarkdown } from "$lib/utils/renderMarkdown";
-	import { getHappinessLabel, todayDateKey } from "$lib/utils/date";
+	import { getHappinessLabel, todayDateKey, formattedDate } from "$lib/utils/date";
+	import { saveNoteDraft, loadNoteDraft, clearNoteDraft } from "$lib/utils/noteDraft";
 	import type { User } from "firebase/auth";
 	import GridBackground from "$lib/components/GridBackground.svelte";
 	import Spinner from "$lib/components/Spinner.svelte";
 	import AppButton from "$lib/components/AppButton.svelte";
 	import UserActions from "$lib/components/UserActions.svelte";
 	import HabitsManager from "$lib/components/HabitsManager.svelte";
+	import ConfirmDialog from "$lib/components/ConfirmDialog.svelte";
 
 	let user = $state<User | null>(null);
 	let authReady = $state(false);
@@ -40,6 +42,18 @@
 	let habitLogsByDate = $state<Record<string, Set<string>>>({});
 	let calendarLoading = $state(false);
 
+	// Note draft state
+	let noteDraftDate = $state<string | null>(null);
+	let showNoteRestoreDialog = $state(false);
+	let noteDraftTimer: ReturnType<typeof setTimeout> | null = null;
+
+	function debouncedSaveNoteDraft() {
+		if (noteDraftTimer) clearTimeout(noteDraftTimer);
+		noteDraftTimer = setTimeout(() => {
+			if (user) saveNoteDraft(user.uid, selectedDate, { content, happinessRating, showNote });
+		}, 500);
+	}
+
 	const unsub = subscribeToAuth((u) => {
 		user = u;
 		authReady = true;
@@ -47,7 +61,10 @@
 			goto("/admin/login/");
 		}
 	});
-	onDestroy(unsub);
+	onDestroy(() => {
+		unsub();
+		if (noteDraftTimer) clearTimeout(noteDraftTimer);
+	});
 
 	async function loadDate(date: string) {
 		if (!user) return;
@@ -80,11 +97,26 @@
 		}
 
 		if (selectedDate === date) {
-			const cachedSet = untrack(() => habitLogsByDate[date]);
-			if (cachedSet !== undefined) {
-				habitsStore.selectedHabitIds = new Set(cachedSet);
+			// Check for unsaved habit draft BEFORE loading from DB/cache
+			const draftIds = habitsStore.loadDraft(uid, date);
+			if (draftIds && draftIds.length > 0) {
+				// Don't apply yet — wait for user to confirm restore
+				habitsStore.draftDate = date;
+				habitsStore.showDraftRestoreDialog = true;
 			} else {
-				await habitsStore.loadHabitLogsForDate(uid, date);
+				const cachedSet = untrack(() => habitLogsByDate[date]);
+				if (cachedSet !== undefined) {
+					habitsStore.selectedHabitIds = new Set(cachedSet);
+				} else {
+					await habitsStore.loadHabitLogsForDate(uid, date);
+				}
+			}
+
+			// Check for unsaved note draft
+			const noteDraft = loadNoteDraft(uid, date);
+			if (noteDraft && noteDraft.content !== content) {
+				noteDraftDate = date;
+				showNoteRestoreDialog = true;
 			}
 		}
 	}
@@ -150,6 +182,8 @@
 
 			await habitsStore.saveHabitLogsForDate(user.uid, selectedDate, entryId);
 			habitLogsByDate[selectedDate] = new Set(habitsStore.selectedHabitIds);
+			habitsStore.clearDraft(user.uid, selectedDate);
+			clearNoteDraft(user.uid, selectedDate);
 
 			await loadCalendarMonth(calendarYear, calendarMonth);
 			saveMsg = "Saved!";
@@ -242,12 +276,6 @@
 		try { return renderMarkdown(content); } catch { return content; }
 	}
 
-	function formattedDate(dateStr: string) {
-		const d = new Date(dateStr + "T00:00:00");
-		return d.toLocaleDateString("en-US", {
-			weekday: "long", year: "numeric", month: "long", day: "numeric",
-		});
-	}
 </script>
 
 <svelte:head>
@@ -298,6 +326,7 @@
 							max="5"
 							step="1"
 							bind:value={happinessRating}
+							onchange={() => { if (user) saveNoteDraft(user.uid, selectedDate, { content, happinessRating, showNote }); }}
 							class="h-2 flex-1 cursor-pointer appearance-none rounded-full bg-gradient-to-r from-red-500 via-amber-400 to-emerald-400 accent-accent-500"
 						/>
 						<span class="text-xs font-semibold text-zinc-300 min-w-[4.5rem] text-right">
@@ -307,7 +336,7 @@
 				</div>
 
 				<div class="rounded-xl border border-zinc-800/60 bg-zinc-900/50 p-5">
-					<HabitsManager {habitsStore} userId={user!.uid} />
+					<HabitsManager {habitsStore} userId={user!.uid} date={selectedDate} />
 				</div>
 
 				<div class="rounded-xl border border-zinc-800/60 bg-zinc-900/50 p-5">
@@ -339,6 +368,7 @@
 							{:else}
 								<textarea
 									bind:value={content}
+									oninput={debouncedSaveNoteDraft}
 									placeholder="How was your day? Write whatever comes to mind..."
 									class="min-h-[120px] w-full rounded-lg border border-zinc-700/60 bg-zinc-950/30 p-3 text-sm text-zinc-100 placeholder-zinc-600 focus:border-accent-500 focus:outline-none focus:ring-1 focus:ring-accent-500/30 resize-y"
 								></textarea>
@@ -413,4 +443,97 @@
 			</div>
 		</div>
 	{/if}
+
+	<ConfirmDialog
+		bind:show={habitsStore.showDraftRestoreDialog}
+		title="Restore unsaved habits?"
+		message={habitsStore.draftDate ? `You have unsaved habit selections for ${formattedDate(habitsStore.draftDate)}. Would you like to restore them?` : ""}
+		confirmText="Restore"
+		cancelText="Discard"
+		variant="primary"
+		onConfirm={() => {
+			if (habitsStore.draftDate && user) {
+				const draftIds = habitsStore.loadDraft(user.uid, habitsStore.draftDate);
+				if (draftIds) {
+					habitsStore.selectedHabitIds = new Set(draftIds);
+				}
+			}
+			habitsStore.draftDate = null;
+		}}
+		onCancel={() => {
+			if (habitsStore.draftDate && user) {
+				habitsStore.clearDraft(user.uid, habitsStore.draftDate);
+				// Reload from DB/cache since the draft branch skipped it
+				const date = habitsStore.draftDate;
+				const cachedSet = habitLogsByDate[date];
+				if (cachedSet !== undefined) {
+					habitsStore.selectedHabitIds = new Set(cachedSet);
+				} else {
+					habitsStore.loadHabitLogsForDate(user.uid, date);
+				}
+			}
+			habitsStore.draftDate = null;
+		}}
+	/>
+
+	<ConfirmDialog
+		bind:show={showNoteRestoreDialog}
+		title="Restore unsaved note?"
+		message={noteDraftDate ? `You have an unsaved journal note for ${formattedDate(noteDraftDate)}. Would you like to restore it?` : ""}
+		confirmText="Restore"
+		cancelText="Discard"
+		variant="primary"
+		onConfirm={() => {
+			if (noteDraftDate && user) {
+				const noteDraft = loadNoteDraft(user.uid, noteDraftDate);
+				if (noteDraft) {
+					content = noteDraft.content;
+					happinessRating = noteDraft.happinessRating;
+					showNote = noteDraft.showNote;
+				}
+			}
+			// If a habit draft was pending, apply it now that note is restored
+			if (habitsStore.draftDate && user) {
+				const draftIds = habitsStore.loadDraft(user.uid, habitsStore.draftDate);
+				if (draftIds) {
+					habitsStore.selectedHabitIds = new Set(draftIds);
+				}
+				habitsStore.draftDate = null;
+			}
+			noteDraftDate = null;
+		}}
+		onCancel={() => {
+			if (noteDraftDate && user) {
+				clearNoteDraft(user.uid, noteDraftDate);
+				// Reload note from DB since the draft branch may have skipped it
+				const date = noteDraftDate;
+				getJournalEntryByDate(user.uid, date).then((entry) => {
+					if (entry && selectedDate === date) {
+						content = entry.content || "";
+						happinessRating = entry.happinessRating ?? 3;
+						showNote = !!content;
+					} else if (selectedDate === date) {
+						content = "";
+						happinessRating = 3;
+						showNote = false;
+					}
+				}).catch(() => {
+					// If reload fails, leave the form as-is
+				});
+			}
+			// If a habit draft was pending, discard it and reload habits from DB
+			if (habitsStore.draftDate && user) {
+				habitsStore.clearDraft(user.uid, habitsStore.draftDate);
+				const date = habitsStore.draftDate;
+				const cachedSet = habitLogsByDate[date];
+				if (cachedSet !== undefined) {
+					habitsStore.selectedHabitIds = new Set(cachedSet);
+				} else {
+					habitsStore.loadHabitLogsForDate(user.uid, date);
+				}
+				habitsStore.draftDate = null;
+			}
+			noteDraftDate = null;
+		}}
+	/>
 </div>
