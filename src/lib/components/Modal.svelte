@@ -20,6 +20,7 @@
 	} = $props();
 
 	function close() {
+		if (!show) return;
 		show = false;
 		onclose?.();
 	}

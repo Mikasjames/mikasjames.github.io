@@ -16,6 +16,8 @@ export function saveNoteDraft(
 	date: string,
 	data: Pick<NoteDraft, "content" | "happinessRating" | "showNote">,
 ): void {
+	// An empty note is never worth offering to restore — don't persist one.
+	if (!data.content) return;
 	try {
 		localStorage.setItem(
 			noteDraftKey(userId, date),
@@ -31,7 +33,14 @@ export function loadNoteDraft(userId: string, date: string): NoteDraft | null {
 		const raw = localStorage.getItem(noteDraftKey(userId, date));
 		if (!raw) return null;
 		const parsed = JSON.parse(raw);
-		if (typeof parsed.content === "string") return parsed;
+		if (
+			typeof parsed.content === "string" &&
+			parsed.content !== "" &&
+			typeof parsed.happinessRating === "number" &&
+			typeof parsed.showNote === "boolean"
+		) {
+			return parsed as NoteDraft;
+		}
 		return null;
 	} catch {
 		return null;

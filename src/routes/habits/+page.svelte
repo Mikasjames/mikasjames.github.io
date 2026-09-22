@@ -20,7 +20,7 @@
 	import AppButton from "$lib/components/AppButton.svelte";
 	import UserActions from "$lib/components/UserActions.svelte";
 	import HabitsManager from "$lib/components/HabitsManager.svelte";
-	import ConfirmDialog from "$lib/components/ConfirmDialog.svelte";
+	import DraftRestoreDialog from "$lib/components/DraftRestoreDialog.svelte";
 
 	let user = $state<User | null>(null);
 	let authReady = $state(false);
@@ -42,15 +42,83 @@
 	let habitLogsByDate = $state<Record<string, Set<string>>>({});
 	let calendarLoading = $state(false);
 
-	// Note draft state
-	let noteDraftDate = $state<string | null>(null);
-	let showNoteRestoreDialog = $state(false);
+	// Draft restore prompt state
+	let showDraftRestoreDialog = $state(false);
+	let draftPrompt = $state<{
+		date: string;
+		habits: boolean;
+		note: boolean;
+	} | null>(null);
 	let noteDraftTimer: ReturnType<typeof setTimeout> | null = null;
 
-	function debouncedSaveNoteDraft() {
+	function openDraftPrompt(date: string, habits: boolean, note: boolean) {
+		draftPrompt = { date, habits, note };
+		showDraftRestoreDialog = true;
+	}
+
+	function resetDraftPrompt() {
+		draftPrompt = null;
+		showDraftRestoreDialog = false;
+	}
+
+	function restoreDraftPrompt(date: string) {
+		if (!user || !draftPrompt) return;
+		const { habits, note } = draftPrompt;
+		if (habits) {
+			const draftIds = habitsStore.loadDraft(user.uid, date);
+			if (draftIds) habitsStore.selectedHabitIds = new Set(draftIds);
+		}
+		if (note) {
+			const noteDraft = loadNoteDraft(user.uid, date);
+			if (noteDraft) {
+				content = noteDraft.content;
+				happinessRating = noteDraft.happinessRating;
+				showNote = noteDraft.showNote;
+			}
+		}
+		resetDraftPrompt();
+	}
+
+	async function loadHabitsForPromptDate(date: string) {
+		if (!user) return;
+		const cachedSet = untrack(() => habitLogsByDate[date]);
+		if (cachedSet !== undefined) {
+			habitsStore.selectedHabitIds = new Set(cachedSet);
+		} else {
+			await habitsStore.loadHabitLogsForDate(user.uid, date);
+		}
+	}
+
+	function discardDraftPrompt(date: string) {
+		if (user && draftPrompt) {
+			if (draftPrompt.habits) habitsStore.clearDraft(user.uid, date);
+			if (draftPrompt.note) clearNoteDraft(user.uid, date);
+		}
+		// Reload from DB/cache since a habit draft branch skipped it
+		if (draftPrompt?.habits) void loadHabitsForPromptDate(date);
+		resetDraftPrompt();
+	}
+
+	function dismissDraftPrompt(date: string) {
+		// Dismissed (Escape/backdrop/✕): keep the drafts for next time,
+		// but complete the load the habit-draft branch skipped.
+		if (draftPrompt?.habits) void loadHabitsForPromptDate(date);
+		resetDraftPrompt();
+	}
+
+	function debouncedSaveNoteDraft(contentValue: string) {
 		if (noteDraftTimer) clearTimeout(noteDraftTimer);
+		// Capture the target date and form values now — by the time the
+		// timer fires the user may have navigated to another date/entry.
+		const uid = user?.uid;
+		const date = selectedDate;
+		const snapshot = {
+			content: contentValue,
+			happinessRating,
+			showNote,
+		};
 		noteDraftTimer = setTimeout(() => {
-			if (user) saveNoteDraft(user.uid, selectedDate, { content, happinessRating, showNote });
+			if (uid) saveNoteDraft(uid, date, snapshot);
 		}, 500);
 	}
 
@@ -99,11 +167,8 @@
 		if (selectedDate === date) {
 			// Check for unsaved habit draft BEFORE loading from DB/cache
 			const draftIds = habitsStore.loadDraft(uid, date);
-			if (draftIds && draftIds.length > 0) {
-				// Don't apply yet — wait for user to confirm restore
-				habitsStore.draftDate = date;
-				habitsStore.showDraftRestoreDialog = true;
-			} else {
+			const hasHabitDraft = draftIds !== null;
+			if (!hasHabitDraft) {
 				const cachedSet = untrack(() => habitLogsByDate[date]);
 				if (cachedSet !== undefined) {
 					habitsStore.selectedHabitIds = new Set(cachedSet);
@@ -114,9 +179,9 @@
 
 			// Check for unsaved note draft
 			const noteDraft = loadNoteDraft(uid, date);
-			if (noteDraft && noteDraft.content !== content) {
-				noteDraftDate = date;
-				showNoteRestoreDialog = true;
+			const hasNoteDraft = noteDraft !== null && noteDraft.content !== content;
+			if (hasHabitDraft || hasNoteDraft) {
+				openDraftPrompt(date, hasHabitDraft, hasNoteDraft);
 			}
 		}
 	}
@@ -368,7 +433,7 @@
 							{:else}
 								<textarea
 									bind:value={content}
-									oninput={debouncedSaveNoteDraft}
+									oninput={(e) => debouncedSaveNoteDraft(e.currentTarget.value)}
 									placeholder="How was your day? Write whatever comes to mind..."
 									class="min-h-[120px] w-full rounded-lg border border-zinc-700/60 bg-zinc-950/30 p-3 text-sm text-zinc-100 placeholder-zinc-600 focus:border-accent-500 focus:outline-none focus:ring-1 focus:ring-accent-500/30 resize-y"
 								></textarea>
@@ -444,96 +509,13 @@
 		</div>
 	{/if}
 
-	<ConfirmDialog
-		bind:show={habitsStore.showDraftRestoreDialog}
-		title="Restore unsaved habits?"
-		message={habitsStore.draftDate ? `You have unsaved habit selections for ${formattedDate(habitsStore.draftDate)}. Would you like to restore them?` : ""}
-		confirmText="Restore"
-		cancelText="Discard"
-		variant="primary"
-		onConfirm={() => {
-			if (habitsStore.draftDate && user) {
-				const draftIds = habitsStore.loadDraft(user.uid, habitsStore.draftDate);
-				if (draftIds) {
-					habitsStore.selectedHabitIds = new Set(draftIds);
-				}
-			}
-			habitsStore.draftDate = null;
-		}}
-		onCancel={() => {
-			if (habitsStore.draftDate && user) {
-				habitsStore.clearDraft(user.uid, habitsStore.draftDate);
-				// Reload from DB/cache since the draft branch skipped it
-				const date = habitsStore.draftDate;
-				const cachedSet = habitLogsByDate[date];
-				if (cachedSet !== undefined) {
-					habitsStore.selectedHabitIds = new Set(cachedSet);
-				} else {
-					habitsStore.loadHabitLogsForDate(user.uid, date);
-				}
-			}
-			habitsStore.draftDate = null;
-		}}
-	/>
-
-	<ConfirmDialog
-		bind:show={showNoteRestoreDialog}
-		title="Restore unsaved note?"
-		message={noteDraftDate ? `You have an unsaved journal note for ${formattedDate(noteDraftDate)}. Would you like to restore it?` : ""}
-		confirmText="Restore"
-		cancelText="Discard"
-		variant="primary"
-		onConfirm={() => {
-			if (noteDraftDate && user) {
-				const noteDraft = loadNoteDraft(user.uid, noteDraftDate);
-				if (noteDraft) {
-					content = noteDraft.content;
-					happinessRating = noteDraft.happinessRating;
-					showNote = noteDraft.showNote;
-				}
-			}
-			// If a habit draft was pending, apply it now that note is restored
-			if (habitsStore.draftDate && user) {
-				const draftIds = habitsStore.loadDraft(user.uid, habitsStore.draftDate);
-				if (draftIds) {
-					habitsStore.selectedHabitIds = new Set(draftIds);
-				}
-				habitsStore.draftDate = null;
-			}
-			noteDraftDate = null;
-		}}
-		onCancel={() => {
-			if (noteDraftDate && user) {
-				clearNoteDraft(user.uid, noteDraftDate);
-				// Reload note from DB since the draft branch may have skipped it
-				const date = noteDraftDate;
-				getJournalEntryByDate(user.uid, date).then((entry) => {
-					if (entry && selectedDate === date) {
-						content = entry.content || "";
-						happinessRating = entry.happinessRating ?? 3;
-						showNote = !!content;
-					} else if (selectedDate === date) {
-						content = "";
-						happinessRating = 3;
-						showNote = false;
-					}
-				}).catch(() => {
-					// If reload fails, leave the form as-is
-				});
-			}
-			// If a habit draft was pending, discard it and reload habits from DB
-			if (habitsStore.draftDate && user) {
-				habitsStore.clearDraft(user.uid, habitsStore.draftDate);
-				const date = habitsStore.draftDate;
-				const cachedSet = habitLogsByDate[date];
-				if (cachedSet !== undefined) {
-					habitsStore.selectedHabitIds = new Set(cachedSet);
-				} else {
-					habitsStore.loadHabitLogsForDate(user.uid, date);
-				}
-				habitsStore.draftDate = null;
-			}
-			noteDraftDate = null;
-		}}
+	<DraftRestoreDialog
+		bind:show={showDraftRestoreDialog}
+		date={draftPrompt?.date ?? null}
+		restoreHabits={draftPrompt?.habits ?? false}
+		restoreNote={draftPrompt?.note ?? false}
+		onRestore={restoreDraftPrompt}
+		onDiscard={discardDraftPrompt}
+		onDismiss={dismissDraftPrompt}
 	/>
 </div>

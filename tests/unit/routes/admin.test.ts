@@ -78,8 +78,6 @@ vi.mock("$lib/firebase/habits.svelte", () => ({
 		loadHabits: vi.fn(),
 		habits: [],
 		selectedHabitIds: new Set(),
-		showDraftRestoreDialog: false,
-		draftDate: null,
 		loadDraft: vi.fn().mockReturnValue(null),
 		saveDraft: vi.fn(),
 		clearDraft: vi.fn(),

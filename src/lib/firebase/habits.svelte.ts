@@ -36,9 +36,6 @@ function makeStore() {
 		error: "",
 	});
 
-	let draftDate = $state<string | null>(null);
-	let showDraftRestoreDialog = $state(false);
-
 	async function loadHabits(userUid: string) {
 		habitsLoading = true;
 		habitsError = "";
@@ -241,10 +238,6 @@ function makeStore() {
 		get showHabitManager() { return showHabitManager; },
 		set showHabitManager(v) { showHabitManager = v; },
 		get habitForm() { return habitForm; },
-		get draftDate() { return draftDate; },
-		set draftDate(v) { draftDate = v; },
-		get showDraftRestoreDialog() { return showDraftRestoreDialog; },
-		set showDraftRestoreDialog(v) { showDraftRestoreDialog = v; },
 		loadHabits,
 		toggleHabit,
 		handleAddHabit,

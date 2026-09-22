@@ -86,4 +86,37 @@ describe('noteDraft', () => {
 		expect(loaded!.happinessRating).toBe(5);
 		expect(loaded!.showNote).toBe(false);
 	});
+
+	it('saveNoteDraft ignores empty content', () => {
+		saveNoteDraft('user-1', '2026-09-21', { content: 'Kept', happinessRating: 3, showNote: true });
+		saveNoteDraft('user-1', '2026-09-21', { content: '', happinessRating: 4, showNote: true });
+		expect(loadNoteDraft('user-1', '2026-09-21')!.content).toBe('Kept');
+
+		saveNoteDraft('user-2', '2026-09-21', { content: '', happinessRating: 3, showNote: true });
+		expect(localStorage.getItem(`${STORAGE_KEY_PREFIX}user-2_2026-09-21`)).toBeNull();
+	});
+
+	it('loadNoteDraft returns null for an empty content draft', () => {
+		localStorage.setItem(
+			`${STORAGE_KEY_PREFIX}user-1_2026-09-21`,
+			JSON.stringify({ content: '', happinessRating: 3, showNote: true }),
+		);
+		expect(loadNoteDraft('user-1', '2026-09-21')).toBeNull();
+	});
+
+	it('loadNoteDraft returns null when happinessRating is missing', () => {
+		localStorage.setItem(
+			`${STORAGE_KEY_PREFIX}user-1_2026-09-21`,
+			JSON.stringify({ content: 'x', showNote: true }),
+		);
+		expect(loadNoteDraft('user-1', '2026-09-21')).toBeNull();
+	});
+
+	it('loadNoteDraft returns null when showNote is missing', () => {
+		localStorage.setItem(
+			`${STORAGE_KEY_PREFIX}user-1_2026-09-21`,
+			JSON.stringify({ content: 'x', happinessRating: 3 }),
+		);
+		expect(loadNoteDraft('user-1', '2026-09-21')).toBeNull();
+	});
 });

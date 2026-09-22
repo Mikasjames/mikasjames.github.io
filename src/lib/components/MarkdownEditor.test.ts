@@ -159,6 +159,21 @@ describe('MarkdownEditor', () => {
 		const textarea = container.querySelector('textarea') as HTMLTextAreaElement;
 		await fireEvent.input(textarea, { target: { value: 'Hello' } });
 		expect(onInput).toHaveBeenCalledTimes(1);
+		expect(onInput).toHaveBeenCalledWith('Hello');
+	});
+
+	it('calls onInput after a programmatic toolbar edit', async () => {
+		const onInput = vi.fn();
+		const { getByTitle } = render(MarkdownEditor, {
+			props: {
+				content: '',
+				imageMeta: {},
+				id: 'test-editor',
+				onInput,
+			},
+		});
+		await fireEvent.click(getByTitle('Bold (Ctrl+B)'));
+		expect(onInput).toHaveBeenCalledTimes(1);
 	});
 
 	it('does not throw when onInput is not provided', async () => {

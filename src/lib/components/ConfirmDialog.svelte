@@ -10,6 +10,7 @@
 		variant = "danger",
 		onConfirm,
 		onCancel,
+		onDismiss,
 	}: {
 		show: boolean;
 		title?: string;
@@ -19,6 +20,12 @@
 		variant?: "danger" | "primary";
 		onConfirm?: () => void;
 		onCancel?: () => void;
+		/**
+		 * Called when the modal is closed without a button press
+		 * (Escape, backdrop click, or the ✕ button). Defaults to
+		 * `onCancel` so dismissal behaves like cancelling.
+		 */
+		onDismiss?: () => void;
 	} = $props();
 
 	function confirm() {
@@ -39,7 +46,7 @@
 	};
 </script>
 
-<Modal bind:show size="sm" {title}>
+<Modal bind:show size="sm" {title} onclose={() => (onDismiss ?? onCancel)?.()}>
 	{#snippet children()}
 		<p class="text-sm text-zinc-300 leading-relaxed">{message}</p>
 	{/snippet}

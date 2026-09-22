@@ -29,7 +29,7 @@
         id: string;
         placeholderText?: string;
         onOpenMediaGallery?: () => void;
-        onInput?: () => void;
+        onInput?: (content: string) => void;
     }>();
 
     async function applyFormat(action: FormatAction) {
@@ -44,6 +44,7 @@
             computeFormattedSelection(content, start, end, action);
 
         content = newContent;
+        onInput?.(content);
 
         await tick();
 
@@ -110,6 +111,7 @@
         const tag = `![${altText}](${url})`;
 
         content = before + tag + after;
+        onInput?.(content);
 
         await tick();
 
@@ -135,6 +137,7 @@
         const tag = `!video[${title}](${url})`;
 
         content = before + tag + after;
+        onInput?.(content);
 
         await tick();
 
@@ -447,7 +450,7 @@
             bind:value={content}
             bind:this={textareaRef}
             onkeydown={handleKeyDown}
-            oninput={() => onInput?.()}
+            oninput={(e) => onInput?.(e.currentTarget.value)}
             required
             rows="14"
             placeholder={placeholderText}
