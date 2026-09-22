@@ -50,15 +50,20 @@ describe('PromptDialog', () => {
 	it('confirms on Enter and cancels on Escape from the input', async () => {
 		const onConfirm = vi.fn();
 		const onCancel = vi.fn();
-		const { container } = await open({ onConfirm, onCancel });
+		const { container, rerender } = await open({ onConfirm, onCancel });
 		const input = container.querySelector('#prompt-input') as HTMLInputElement;
 		await fireEvent.input(input, { target: { value: 'typed' } });
 
 		await fireEvent.keyDown(input, { key: 'Enter' });
 		expect(onConfirm).toHaveBeenCalledWith('typed');
 
-		await fireEvent.input(input, { target: { value: 'again' } });
-		await fireEvent.keyDown(input, { key: 'Escape' });
+		// After confirming, the dialog closes and its input is removed
+		// (transitions complete under jsdom), so re-open it to exercise Escape.
+		await rerender({ show: true, title: 'Rename', onConfirm, onCancel });
+		await tick();
+		const reopened = document.querySelector('#prompt-input') as HTMLInputElement;
+		await fireEvent.input(reopened, { target: { value: 'again' } });
+		await fireEvent.keyDown(reopened, { key: 'Escape' });
 		expect(onCancel).toHaveBeenCalledTimes(1);
 	});
 
