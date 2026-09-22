@@ -47,6 +47,14 @@ describe('Modal', () => {
     expect(onclose).toHaveBeenCalledTimes(1);
   });
 
+  it('does not report onclose for Escape while already closed', async () => {
+    const onclose = vi.fn();
+    render(Modal, { props: { show: false, onclose } });
+
+    await fireEvent.keyDown(window, { key: 'Escape' });
+    expect(onclose).not.toHaveBeenCalled();
+  });
+
   it('closes when clicking the backdrop itself', async () => {
     const onclose = vi.fn();
     const { container } = render(Modal, { props: { show: true, onclose } });

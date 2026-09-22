@@ -55,4 +55,63 @@ describe('ConfirmDialog', () => {
 		expect(onCancel).toHaveBeenCalledTimes(1);
 		expect(onConfirm).not.toHaveBeenCalled();
 	});
+
+	it('fires onDismiss (not onCancel) on Escape when onDismiss is provided', async () => {
+		const onCancel = vi.fn();
+		const onDismiss = vi.fn();
+		render(ConfirmDialog, {
+			props: { show: true, title: 'T', onConfirm: vi.fn(), onCancel, onDismiss },
+		});
+
+		await fireEvent.keyDown(window, { key: 'Escape' });
+		expect(onDismiss).toHaveBeenCalledTimes(1);
+		expect(onCancel).not.toHaveBeenCalled();
+	});
+
+	it('falls back to onCancel on Escape when no onDismiss is provided', async () => {
+		const onCancel = vi.fn();
+		render(ConfirmDialog, {
+			props: { show: true, title: 'T', onConfirm: vi.fn(), onCancel },
+		});
+
+		await fireEvent.keyDown(window, { key: 'Escape' });
+		expect(onCancel).toHaveBeenCalledTimes(1);
+	});
+
+	it('fires onDismiss (not onCancel) on backdrop click', async () => {
+		const onCancel = vi.fn();
+		const onDismiss = vi.fn();
+		const { container } = render(ConfirmDialog, {
+			props: { show: true, title: 'T', onConfirm: vi.fn(), onCancel, onDismiss },
+		});
+		const backdrop = container.querySelector<HTMLElement>('[role="dialog"]')!;
+
+		await fireEvent.click(backdrop);
+		expect(onDismiss).toHaveBeenCalledTimes(1);
+		expect(onCancel).not.toHaveBeenCalled();
+	});
+
+	it('fires onDismiss (not onCancel) on the close button', async () => {
+		const onCancel = vi.fn();
+		const onDismiss = vi.fn();
+		const { getByLabelText } = render(ConfirmDialog, {
+			props: { show: true, title: 'T', onConfirm: vi.fn(), onCancel, onDismiss },
+		});
+
+		await fireEvent.click(getByLabelText('Close'));
+		expect(onDismiss).toHaveBeenCalledTimes(1);
+		expect(onCancel).not.toHaveBeenCalled();
+	});
+
+	it('does not fire onDismiss when the cancel button is clicked', async () => {
+		const onCancel = vi.fn();
+		const onDismiss = vi.fn();
+		const { getByText } = render(ConfirmDialog, {
+			props: { show: true, title: 'T', onConfirm: vi.fn(), onCancel, onDismiss },
+		});
+
+		await fireEvent.click(getByText('Cancel'));
+		expect(onCancel).toHaveBeenCalledTimes(1);
+		expect(onDismiss).not.toHaveBeenCalled();
+	});
 });
