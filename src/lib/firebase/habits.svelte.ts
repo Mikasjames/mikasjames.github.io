@@ -9,6 +9,7 @@ import {
 	saveHabitLogsForJournalEntryAtomic,
 	type Habit,
 } from "./firestore.svelte";
+import { DRAFT_TTL_MS } from "../utils/noteDraft";
 
 const DRAFT_PREFIX = "mj_habit_draft_";
 
@@ -66,13 +67,32 @@ function makeStore() {
 		try {
 			const raw = localStorage.getItem(draftKey(userId, date));
 			if (!raw) return null;
-			const parsed = JSON.parse(raw) as { selectedHabitIds?: string[] };
-			return Array.isArray(parsed.selectedHabitIds)
-				? parsed.selectedHabitIds
-				: null;
+			const parsed = JSON.parse(raw) as {
+				selectedHabitIds?: string[];
+				timestamp?: unknown;
+			};
+			if (!Array.isArray(parsed.selectedHabitIds)) return null;
+			// Expired (or timestamp missing/corrupt): treat as absent and prune.
+			if (
+				typeof parsed.timestamp !== "number" ||
+				Date.now() - parsed.timestamp > DRAFT_TTL_MS
+			) {
+				clearDraft(userId, date);
+				return null;
+			}
+			return parsed.selectedHabitIds;
 		} catch {
 			return null;
 		}
+	}
+
+	/** True when a stored draft exists that differs from the current selection. */
+	function habitDraftDiffers(userId: string, date: string): boolean {
+		const draft = loadDraft(userId, date);
+		if (draft === null) return false;
+		const current = Array.from(selectedHabitIds).sort();
+		const incoming = [...draft].sort();
+		return JSON.stringify(incoming) !== JSON.stringify(current);
 	}
 
 	function clearDraft(userId: string, date: string) {
@@ -250,5 +270,6 @@ function makeStore() {
 		saveDraft,
 		loadDraft,
 		clearDraft,
+		habitDraftDiffers,
 	};
 }

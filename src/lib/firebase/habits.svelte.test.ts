@@ -14,6 +14,7 @@ const firestore = vi.hoisted(() => ({
 vi.mock('$lib/firebase/firestore.svelte', () => firestore);
 
 import type { Habit } from '$lib/firebase/firestore.svelte';
+import { DRAFT_TTL_MS } from '$lib/utils/noteDraft';
 
 // createHabitsStore is a true module singleton — reset modules and import
 // dynamically so every test gets a pristine store.
@@ -317,5 +318,56 @@ describe('habit draft persistence', () => {
 
 		const loaded = store.loadDraft('user-1', '2026-09-21');
 		expect(loaded).toEqual(expect.arrayContaining(['h1', 'h2']));
+	});
+
+	it('loadDraft returns null and prunes a draft older than the TTL', async () => {
+		const { store } = await freshStore();
+		store.toggleHabit('h1');
+		store.saveDraft('user-1', '2026-09-21');
+		const key = `${STORAGE_KEY_PREFIX}user-1_2026-09-21`;
+		const parsed = JSON.parse(localStorage.getItem(key)!);
+		parsed.timestamp = Date.now() - DRAFT_TTL_MS - 1;
+		localStorage.setItem(key, JSON.stringify(parsed));
+
+		expect(store.loadDraft('user-1', '2026-09-21')).toBeNull();
+		expect(localStorage.getItem(key)).toBeNull();
+	});
+
+	it('loadDraft returns null and prunes a draft with a missing timestamp', async () => {
+		const key = `${STORAGE_KEY_PREFIX}user-1_2026-09-21`;
+		localStorage.setItem(key, JSON.stringify({ selectedHabitIds: ['h1'] }));
+		const { store } = await freshStore();
+
+		expect(store.loadDraft('user-1', '2026-09-21')).toBeNull();
+		expect(localStorage.getItem(key)).toBeNull();
+	});
+
+	it('habitDraftDiffers is false without a draft', async () => {
+		const { store } = await freshStore();
+		expect(store.habitDraftDiffers('user-1', '2026-09-21')).toBe(false);
+	});
+
+	it('habitDraftDiffers is false when the draft matches the selection', async () => {
+		const { store } = await freshStore();
+		store.toggleHabit('h1');
+		store.saveDraft('user-1', '2026-09-21');
+
+		expect(store.habitDraftDiffers('user-1', '2026-09-21')).toBe(false);
+	});
+
+	it('habitDraftDiffers is false for an empty draft and empty selection', async () => {
+		const { store } = await freshStore();
+		store.saveDraft('user-1', '2026-09-21');
+
+		expect(store.habitDraftDiffers('user-1', '2026-09-21')).toBe(false);
+	});
+
+	it('habitDraftDiffers is true when the selection changed after the draft was saved', async () => {
+		const { store } = await freshStore();
+		store.toggleHabit('h1');
+		store.saveDraft('user-1', '2026-09-21');
+		store.toggleHabit('h1'); // deselect without touching the draft
+
+		expect(store.habitDraftDiffers('user-1', '2026-09-21')).toBe(true);
 	});
 });

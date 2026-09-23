@@ -1,5 +1,5 @@
 import { beforeEach, describe, expect, it } from 'vitest';
-import { saveNoteDraft, loadNoteDraft, clearNoteDraft } from './noteDraft';
+import { saveNoteDraft, loadNoteDraft, clearNoteDraft, DRAFT_TTL_MS } from './noteDraft';
 
 const STORAGE_KEY_PREFIX = 'mj_note_draft_';
 
@@ -118,5 +118,31 @@ describe('noteDraft', () => {
 			JSON.stringify({ content: 'x', happinessRating: 3 }),
 		);
 		expect(loadNoteDraft('user-1', '2026-09-21')).toBeNull();
+	});
+
+	it('loadNoteDraft returns null and prunes a draft older than the TTL', () => {
+		const key = `${STORAGE_KEY_PREFIX}user-1_2026-09-21`;
+		saveNoteDraft('user-1', '2026-09-21', {
+			content: 'Ancient',
+			happinessRating: 3,
+			showNote: true,
+		});
+		const parsed = JSON.parse(localStorage.getItem(key)!);
+		parsed.timestamp = Date.now() - DRAFT_TTL_MS - 1;
+		localStorage.setItem(key, JSON.stringify(parsed));
+
+		expect(loadNoteDraft('user-1', '2026-09-21')).toBeNull();
+		expect(localStorage.getItem(key)).toBeNull();
+	});
+
+	it('loadNoteDraft returns null and prunes a draft with a missing timestamp', () => {
+		const key = `${STORAGE_KEY_PREFIX}user-1_2026-09-21`;
+		localStorage.setItem(
+			key,
+			JSON.stringify({ content: 'x', happinessRating: 3, showNote: true }),
+		);
+
+		expect(loadNoteDraft('user-1', '2026-09-21')).toBeNull();
+		expect(localStorage.getItem(key)).toBeNull();
 	});
 });
