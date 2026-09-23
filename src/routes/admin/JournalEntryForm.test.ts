@@ -13,6 +13,7 @@ import {
 	saveHabitLogsForDateAtomic,
 	saveHabitLogsForJournalEntryAtomic,
 	type Habit,
+	type HabitLog,
 	type JournalEntry,
 } from '$lib/firebase/firestore.svelte';
 import { createHabitsStore } from '$lib/firebase/habits.svelte';
@@ -150,25 +151,57 @@ describe('JournalEntryForm draft persistence', () => {
 		vi.useRealTimers();
 	});
 
-	it('skips the habit load for a draft and compensates it on dismiss', async () => {
+	it('keeps the habit draft on dismiss without a second load', async () => {
 		const entry = makeEntry({ id: 'entry-1', entryDate: pastDate });
 		seedHabitDraft(pastDate, ['h1']);
 
 		const { component, findByText, queryAllByRole } = renderForm();
-		component.startEditJournal(entry);
+		await component.startEditJournal(entry);
 		flushSync();
 
 		await findByText('Restore unsaved habits?');
-		// Habit load was skipped because a draft exists.
-		expect(getHabitLogsForJournalEntry).not.toHaveBeenCalled();
+		// The stored selection was loaded first, then the differing draft prompted.
+		expect(getHabitLogsForJournalEntry).toHaveBeenCalledTimes(1);
 
 		await fireEvent.keyDown(window, { key: 'Escape' });
 
 		await waitFor(() => {
 			expect(queryAllByRole('dialog')).toHaveLength(0);
-			// Dismiss keeps the draft but completes the skipped load.
-			expect(getHabitLogsForJournalEntry).toHaveBeenCalledWith(uid, 'entry-1');
+			// Dismiss keeps the draft and adds no compensating load.
+			expect(getHabitLogsForJournalEntry).toHaveBeenCalledTimes(1);
 			expect(localStorage.getItem(habitDraftKey(pastDate))).not.toBeNull();
+		});
+	});
+
+	it('does not prompt when the habit draft matches the stored logs', async () => {
+		const entry = makeEntry({ id: 'entry-1', entryDate: pastDate });
+		seedHabitDraft(pastDate, ['h1']);
+		vi.mocked(getHabitLogsForJournalEntry).mockResolvedValue([
+			{ habitId: 'h1' } as HabitLog,
+		]);
+
+		const { component, container } = renderForm();
+		await component.startEditJournal(entry);
+		flushSync();
+
+		expect(getHabitLogsForJournalEntry).toHaveBeenCalledTimes(1);
+		expect(container.querySelectorAll('[role="dialog"]')).toHaveLength(0);
+		// The stored selection is what's displayed.
+		expect(habitsStore.selectedHabitIds.has('h1')).toBe(true);
+	});
+
+	it('offers drafts on the pristine new-entry form', async () => {
+		seedHabitDraft(today, ['h1']);
+		seedNoteDraft(today, 'Fresh words');
+
+		const { findByText, getByText, getByPlaceholderText } = renderForm();
+
+		await findByText('Restore unsaved changes?');
+		await fireEvent.click(getByText('Restore'));
+
+		await waitFor(() => {
+			expect(getByPlaceholderText(/on your mind/)).toHaveValue('Fresh words');
+			expect(habitsStore.selectedHabitIds.has('h1')).toBe(true);
 		});
 	});
 
@@ -178,7 +211,7 @@ describe('JournalEntryForm draft persistence', () => {
 		seedNoteDraft(pastDate, 'Draft text');
 
 		const { component, container, findByText, getByText, getByPlaceholderText } = renderForm();
-		component.startEditJournal(entry);
+		await component.startEditJournal(entry);
 
 		await findByText('Restore unsaved changes?');
 		expect(container.querySelectorAll('[role="dialog"]')).toHaveLength(1);
@@ -192,13 +225,13 @@ describe('JournalEntryForm draft persistence', () => {
 		});
 	});
 
-	it('discard clears both drafts and still completes the skipped load', async () => {
+	it('discard clears both drafts after the stored selection was loaded', async () => {
 		const entry = makeEntry({ id: 'entry-1', entryDate: pastDate });
 		seedHabitDraft(pastDate, ['h1']);
 		seedNoteDraft(pastDate, 'Draft text');
 
 		const { component, findByText, getByText } = renderForm();
-		component.startEditJournal(entry);
+		await component.startEditJournal(entry);
 
 		await findByText('Restore unsaved changes?');
 		await fireEvent.click(getByText('Discard'));
@@ -206,7 +239,7 @@ describe('JournalEntryForm draft persistence', () => {
 		await waitFor(() => {
 			expect(localStorage.getItem(habitDraftKey(pastDate))).toBeNull();
 			expect(localStorage.getItem(noteDraftKey(pastDate))).toBeNull();
-			expect(getHabitLogsForJournalEntry).toHaveBeenCalledWith(uid, 'entry-1');
+			expect(getHabitLogsForJournalEntry).toHaveBeenCalledTimes(1);
 		});
 	});
 
@@ -214,7 +247,7 @@ describe('JournalEntryForm draft persistence', () => {
 		const entry = makeEntry({ id: 'entry-1', entryDate: pastDate });
 
 		const { component, container } = renderForm();
-		component.startEditJournal(entry);
+		await component.startEditJournal(entry);
 		flushSync();
 
 		expect(getHabitLogsForJournalEntry).toHaveBeenCalledWith(uid, 'entry-1');
@@ -246,7 +279,7 @@ describe('JournalEntryForm draft persistence', () => {
 		const entry = makeEntry({ id: 'entry-1', entryDate: pastDate });
 
 		const { component } = renderForm();
-		component.startEditJournal(entry);
+		await component.startEditJournal(entry);
 		flushSync();
 
 		seedHabitDraft(pastDate, ['h1']);
@@ -291,6 +324,29 @@ describe('JournalEntryForm draft persistence', () => {
 			const saved = localStorage.getItem(noteDraftKey(today));
 			expect(saved).not.toBeNull();
 			expect(JSON.parse(saved!).content).toContain('### ');
+		} finally {
+			vi.useRealTimers();
+		}
+	});
+
+	it('does not re-create a draft after Cancel Edit within the debounce window', async () => {
+		vi.useFakeTimers();
+		try {
+			const entry = makeEntry({ id: 'entry-1', entryDate: pastDate });
+			const { component, getByText, getByPlaceholderText } = renderForm();
+			await component.startEditJournal(entry);
+			flushSync();
+
+			// The entry has content, so the editor is rendered as-is.
+			const textarea = getByPlaceholderText(/on your mind/);
+			await fireEvent.input(textarea, { target: { value: 'abandoned' } });
+			await fireEvent.click(getByText('Cancel Edit'));
+			await vi.advanceTimersByTimeAsync(600);
+
+			// The pending save must be cancelled, not re-create the draft
+			// that resetJournalForm just discarded.
+			expect(localStorage.getItem(noteDraftKey(pastDate))).toBeNull();
+			expect(localStorage.getItem(habitDraftKey(pastDate))).toBeNull();
 		} finally {
 			vi.useRealTimers();
 		}
