@@ -16,12 +16,14 @@ import {
 	import { createInsightsStore } from "$lib/firebase/insights.svelte";
 	import { createMediaStore } from "$lib/firebase/media.svelte";
 	import { createHabitsStore } from "$lib/firebase/habits.svelte";
+	import { createHabitStatsStore } from "$lib/firebase/habitStats.svelte";
 	import { createOljStore } from "$lib/firebase/olj.svelte";
 	import GridBackground from "$lib/components/GridBackground.svelte";
 	import Spinner from "$lib/components/Spinner.svelte";
 	import BlogPostForm from "./BlogPostForm.svelte";
 	import JournalEntryForm from "./JournalEntryForm.svelte";
 	import InsightsDashboard from "./InsightsDashboard.svelte";
+	import HabitsStatsDashboard from "./HabitsStatsDashboard.svelte";
 	import EntryList from "./EntryList.svelte";
 	import OljLoginPanel from "./OljLoginPanel.svelte";
 	import ConfirmDialog from "$lib/components/ConfirmDialog.svelte";
@@ -33,12 +35,13 @@ import {
 	const insightsStore = createInsightsStore();
 	const mediaStore = createMediaStore();
 	const habitsStore = createHabitsStore();
+	const habitStatsStore = createHabitStatsStore();
 	const oljStore = createOljStore();
 
 	let blogPostFormRef = $state<ReturnType<typeof BlogPostForm>>();
 	let journalEntryFormRef = $state<ReturnType<typeof JournalEntryForm>>();
 
-	let currentSection = $state<"blogs" | "journal" | "insights" | "olj">("journal");
+	let currentSection = $state<"blogs" | "journal" | "insights" | "habits" | "olj">("journal");
 
 	$effect(() => {
 		const unsub = subscribeToAuth((u) => {
@@ -56,6 +59,7 @@ import {
 			loadJournalEntries();
 			habitsStore.loadHabits(user.uid);
 			insightsStore.loadLatest(user.uid);
+			habitStatsStore.load(user.uid);
 			oljStore.loadLog();
 		}
 	});
@@ -303,6 +307,21 @@ import {
 				</button>
 				<button
 					type="button"
+					onclick={() => (currentSection = "habits")}
+					class="relative shrink-0 pb-3 text-sm font-semibold tracking-wide transition-all duration-200 {currentSection ===
+					'habits'
+						? 'text-accent-400'
+						: 'text-zinc-400 hover:text-zinc-200'}"
+				>
+					Habits
+					{#if currentSection === "habits"}
+						<span
+							class="absolute bottom-0 left-0 right-0 h-0.5 bg-accent-500 rounded-t-full"
+						></span>
+					{/if}
+				</button>
+				<button
+					type="button"
 					onclick={() => (currentSection = "olj")}
 					class="relative shrink-0 pb-3 text-sm font-semibold tracking-wide transition-all duration-200 {currentSection ===
 					'olj'
@@ -363,6 +382,8 @@ import {
 				/>
 			{:else if currentSection === "insights"}
 				<InsightsDashboard {user} {insightsStore} />
+			{:else if currentSection === "habits"}
+				<HabitsStatsDashboard statsStore={habitStatsStore} />
 			{:else if currentSection === "olj"}
 				<OljLoginPanel {oljStore} />
 			{/if}
