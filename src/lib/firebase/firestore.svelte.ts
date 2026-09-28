@@ -626,6 +626,81 @@ export async function getHabitLogsForDates(
     return byDate;
 }
 
+export async function getHabitLogsInRange(
+    ownerUid: string,
+    startDate: string,
+    endDate: string
+): Promise<HabitLog[]> {
+    // One query for the whole span. getHabitLogsForDates chunks `in` queries in
+    // tens, which costs ~37 reads for a single year.
+    const q = query(
+        collection(getDb(), HABIT_LOGS_COLLECTION),
+        where('ownerUid', '==', ownerUid),
+        where('date', '>=', startDate),
+        where('date', '<=', endDate)
+    );
+    const snapshot = await getDocs(q);
+    return snapshot.docs.map((d) => docToHabitLog(d.id, d.data()));
+}
+
+export async function getAllHabitLogs(ownerUid: string): Promise<HabitLog[]> {
+    const q = query(
+        collection(getDb(), HABIT_LOGS_COLLECTION),
+        where('ownerUid', '==', ownerUid)
+    );
+    const snapshot = await getDocs(q);
+    return snapshot.docs.map((d) => docToHabitLog(d.id, d.data()));
+}
+
+/**
+ * Average happiness rating per entry date. Only date + rating are read — the
+ * entry content is never needed for statistics and can be arbitrarily large.
+ * Multiple entries on one date collapse to their mean, matching the
+ * server-side dailyRatingPoints so both surfaces report the same numbers.
+ */
+export async function getJournalRatingsInRange(
+    ownerUid: string,
+    startDate: string,
+    endDate: string
+): Promise<Record<string, number>> {
+    const q = query(
+        collection(getDb(), JOURNAL_COLLECTION),
+        where('ownerUid', '==', ownerUid),
+        where('entryDate', '>=', startDate),
+        where('entryDate', '<=', endDate)
+    );
+    return averageRatingsByDate(await getDocs(q));
+}
+
+export async function getAllJournalRatings(ownerUid: string): Promise<Record<string, number>> {
+    const q = query(
+        collection(getDb(), JOURNAL_COLLECTION),
+        where('ownerUid', '==', ownerUid)
+    );
+    return averageRatingsByDate(await getDocs(q));
+}
+
+function averageRatingsByDate(
+    snapshot: { docs: ReadonlyArray<{ data: () => DocumentData }> }
+): Record<string, number> {
+    const buckets = new Map<string, number[]>();
+    for (const doc of snapshot.docs) {
+        const data = doc.data();
+        const date = data.entryDate;
+        const rating = data.happinessRating;
+        if (typeof date !== 'string' || !date) continue;
+        if (typeof rating !== 'number') continue;
+        const list = buckets.get(date);
+        if (list) list.push(rating);
+        else buckets.set(date, [rating]);
+    }
+    const result: Record<string, number> = {};
+    for (const [date, ratings] of buckets) {
+        result[date] = ratings.reduce((sum, value) => sum + value, 0) / ratings.length;
+    }
+    return result;
+}
+
 export async function getLatestMonthlyInsight(ownerUid: string): Promise<MonthlyInsight | null> {
     const q = query(
         collection(getDb(), 'insights', ownerUid, 'monthly'),

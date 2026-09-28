@@ -200,3 +200,127 @@ describe("getPostBySlug", () => {
 		expect(result).toBeNull();
 	});
 });
+
+describe("getHabitLogsInRange", () => {
+	beforeEach(() => {
+		vi.clearAllMocks();
+	});
+
+	afterEach(() => {
+		vi.resetAllMocks();
+	});
+
+	it("reads a whole span in one indexed range query", async () => {
+		mockGetDocs.mockResolvedValue(createMockQuerySnapshot([]));
+
+		const { getHabitLogsInRange } = await import("$lib/firebase/firestore.svelte");
+		await getHabitLogsInRange("u1", "2026-01-01", "2026-12-31");
+
+		// A single getDocs covering the full year, rather than a chunked `in`
+		// loop. The order matters: equality first, then the range bounds.
+		expect(whereClauses).toEqual([
+			{ field: "ownerUid", operator: "==", value: "u1" },
+			{ field: "date", operator: ">=", value: "2026-01-01" },
+			{ field: "date", operator: "<=", value: "2026-12-31" },
+		]);
+		expect(limitArgs).toEqual([]);
+	});
+
+	it("maps documents onto habit logs", async () => {
+		mockGetDocs.mockResolvedValue(createMockQuerySnapshot([
+			createMockDocSnapshot("u1_2026-07-10_h1", {
+				habitId: "h1",
+				habitName: "Gym",
+				emoji: "🏋️",
+				ownerUid: "u1",
+				date: "2026-07-10",
+				journalEntryId: "e1",
+			}),
+		]));
+
+		const { getHabitLogsInRange } = await import("$lib/firebase/firestore.svelte");
+		const [log] = await getHabitLogsInRange("u1", "2026-07-01", "2026-07-31");
+
+		expect(log).toMatchObject({
+			id: "u1_2026-07-10_h1",
+			habitId: "h1",
+			habitName: "Gym",
+			date: "2026-07-10",
+			journalEntryId: "e1",
+		});
+		// Pending server timestamps resolve to null rather than throwing.
+		expect(log.completedAt).toBeNull();
+	});
+});
+
+describe("getAllHabitLogs", () => {
+	beforeEach(() => {
+		vi.clearAllMocks();
+	});
+
+	afterEach(() => {
+		vi.resetAllMocks();
+	});
+
+	it("filters by owner only, with no date bound", async () => {
+		mockGetDocs.mockResolvedValue(createMockQuerySnapshot([]));
+
+		const { getAllHabitLogs } = await import("$lib/firebase/firestore.svelte");
+		await getAllHabitLogs("u1");
+
+		expect(whereClauses).toEqual([
+			{ field: "ownerUid", operator: "==", value: "u1" },
+		]);
+	});
+});
+
+describe("getJournalRatingsInRange", () => {
+	beforeEach(() => {
+		vi.clearAllMocks();
+	});
+
+	afterEach(() => {
+		vi.resetAllMocks();
+	});
+
+	it("averages several entries recorded on the same date", async () => {
+		mockGetDocs.mockResolvedValue(createMockQuerySnapshot([
+			createMockDocSnapshot("e1", { entryDate: "2026-07-10", happinessRating: 5 }),
+			createMockDocSnapshot("e2", { entryDate: "2026-07-10", happinessRating: 3 }),
+			createMockDocSnapshot("e3", { entryDate: "2026-07-11", happinessRating: 1 }),
+		]));
+
+		const { getJournalRatingsInRange } = await import("$lib/firebase/firestore.svelte");
+		const ratings = await getJournalRatingsInRange("u1", "2026-07-01", "2026-07-31");
+
+		expect(ratings).toEqual({ "2026-07-10": 4, "2026-07-11": 1 });
+		expect(whereClauses).toEqual([
+			{ field: "ownerUid", operator: "==", value: "u1" },
+			{ field: "entryDate", operator: ">=", value: "2026-07-01" },
+			{ field: "entryDate", operator: "<=", value: "2026-07-31" },
+		]);
+	});
+
+	it("skips entries with a missing date or a non-numeric rating", async () => {
+		mockGetDocs.mockResolvedValue(createMockQuerySnapshot([
+			createMockDocSnapshot("e1", { entryDate: "2026-07-10", happinessRating: 4 }),
+			createMockDocSnapshot("e2", { entryDate: "", happinessRating: 5 }),
+			createMockDocSnapshot("e3", { entryDate: "2026-07-11" }),
+			createMockDocSnapshot("e4", { entryDate: "2026-07-12", happinessRating: null }),
+			createMockDocSnapshot("e5", { entryDate: "2026-07-13", happinessRating: "5" }),
+		]));
+
+		const { getJournalRatingsInRange } = await import("$lib/firebase/firestore.svelte");
+		const ratings = await getJournalRatingsInRange("u1", "2026-07-01", "2026-07-31");
+
+		expect(ratings).toEqual({ "2026-07-10": 4 });
+	});
+
+	it("returns an empty map when nothing is rated", async () => {
+		mockGetDocs.mockResolvedValue(createMockQuerySnapshot([]));
+
+		const { getJournalRatingsInRange } = await import("$lib/firebase/firestore.svelte");
+
+		expect(await getJournalRatingsInRange("u1", "2026-07-01", "2026-07-31")).toEqual({});
+	});
+});
