@@ -288,7 +288,14 @@
 
 	function parsedContent() {
 		if (!content) return "";
-		try { return renderMarkdown(content); } catch { return content; }
+		// Never fall back to the raw string: it is untrusted input and this
+		// result goes straight into {@html}. A failed render is an empty note.
+		try {
+			return renderMarkdown(content);
+		} catch (err) {
+			console.error("Failed to render habit note:", err);
+			return "";
+		}
 	}
 
 </script>
@@ -393,7 +400,7 @@
 								<span class="text-[10px] text-zinc-600">Supports markdown</span>
 							</div>
 							{#if showPreview}
-								<div class="min-h-[120px] rounded-lg border border-zinc-700/60 bg-zinc-950/30 p-3 text-sm text-zinc-300 prose prose-invert prose-sm max-w-none">
+								<div class="min-h-[120px] rounded-lg border border-zinc-700/60 bg-zinc-950/30 p-3 max-w-none prose-custom text-zinc-300 text-left text-[0.96rem] leading-relaxed break-words">
 									{@html parsedContent() || "<p class='text-zinc-600 italic'>Nothing written yet...</p>"}
 								</div>
 							{:else}
