@@ -84,19 +84,31 @@ export async function getPrerenderPosts(): Promise<BlogPost[]> {
 }
 
 export async function getPostBySlug(slug: string): Promise<BlogPost | null> {
-	const snapshot = await getDocs(collection(getDb(), COLLECTION));
-	const match = snapshot.docs.find((d) => d.data().slug === slug);
-	if (!match) return null;
-	return docToPost(match.id, match.data());
+	// Queried by slug rather than scanned in JS. This runs once per post
+	// during prerender, on top of entries() fetching the whole collection,
+	// so the full read made the build O(n^2) in collection reads.
+	const q = query(
+		collection(getDb(), COLLECTION),
+		where('slug', '==', slug),
+		limit(1)
+	);
+	const snapshot = await getDocs(q);
+	const first = snapshot.docs[0];
+	return first ? docToPost(first.id, first.data()) : null;
 }
 
 export async function getDraftBySlug(slug: string): Promise<BlogPost | null> {
-	const snapshot = await getDocs(
-		query(collection(getDb(), COLLECTION), where('status', '==', 'draft'))
+	// Both constraints are equality, so Firestore merges single-field
+	// indexes and no composite index is required.
+	const q = query(
+		collection(getDb(), COLLECTION),
+		where('status', '==', 'draft'),
+		where('slug', '==', slug),
+		limit(1)
 	);
-	const match = snapshot.docs.find((d) => d.data().slug === slug);
-	if (!match) return null;
-	return docToPost(match.id, match.data());
+	const snapshot = await getDocs(q);
+	const first = snapshot.docs[0];
+	return first ? docToPost(first.id, first.data()) : null;
 }
 
 export async function createPost(data: {
