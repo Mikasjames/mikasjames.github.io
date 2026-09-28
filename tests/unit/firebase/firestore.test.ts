@@ -10,11 +10,12 @@ vi.mock("firebase/firestore", () => ({
 	collection: vi.fn(),
 	query: vi.fn(),
 	where: vi.fn(),
+	limit: vi.fn(),
 	getDocs: vi.fn(),
 	getFirestore: vi.fn().mockReturnValue({}),
 }));
 
-import { where, getDocs } from "firebase/firestore";
+import { where, limit, getDocs } from "firebase/firestore";
 
 const mockGetDocs = vi.mocked(getDocs);
 
@@ -40,18 +41,37 @@ function createMockQuerySnapshot(docs: QueryDocumentSnapshot[]): QuerySnapshot {
 	} as unknown as QuerySnapshot;
 }
 
-// Track the last where clause used
-let lastWhereClause: { field: string; operator: string; value: unknown } | null = null;
+// Collect every where clause, in order. Queries here apply more than one
+// filter, so tracking only the last would assert on an arbitrary clause.
+type WhereClause = { field: string; operator: string; value: unknown };
+let whereClauses: WhereClause[] = [];
 
-vi.mocked(where).mockImplementation((field: string | import("firebase/firestore").FieldPath, operator: string, value: unknown) => {
-	lastWhereClause = { field: field.toString(), operator, value };
-	return { field, operator, value } as unknown as ReturnType<typeof where>;
+// Limits are tracked separately -- they are not a filter.
+let limitArgs: unknown[] = [];
+
+// Re-installed before each test: the afterEach below resets implementations.
+beforeEach(() => {
+	whereClauses = [];
+	limitArgs = [];
+
+	vi.mocked(where).mockImplementation((
+		field: string | import("firebase/firestore").FieldPath,
+		operator: string,
+		value: unknown,
+	) => {
+		whereClauses.push({ field: field.toString(), operator, value });
+		return { field, operator, value } as unknown as ReturnType<typeof where>;
+	});
+
+	vi.mocked(limit).mockImplementation((count: unknown) => {
+		limitArgs.push(count);
+		return { kind: "limit", count } as unknown as ReturnType<typeof limit>;
+	});
 });
 
 describe("getDraftBySlug", () => {
 	beforeEach(() => {
 		vi.clearAllMocks();
-		lastWhereClause = null;
 	});
 
 	afterEach(() => {
@@ -83,8 +103,13 @@ describe("getDraftBySlug", () => {
 		expect(result?.status).toBe("draft");
 		expect(result?.id).toBe("draft-1");
 
-		// Verify the where clause was applied
-		expect(lastWhereClause).toEqual({ field: "status", operator: "==", value: "draft" });
+		// Both constraints are applied: drafts only, and this specific slug.
+		// Reading is a single indexed lookup, not a collection scan.
+		expect(whereClauses).toEqual([
+			{ field: "status", operator: "==", value: "draft" },
+			{ field: "slug", operator: "==", value: "my-draft" },
+		]);
+		expect(limitArgs).toEqual([1]);
 	});
 
 	it("returns null for published post (status filter)", async () => {
@@ -126,10 +151,9 @@ describe("getDraftBySlug", () => {
 	});
 });
 
-describe("getPostBySlug (legacy)", () => {
+describe("getPostBySlug", () => {
 	beforeEach(() => {
 		vi.clearAllMocks();
-		lastWhereClause = null;
 	});
 
 	afterEach(() => {
@@ -158,7 +182,21 @@ describe("getPostBySlug (legacy)", () => {
 		expect(result).toBeTruthy();
 		expect(result?.status).toBe("draft");
 
-		// getPostBySlug should not apply any where clause
-		expect(lastWhereClause).toBeNull();
+		// Looked up by slug via a single indexed read, rather than fetching
+		// the whole collection and matching in JS. No status filter: the
+		// route applies its own draft check, and this returns drafts.
+		expect(whereClauses).toEqual([
+			{ field: "slug", operator: "==", value: "my-draft" },
+		]);
+		expect(limitArgs).toEqual([1]);
+	});
+
+	it("returns null when the slug does not match any document", async () => {
+		mockGetDocs.mockResolvedValue(createMockQuerySnapshot([]));
+
+		const { getPostBySlug } = await import("$lib/firebase/firestore.svelte");
+		const result = await getPostBySlug("no-such-post");
+
+		expect(result).toBeNull();
 	});
 });
