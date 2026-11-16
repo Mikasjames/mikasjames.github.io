@@ -3,6 +3,9 @@
     import { fly } from "svelte/transition";
     import { logEvent } from "$lib/firebase/analytics";
 
+    const resumeUrl =
+        "https://www.dropbox.com/scl/fi/prxq3a4ps4suswo0hcrzv/MIKAS_JAMES_GAMBOA_ARAYATA.pdf?rlkey=mdcwsaxl19ntef06tf89nkm3p&dl=1";
+
     let activeSkillTab = $state("Frontend");
     let visibleSections = $state<Set<string>>(new Set());
 
@@ -465,6 +468,48 @@
         </p>
 
         <div class="flex flex-wrap gap-4">
+            <a
+                href={resumeUrl}
+                target="_blank"
+                rel="noopener noreferrer"
+                id="hero-resume-link"
+                onclick={() =>
+                    logEvent("click_cta", {
+                        label: "Hero Resume",
+                        url: resumeUrl,
+                    })}
+                class="inline-flex items-center gap-2.5 px-5 py-2.5 rounded-lg bg-accent-500 text-white text-sm font-semibold hover:bg-accent-600 transition-all duration-200 shadow-lg shadow-accent-500/25 group"
+            >
+                <svg
+                    class="w-4 h-4"
+                    fill="none"
+                    stroke="currentColor"
+                    viewBox="0 0 24 24"
+                    aria-hidden="true"
+                >
+                    <path
+                        stroke-linecap="round"
+                        stroke-linejoin="round"
+                        stroke-width="2"
+                        d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"
+                    />
+                </svg>
+                Résumé
+                <svg
+                    class="w-3 h-3 opacity-60 group-hover:opacity-100 group-hover:translate-y-0.5 transition-all duration-200"
+                    fill="none"
+                    stroke="currentColor"
+                    viewBox="0 0 24 24"
+                    aria-hidden="true"
+                >
+                    <path
+                        stroke-linecap="round"
+                        stroke-linejoin="round"
+                        stroke-width="2"
+                        d="M12 4v12m0 0l-4-4m4 4l4-4M4 20h16"
+                    />
+                </svg>
+            </a>
             <a
                 href="https://github.com/Mikasjames"
                 target="_blank"
@@ -1107,7 +1152,7 @@
             <p class="font-mono">
                 <span class="text-accent-400">&gt;_</span> mikas · built with
                 <a
-                    href="https://kit.svelte.dev"
+                    href="https://svelte.dev/docs/kit"
                     target="_blank"
                     rel="noopener noreferrer"
                     class="hover:text-zinc-400 transition-colors underline underline-offset-2"
@@ -1120,6 +1165,14 @@
                     rel="noopener noreferrer"
                     class="hover:text-zinc-400 transition-colors underline underline-offset-2"
                     >Tailwind CSS</a
+                >
+                ·
+                <a
+                    href="https://github.com/Mikasjames/mikasjames.github.io"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    class="hover:text-zinc-400 transition-colors underline underline-offset-2"
+                    >View source</a
                 >
             </p>
             <p>
