@@ -417,7 +417,7 @@
         class="absolute top-1/3 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[600px] h-[600px] rounded-full bg-indigo-600/8 blur-[120px] pointer-events-none"
     ></div>
 
-    <div class="relative max-w-5xl mx-auto w-full pt-24 pb-16">
+    <div class="relative max-w-5xl mx-auto w-full pt-24 pb-32">
         <div
             class="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-zinc-900 border border-zinc-800 text-xs text-zinc-400 mb-8"
         >
@@ -570,7 +570,8 @@
         </div>
 
         <div
-            class="absolute bottom-8 left-1/2 -translate-x-1/2 flex flex-col items-center gap-2 opacity-40"
+            class="absolute bottom-8 left-1/2 -translate-x-1/2 hidden sm:flex flex-col items-center gap-2 opacity-40"
+            aria-hidden="true"
         >
             <span
                 class="text-xs font-mono text-zinc-500 tracking-widest uppercase"
