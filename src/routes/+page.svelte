@@ -303,6 +303,40 @@
         emerald: "bg-emerald-500 shadow-emerald-500/50",
     };
 
+    const personJsonLd = {
+        "@context": "https://schema.org",
+        "@type": "Person",
+        name: "Mikas James Gamboa Arayata",
+        jobTitle: "Full-Stack Software Engineer",
+        url: "https://mikasjames.com",
+        image: "https://mikasjames.com/og-default.png",
+        email: "mailto:mikasjames@gmail.com",
+        address: {
+            "@type": "PostalAddress",
+            addressLocality: "Tanza",
+            addressRegion: "Cavite",
+            addressCountry: "PH",
+        },
+        sameAs: ["https://github.com/Mikasjames"],
+        worksFor: {
+            "@type": "Organization",
+            name: "Codefrost",
+            url: "https://www.codefrost.dev/",
+        },
+        knowsAbout: [
+            "TypeScript",
+            "SvelteKit",
+            "Angular",
+            "Django",
+            "Python",
+            "Firebase",
+            "PostgreSQL",
+            "Playwright",
+            "Progressive Web Apps",
+            "LLM integration",
+        ],
+    };
+
     onMount(() => {
         const observer = new IntersectionObserver(
             (entries) => {
@@ -332,7 +366,7 @@
     <title>Mikas James | Full-Stack Software Engineer</title>
     <meta
         name="description"
-        content="Full-Stack Software Engineer with 3+ years at Codefrost. TypeScript, Svelte, Angular, Django, and more."
+        content="Full-stack engineer in the Philippines building fast, offline-capable PWAs with SvelteKit, Angular, Django, and AI integrations. Open to remote roles."
     />
     <link rel="canonical" href="https://mikasjames.com" />
     <meta
@@ -341,22 +375,31 @@
     />
     <meta
         property="og:description"
-        content="Full-Stack Software Engineer building Web/PWA solutions with AI integration. TypeScript, Svelte, Angular, Django."
+        content="Full-stack engineer in the Philippines building fast, offline-capable PWAs with SvelteKit, Angular, Django, and AI integrations. Open to remote roles."
     />
     <meta property="og:url" content="https://mikasjames.com" />
     <meta property="og:image" content="https://mikasjames.com/og-default.png" />
+    <meta
+        property="og:image:alt"
+        content="Mikas James, Full-Stack Software Engineer"
+    />
     <meta
         name="twitter:title"
         content="Mikas James | Full-Stack Software Engineer"
     />
     <meta
         name="twitter:description"
-        content="Full-Stack Software Engineer building Web/PWA solutions with AI integration. TypeScript, Svelte, Angular, Django."
+        content="Full-stack engineer in the Philippines building fast, offline-capable PWAs with SvelteKit, Angular, Django, and AI integrations. Open to remote roles."
     />
     <meta
         name="twitter:image"
         content="https://mikasjames.com/og-default.png"
     />
+    <meta
+        name="twitter:image:alt"
+        content="Mikas James, Full-Stack Software Engineer"
+    />
+    {@html `<script type="application/ld+json">${JSON.stringify(personJsonLd).replace(/</g, "\\u003c")}</script>`}
 </svelte:head>
 
 <section
