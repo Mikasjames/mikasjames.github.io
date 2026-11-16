@@ -3,19 +3,36 @@
     import { fly } from "svelte/transition";
     import { logEvent } from "$lib/firebase/analytics";
 
+    const resumeUrl =
+        "https://www.dropbox.com/scl/fi/prxq3a4ps4suswo0hcrzv/MIKAS_JAMES_GAMBOA_ARAYATA.pdf?rlkey=mdcwsaxl19ntef06tf89nkm3p&dl=1";
+
     let activeSkillTab = $state("Frontend");
     let visibleSections = $state<Set<string>>(new Set());
 
     let current = $state(0);
 
-    const projects = [
+    type Project = {
+        title: string;
+        tagline: string;
+        description: string;
+        liveUrl?: string;
+        blogUrl?: string;
+        blogLabel?: string;
+        period?: string;
+        techStack: string[];
+        features: string[];
+    };
+
+    const projects: Project[] = [
         {
             title: "IloCo. — Ilokano Dictionary",
             tagline: "Offline-capable bilingual dictionary for 8–10M speakers",
             description:
                 "A modern, offline-capable PWA bilingual dictionary for the Ilokano language with over 6,500 entries. Provides fast, relevance-ranked two-way lookup between Ilokano and English.",
             liveUrl: "https://dictionary.mikasjames.com",
-            blogUrl: "https://mikasjames.com/blogs/iloCo",
+            blogUrl: "https://mikasjames.com/blogs/iloCo/",
+            blogLabel: "Case study",
+            period: "2025 – Present",
             techStack: [
                 "SvelteKit",
                 "TypeScript",
@@ -37,8 +54,8 @@
             description:
                 "A Firebase-powered content management system with a rich markdown blog editor behind secure authentication.",
             blogUrl: "https://mikasjames.com/blogs/blog-cms/",
-            liveUrl: "https://mikasjames.com/admin/",
-            sourceUrl: null,
+            blogLabel: "Case study",
+            period: "2026 – Present",
             techStack: [
                 "SvelteKit",
                 "Firebase Auth",
@@ -60,7 +77,7 @@
             description:
                 "A serverless PWA that helps organizations manage income and expenses, categorize with tags, visualize financial trends, and generate government-required PDF reports — all from a single dashboard.",
             liveUrl: "https://tracker.mikasjames.com",
-            sourceUrl: null,
+            period: "2024 – Present",
             techStack: [
                 "Angular 17",
                 "Firebase",
@@ -127,16 +144,10 @@
         ],
         "Cloud & Tools": [
             "Google Cloud (GCP)",
-            "Google Antigravity",
             "Docker",
             "Git / GitHub",
             "Linux",
-            "VS Code",
-            "Cursor",
-            "Vim / Neovim",
-            "Postman",
-            "MongoDB Compass",
-            "JetBrains IDEs",
+            "CI/CD (GitHub Actions)",
         ],
         QA: [
             "Playwright",
@@ -149,10 +160,61 @@
         AI: ["LLM Integration", "Prompt Optimization", "AI-Assisted Tools"],
     };
 
+    const coreStack = [
+        "TypeScript",
+        "SvelteKit",
+        "Angular",
+        "Django",
+        "Python",
+        "Firebase",
+        "PostgreSQL",
+        "Playwright",
+        "GitHub Actions",
+    ];
+
+    function tabSlug(tab: string) {
+        return tab.toLowerCase().replace(/\s+/g, "-");
+    }
+
+    function handleTabKeydown(event: KeyboardEvent, index: number) {
+        let next = index;
+
+        switch (event.key) {
+            case "ArrowRight":
+                next = (index + 1) % skillTabs.length;
+                break;
+            case "ArrowLeft":
+                next = (index - 1 + skillTabs.length) % skillTabs.length;
+                break;
+            case "Home":
+                next = 0;
+                break;
+            case "End":
+                next = skillTabs.length - 1;
+                break;
+            default:
+                return;
+        }
+
+        event.preventDefault();
+        activeSkillTab = skillTabs[next];
+        document
+            .getElementById(`skill-tab-${tabSlug(skillTabs[next])}`)
+            ?.focus();
+    }
+
+    const codefrost = {
+        name: "Codefrost",
+        url: "https://www.codefrost.dev/",
+        summary:
+            "AI-powered software consultancy building custom SaaS products, PWAs, and full-stack platforms.",
+        period: "Jun 2023 – Present",
+    };
+
     const experience = [
         {
-            id: "data-analytics-2",
-            company: "Codefrost",
+            id: "adverio",
+            product: "Adverio",
             role: "Software Engineer",
             period: "Oct 2025 – Present",
             tag: "Data & Analytics",
@@ -165,8 +227,8 @@
             ],
         },
         {
-            id: "browser-ext",
-            company: "Codefrost",
+            id: "usedelight",
+            product: "UseDelight Browser Extension",
             role: "Software Engineer",
             period: "Nov 2024 – Oct 2025",
             tag: "Browser Extension",
@@ -178,12 +240,24 @@
             ],
         },
         {
-            id: "saas-bff",
-            company: "Codefrost",
+            id: "manatal-coop",
+            product: "Manatal Coop Mobile PWA",
+            role: "Software Engineer",
+            period: "Jan 2024 – Dec 2024",
+            tag: "Mobile PWA",
+            color: "sky",
+            points: [
+                "Maintained features for a mobile-first Progressive Web App using Svelte.",
+                "Optimized performance, local storage synchronization, and mobile UI responsiveness.",
+            ],
+        },
+        {
+            id: "internal-suite",
+            product: "Codefrost Internal Suite",
             role: "Software Engineer",
             period: "Jan 2024 – Nov 2024",
             tag: "SaaS & BFF",
-            color: "sky",
+            color: "teal",
             points: [
                 "Implemented a modular SaaS architecture using Angular and Django.",
                 "Worked with Node.js + Express as a Backend-for-Frontend (BFF) layer.",
@@ -191,8 +265,8 @@
             ],
         },
         {
-            id: "data-analytics-1",
-            company: "Codefrost",
+            id: "adverio-early",
+            product: "Adverio",
             role: "Software Engineer",
             period: "Jun 2023 – Jan 2024",
             tag: "Data & Analytics",
@@ -205,15 +279,13 @@
         },
         {
             id: "trainee",
-            company: "Codefrost",
-            role: "Technical Trainee — SHS Internship",
+            product: "Technical Trainee",
+            role: "High School Internship (SHS)",
             period: "Jan 2023 – Jun 2023",
             tag: "Internship",
             color: "emerald",
             points: [
-                "Balanced full-time Grade 12 studies while training in professional software workflows.",
-                "Gained practical proficiency in Angular and Django through project-based learning.",
-                "Contributed to internal tools and laid the foundation for a full-time engineering role.",
+                "Started as a high-school intern, shipping internal Angular and Django tools and converting to a full-time engineering role.",
             ],
         },
     ];
@@ -222,6 +294,7 @@
         indigo: "bg-indigo-500/10 text-indigo-400 border-indigo-500/20",
         violet: "bg-violet-500/10 text-violet-400 border-violet-500/20",
         sky: "bg-sky-500/10 text-sky-400 border-sky-500/20",
+        teal: "bg-teal-500/10 text-teal-400 border-teal-500/20",
         emerald: "bg-emerald-500/10 text-emerald-400 border-emerald-500/20",
     };
 
@@ -229,7 +302,42 @@
         indigo: "bg-indigo-500 shadow-indigo-500/50",
         violet: "bg-violet-500 shadow-violet-500/50",
         sky: "bg-sky-500 shadow-sky-500/50",
+        teal: "bg-teal-500 shadow-teal-500/50",
         emerald: "bg-emerald-500 shadow-emerald-500/50",
+    };
+
+    const personJsonLd = {
+        "@context": "https://schema.org",
+        "@type": "Person",
+        name: "Mikas James Gamboa Arayata",
+        jobTitle: "Full-Stack Software Engineer",
+        url: "https://mikasjames.com",
+        image: "https://mikasjames.com/og-default.png",
+        email: "mailto:mikasjames@gmail.com",
+        address: {
+            "@type": "PostalAddress",
+            addressLocality: "Tanza",
+            addressRegion: "Cavite",
+            addressCountry: "PH",
+        },
+        sameAs: ["https://github.com/Mikasjames"],
+        worksFor: {
+            "@type": "Organization",
+            name: "Codefrost",
+            url: "https://www.codefrost.dev/",
+        },
+        knowsAbout: [
+            "TypeScript",
+            "SvelteKit",
+            "Angular",
+            "Django",
+            "Python",
+            "Firebase",
+            "PostgreSQL",
+            "Playwright",
+            "Progressive Web Apps",
+            "LLM integration",
+        ],
     };
 
     onMount(() => {
@@ -261,7 +369,7 @@
     <title>Mikas James | Full-Stack Software Engineer</title>
     <meta
         name="description"
-        content="Full-Stack Software Engineer with 3+ years at Codefrost. TypeScript, Svelte, Angular, Django, and more."
+        content="Full-stack engineer in the Philippines building fast, offline-capable PWAs with SvelteKit, Angular, Django, and AI integrations. Open to remote roles."
     />
     <link rel="canonical" href="https://mikasjames.com" />
     <meta
@@ -270,22 +378,31 @@
     />
     <meta
         property="og:description"
-        content="Full-Stack Software Engineer building Web/PWA solutions with AI integration. TypeScript, Svelte, Angular, Django."
+        content="Full-stack engineer in the Philippines building fast, offline-capable PWAs with SvelteKit, Angular, Django, and AI integrations. Open to remote roles."
     />
     <meta property="og:url" content="https://mikasjames.com" />
     <meta property="og:image" content="https://mikasjames.com/og-default.png" />
+    <meta
+        property="og:image:alt"
+        content="Mikas James, Full-Stack Software Engineer"
+    />
     <meta
         name="twitter:title"
         content="Mikas James | Full-Stack Software Engineer"
     />
     <meta
         name="twitter:description"
-        content="Full-Stack Software Engineer building Web/PWA solutions with AI integration. TypeScript, Svelte, Angular, Django."
+        content="Full-stack engineer in the Philippines building fast, offline-capable PWAs with SvelteKit, Angular, Django, and AI integrations. Open to remote roles."
     />
     <meta
         name="twitter:image"
         content="https://mikasjames.com/og-default.png"
     />
+    <meta
+        name="twitter:image:alt"
+        content="Mikas James, Full-Stack Software Engineer"
+    />
+    {@html `<script type="application/ld+json">${JSON.stringify(personJsonLd).replace(/</g, "\\u003c")}</script>`}
 </svelte:head>
 
 <section
@@ -300,7 +417,7 @@
         class="absolute top-1/3 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[600px] h-[600px] rounded-full bg-indigo-600/8 blur-[120px] pointer-events-none"
     ></div>
 
-    <div class="relative max-w-5xl mx-auto w-full pt-24 pb-16">
+    <div class="relative max-w-5xl mx-auto w-full pt-24 pb-32">
         <div
             class="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-zinc-900 border border-zinc-800 text-xs text-zinc-400 mb-8"
         >
@@ -326,7 +443,7 @@
             <span
                 class="bg-gradient-to-r from-indigo-400 via-violet-400 to-purple-400 bg-clip-text text-transparent"
             >
-                Gamboa Arayata
+                Arayata
             </span>
         </h1>
 
@@ -334,7 +451,7 @@
             Full-Stack Software Engineer
             <span class="text-zinc-600 mx-2">·</span>
             <span class="font-mono text-sm text-zinc-500"
-                >3+ yrs @ <a
+                >3.5+ yrs @ <a
                     class="text-accent-400 hover:text-accent-500 transition-colors duration-200"
                     href="https://www.codefrost.dev/"
                     target="_blank">Codefrost</a
@@ -351,6 +468,48 @@
         </p>
 
         <div class="flex flex-wrap gap-4">
+            <a
+                href={resumeUrl}
+                target="_blank"
+                rel="noopener noreferrer"
+                id="hero-resume-link"
+                onclick={() =>
+                    logEvent("click_cta", {
+                        label: "Hero Resume",
+                        url: resumeUrl,
+                    })}
+                class="inline-flex items-center gap-2.5 px-5 py-2.5 rounded-lg bg-accent-500 text-white text-sm font-semibold hover:bg-accent-600 transition-all duration-200 shadow-lg shadow-accent-500/25 group"
+            >
+                <svg
+                    class="w-4 h-4"
+                    fill="none"
+                    stroke="currentColor"
+                    viewBox="0 0 24 24"
+                    aria-hidden="true"
+                >
+                    <path
+                        stroke-linecap="round"
+                        stroke-linejoin="round"
+                        stroke-width="2"
+                        d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"
+                    />
+                </svg>
+                Résumé
+                <svg
+                    class="w-3 h-3 opacity-60 group-hover:opacity-100 group-hover:translate-y-0.5 transition-all duration-200"
+                    fill="none"
+                    stroke="currentColor"
+                    viewBox="0 0 24 24"
+                    aria-hidden="true"
+                >
+                    <path
+                        stroke-linecap="round"
+                        stroke-linejoin="round"
+                        stroke-width="2"
+                        d="M12 4v12m0 0l-4-4m4 4l4-4M4 20h16"
+                    />
+                </svg>
+            </a>
             <a
                 href="https://github.com/Mikasjames"
                 target="_blank"
@@ -411,7 +570,8 @@
         </div>
 
         <div
-            class="absolute bottom-8 left-1/2 -translate-x-1/2 flex flex-col items-center gap-2 opacity-40"
+            class="absolute bottom-8 left-1/2 -translate-x-1/2 hidden sm:flex flex-col items-center gap-2 opacity-40"
+            aria-hidden="true"
         >
             <span
                 class="text-xs font-mono text-zinc-500 tracking-widest uppercase"
@@ -444,6 +604,29 @@
             <div
                 class="mt-4 h-px w-16 bg-gradient-to-r from-accent-500 to-transparent"
             ></div>
+        </div>
+
+        <div
+            class="mb-8 flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between"
+        >
+            <div>
+                <h3 class="text-xl font-semibold text-zinc-100">
+                    <a
+                        href={codefrost.url}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        class="hover:text-accent-400 transition-colors duration-200"
+                    >
+                        {codefrost.name}
+                    </a>
+                </h3>
+                <p class="mt-1 max-w-xl text-sm leading-relaxed text-zinc-400">
+                    {codefrost.summary}
+                </p>
+            </div>
+            <span class="font-mono text-xs text-zinc-500 whitespace-nowrap">
+                {codefrost.period}
+            </span>
         </div>
 
         <div class="relative">
@@ -484,13 +667,13 @@
                                             {job.tag}
                                         </span>
                                     </div>
-                                    <h3
+                                    <h4
                                         class="text-zinc-100 font-semibold text-lg leading-tight"
                                     >
-                                        {job.role}
-                                    </h3>
+                                        {job.product}
+                                    </h4>
                                     <p class="text-zinc-500 text-sm mt-0.5">
-                                        {job.company}
+                                        {job.role}
                                     </p>
                                 </div>
                                 <span
@@ -551,11 +734,27 @@
                 ? 'opacity-100 translate-y-0'
                 : 'opacity-0 translate-y-6'}"
         >
-            <div class="flex flex-wrap gap-2 mb-8">
-                {#each skillTabs as tab}
+            <p
+                class="mb-6 font-mono text-sm leading-relaxed text-zinc-400"
+            >
+                <span class="text-accent-400">Core stack:</span>
+                {coreStack.join(" · ")}
+            </p>
+
+            <div
+                class="flex flex-wrap gap-2 mb-8"
+                role="tablist"
+                aria-label="Skill categories"
+            >
+                {#each skillTabs as tab, i}
                     <button
-                        id="skill-tab-{tab.toLowerCase().replace(/\s+/g, '-')}"
+                        id="skill-tab-{tabSlug(tab)}"
+                        role="tab"
+                        aria-selected={activeSkillTab === tab}
+                        aria-controls="skills-panel"
+                        tabindex={activeSkillTab === tab ? 0 : -1}
                         onclick={() => (activeSkillTab = tab)}
+                        onkeydown={(event) => handleTabKeydown(event, i)}
                         class="px-4 py-2 rounded-lg text-sm font-medium transition-all duration-200 {activeSkillTab ===
                         tab
                             ? 'bg-accent-500/20 text-accent-400 border border-accent-500/40'
@@ -566,7 +765,13 @@
                 {/each}
             </div>
 
-            <div class="flex flex-wrap gap-3 min-h-[100px]">
+            <div
+                id="skills-panel"
+                role="tabpanel"
+                aria-labelledby="skill-tab-{tabSlug(activeSkillTab)}"
+                tabindex="0"
+                class="flex flex-wrap gap-3 min-h-[100px] focus:outline-none focus-visible:ring-2 focus-visible:ring-accent-500/50 rounded-lg"
+            >
                 {#each skills[activeSkillTab] as skill (skill)}
                     <div
                         class="inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-zinc-900 border border-zinc-800 text-zinc-300 text-sm font-medium hover:border-zinc-600 hover:text-zinc-100 transition-all duration-200 cursor-default group"
@@ -590,7 +795,7 @@
                 ? 'opacity-100 translate-y-0'
                 : 'opacity-0 translate-y-6'}"
         >
-            {#each [{ label: "Years Experience", value: "3+" }, { label: "Projects Shipped", value: "10+" }, { label: "Tech Domains", value: "5" }, { label: "Focus Areas", value: "Web · AI · QA" }] as stat}
+            {#each [{ label: "Years Experience", value: "3.5+" }, { label: "Projects Shipped", value: "10+" }, { label: "Tech Domains", value: "5" }, { label: "Focus Areas", value: "Web · AI · QA" }] as stat}
                 <div
                     class="rounded-xl border border-zinc-800 bg-zinc-900/40 p-5 text-center hover:border-zinc-700 transition-colors duration-200"
                 >
@@ -640,6 +845,7 @@
             <div
                 class="relative mx-auto max-w-4xl overflow-hidden px-2 touch-pan-y"
                 role="region"
+                aria-roledescription="carousel"
                 aria-label="Project carousel"
                 ontouchstart={handleTouchStart}
                 ontouchend={handleTouchEnd}
@@ -655,20 +861,17 @@
                                   : rawPos}
                         {#if Math.abs(pos) <= 1}
                             <div
-                                class="absolute left-1/2 top-1/2 w-[85vw] max-w-[520px] transition-all duration-500 ease-out cursor-pointer"
+                                class="absolute left-1/2 top-1/2 w-[85vw] max-w-[520px] transition-all duration-500 ease-out"
                                 style="transform: translate(-50%,-50%) translateX({pos *
                                     440}px) scale({pos === 0
                                     ? 1
                                     : 0.85}); opacity: {pos === 0
                                     ? 1
                                     : 0.5}; z-index: {pos === 0 ? 3 : 2};"
-                                role="button"
-                                tabindex="0"
-                                onclick={() => (current = i)}
-                                onkeydown={(e) => {
-                                    if (e.key === "Enter" || e.key === " ")
-                                        current = i;
-                                }}
+                                role="group"
+                                aria-roledescription="slide"
+                                aria-label="{i + 1} of {projects.length}: {project.title}"
+                                inert={pos !== 0}
                             >
                                 <div
                                     class="rounded-xl border border-zinc-800/80 bg-zinc-900/40 p-5 md:p-7 hover:border-zinc-700 hover:bg-zinc-900/70 transition-all duration-300 h-full"
@@ -687,7 +890,7 @@
                                                         logEvent("click_cta", {
                                                             label: "Project Live",
                                                             title: project.title,
-                                                            url: project.liveUrl,
+                                                            url: project.liveUrl!,
                                                         });
                                                     }}
                                                     class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-accent-500/10 border border-accent-500/30 text-accent-400 text-xs font-medium hover:bg-accent-500/20 hover:border-accent-400/50 transition-all duration-200"
@@ -718,7 +921,7 @@
                                                         logEvent("click_cta", {
                                                             label: "Project Blog",
                                                             title: project.title,
-                                                            url: project.blogUrl,
+                                                            url: project.blogUrl!,
                                                         });
                                                     }}
                                                     class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-zinc-800 border border-zinc-700 text-zinc-300 text-xs font-medium hover:bg-zinc-700 hover:border-zinc-600 transition-all duration-200"
@@ -739,10 +942,17 @@
                                                             d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"
                                                         />
                                                     </svg>
-                                                    Blog
+                                                    {project.blogLabel ?? "Blog"}
                                                 </a>
                                             {/if}
                                         </div>
+                                        {#if project.period}
+                                            <span
+                                                class="font-mono text-[11px] text-zinc-500 whitespace-nowrap mt-1"
+                                            >
+                                                {project.period}
+                                            </span>
+                                        {/if}
                                     </div>
 
                                     <h3
@@ -833,15 +1043,21 @@
                 </button>
             </div>
 
+            <p class="sr-only" aria-live="polite">
+                Project {current + 1} of {projects.length}: {projects[current]
+                    .title}
+            </p>
+
             <div class="flex items-center justify-center gap-2.5 mt-6">
-                {#each projects as _, i}
+                {#each projects as project, i}
                     <button
                         onclick={() => (current = i)}
                         class="transition-all duration-300 rounded-full {i ===
                         current
                             ? 'w-7 h-2 bg-accent-500'
                             : 'w-2 h-2 bg-zinc-700 hover:bg-zinc-500'}"
-                        aria-label="Go to project {i + 1}"
+                        aria-label="Go to {project.title}"
+                        aria-current={i === current ? "true" : undefined}
                     ></button>
                 {/each}
             </div>
@@ -937,7 +1153,7 @@
             <p class="font-mono">
                 <span class="text-accent-400">&gt;_</span> mikas · built with
                 <a
-                    href="https://kit.svelte.dev"
+                    href="https://svelte.dev/docs/kit"
                     target="_blank"
                     rel="noopener noreferrer"
                     class="hover:text-zinc-400 transition-colors underline underline-offset-2"
@@ -950,6 +1166,14 @@
                     rel="noopener noreferrer"
                     class="hover:text-zinc-400 transition-colors underline underline-offset-2"
                     >Tailwind CSS</a
+                >
+                ·
+                <a
+                    href="https://github.com/Mikasjames/mikasjames.github.io"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    class="hover:text-zinc-400 transition-colors underline underline-offset-2"
+                    >View source</a
                 >
             </p>
             <p>
