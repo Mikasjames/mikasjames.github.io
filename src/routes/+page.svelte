@@ -688,11 +688,27 @@
                 ? 'opacity-100 translate-y-0'
                 : 'opacity-0 translate-y-6'}"
         >
-            <div class="flex flex-wrap gap-2 mb-8">
-                {#each skillTabs as tab}
+            <p
+                class="mb-6 font-mono text-sm leading-relaxed text-zinc-400"
+            >
+                <span class="text-accent-400">Core stack:</span>
+                {coreStack.join(" · ")}
+            </p>
+
+            <div
+                class="flex flex-wrap gap-2 mb-8"
+                role="tablist"
+                aria-label="Skill categories"
+            >
+                {#each skillTabs as tab, i}
                     <button
-                        id="skill-tab-{tab.toLowerCase().replace(/\s+/g, '-')}"
+                        id="skill-tab-{tabSlug(tab)}"
+                        role="tab"
+                        aria-selected={activeSkillTab === tab}
+                        aria-controls="skills-panel"
+                        tabindex={activeSkillTab === tab ? 0 : -1}
                         onclick={() => (activeSkillTab = tab)}
+                        onkeydown={(event) => handleTabKeydown(event, i)}
                         class="px-4 py-2 rounded-lg text-sm font-medium transition-all duration-200 {activeSkillTab ===
                         tab
                             ? 'bg-accent-500/20 text-accent-400 border border-accent-500/40'
@@ -703,7 +719,13 @@
                 {/each}
             </div>
 
-            <div class="flex flex-wrap gap-3 min-h-[100px]">
+            <div
+                id="skills-panel"
+                role="tabpanel"
+                aria-labelledby="skill-tab-{tabSlug(activeSkillTab)}"
+                tabindex="0"
+                class="flex flex-wrap gap-3 min-h-[100px] focus:outline-none focus-visible:ring-2 focus-visible:ring-accent-500/50 rounded-lg"
+            >
                 {#each skills[activeSkillTab] as skill (skill)}
                     <div
                         class="inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-zinc-900 border border-zinc-800 text-zinc-300 text-sm font-medium hover:border-zinc-600 hover:text-zinc-100 transition-all duration-200 cursor-default group"
@@ -777,6 +799,7 @@
             <div
                 class="relative mx-auto max-w-4xl overflow-hidden px-2 touch-pan-y"
                 role="region"
+                aria-roledescription="carousel"
                 aria-label="Project carousel"
                 ontouchstart={handleTouchStart}
                 ontouchend={handleTouchEnd}
@@ -792,20 +815,17 @@
                                   : rawPos}
                         {#if Math.abs(pos) <= 1}
                             <div
-                                class="absolute left-1/2 top-1/2 w-[85vw] max-w-[520px] transition-all duration-500 ease-out cursor-pointer"
+                                class="absolute left-1/2 top-1/2 w-[85vw] max-w-[520px] transition-all duration-500 ease-out"
                                 style="transform: translate(-50%,-50%) translateX({pos *
                                     440}px) scale({pos === 0
                                     ? 1
                                     : 0.85}); opacity: {pos === 0
                                     ? 1
                                     : 0.5}; z-index: {pos === 0 ? 3 : 2};"
-                                role="button"
-                                tabindex="0"
-                                onclick={() => (current = i)}
-                                onkeydown={(e) => {
-                                    if (e.key === "Enter" || e.key === " ")
-                                        current = i;
-                                }}
+                                role="group"
+                                aria-roledescription="slide"
+                                aria-label="{i + 1} of {projects.length}: {project.title}"
+                                inert={pos !== 0}
                             >
                                 <div
                                     class="rounded-xl border border-zinc-800/80 bg-zinc-900/40 p-5 md:p-7 hover:border-zinc-700 hover:bg-zinc-900/70 transition-all duration-300 h-full"
@@ -977,15 +997,21 @@
                 </button>
             </div>
 
+            <p class="sr-only" aria-live="polite">
+                Project {current + 1} of {projects.length}: {projects[current]
+                    .title}
+            </p>
+
             <div class="flex items-center justify-center gap-2.5 mt-6">
-                {#each projects as _, i}
+                {#each projects as project, i}
                     <button
                         onclick={() => (current = i)}
                         class="transition-all duration-300 rounded-full {i ===
                         current
                             ? 'w-7 h-2 bg-accent-500'
                             : 'w-2 h-2 bg-zinc-700 hover:bg-zinc-500'}"
-                        aria-label="Go to project {i + 1}"
+                        aria-label="Go to {project.title}"
+                        aria-current={i === current ? "true" : undefined}
                     ></button>
                 {/each}
             </div>
