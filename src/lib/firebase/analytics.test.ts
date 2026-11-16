@@ -1,4 +1,4 @@
-import { vi, describe, it, expect, beforeEach } from 'vitest';
+import { vi, describe, it, expect, beforeEach, afterEach } from 'vitest';
 
 vi.mock('firebase/analytics', () => ({
 	getAnalytics: vi.fn(),
@@ -20,53 +20,70 @@ describe('analytics', () => {
 	beforeEach(() => {
 		vi.clearAllMocks();
 		mockGetAnalytics.mockReturnValue({} as never);
+		// Fire idle callbacks immediately so logPageView doesn't wait for idle.
+		vi.stubGlobal('requestIdleCallback', (cb: IdleRequestCallback) => {
+			cb({ didTimeout: false, timeRemaining: () => 50 } as IdleDeadline);
+			return 0;
+		});
 	});
 
-	it('logPageView calls firebaseLogEvent with page_view', () => {
+	afterEach(() => {
+		vi.unstubAllGlobals();
+	});
+
+	it('logPageView calls firebaseLogEvent with page_view', async () => {
 		logPageView('/test-page', 'Test Page');
 
+		await vi.waitFor(() => {
+			expect(mockFirebaseLogEvent).toHaveBeenCalledWith(
+				expect.anything(),
+				'page_view',
+				expect.objectContaining({
+					page_path: '/test-page',
+					page_title: 'Test Page',
+				}),
+			);
+		});
 		expect(mockGetAnalytics).toHaveBeenCalled();
-		expect(mockFirebaseLogEvent).toHaveBeenCalledWith(
-			expect.anything(),
-			'page_view',
-			expect.objectContaining({
-				page_path: '/test-page',
-				page_title: 'Test Page',
-			}),
-		);
 	});
 
-	it('logPageView uses defaults when args omitted', () => {
+	it('logPageView uses defaults when args omitted', async () => {
 		logPageView();
 
-		expect(mockFirebaseLogEvent).toHaveBeenCalledWith(
-			expect.anything(),
-			'page_view',
-			expect.objectContaining({
-				page_path: expect.any(String),
-				page_title: expect.any(String),
-			}),
-		);
+		await vi.waitFor(() => {
+			expect(mockFirebaseLogEvent).toHaveBeenCalledWith(
+				expect.anything(),
+				'page_view',
+				expect.objectContaining({
+					page_path: expect.any(String),
+					page_title: expect.any(String),
+				}),
+			);
+		});
 	});
 
-	it('logEvent calls firebaseLogEvent with given event name', () => {
+	it('logEvent calls firebaseLogEvent with given event name', async () => {
 		logEvent('cta_click', { button: 'contact' });
 
-		expect(mockFirebaseLogEvent).toHaveBeenCalledWith(
-			expect.anything(),
-			'cta_click',
-			{ button: 'contact' },
-		);
+		await vi.waitFor(() => {
+			expect(mockFirebaseLogEvent).toHaveBeenCalledWith(
+				expect.anything(),
+				'cta_click',
+				{ button: 'contact' },
+			);
+		});
 	});
 
-	it('logEvent works without params', () => {
+	it('logEvent works without params', async () => {
 		logEvent('test_event');
 
-		expect(mockFirebaseLogEvent).toHaveBeenCalledWith(
-			expect.anything(),
-			'test_event',
-			undefined,
-		);
+		await vi.waitFor(() => {
+			expect(mockFirebaseLogEvent).toHaveBeenCalledWith(
+				expect.anything(),
+				'test_event',
+				undefined,
+			);
+		});
 	});
 
 	it('does not throw when analytics init fails', () => {

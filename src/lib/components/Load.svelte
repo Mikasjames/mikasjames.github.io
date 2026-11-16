@@ -1,12 +1,8 @@
-<script lang="ts">
-    import { fade } from "svelte/transition";
-</script>
-
 <div
-    out:fade={{ duration: 400 }}
-    class="fixed inset-0 z-50 flex items-center justify-center bg-[#09090b]"
+    class="app-loader fixed inset-0 z-50 flex items-center justify-center bg-[#09090b]"
+    aria-hidden="true"
 >
-    <div class="relative w-32 h-32 flex items-center justify-center">
+    <div class="app-loader__stage relative w-32 h-32 flex items-center justify-center">
         <svg
             class="absolute inset-0 w-full h-full text-[#c084fc]"
             viewBox="0 0 128 128"
@@ -43,48 +39,3 @@
         </svg>
     </div>
 </div>
-
-<style>
-    .draw-container {
-        stroke-dasharray: 500;
-        stroke-dashoffset: 500;
-        animation: drawContainerEffect 1.2s cubic-bezier(0.4, 0, 0.2, 1)
-            forwards;
-        will-change: stroke-dashoffset;
-    }
-
-    .draw-bracket {
-        stroke-dasharray: 60;
-        stroke-dashoffset: 60;
-        animation: drawBracketEffect 0.8s ease-in-out 0.3s forwards;
-        will-change: stroke-dashoffset;
-    }
-
-    .blink-cursor {
-        opacity: 0;
-        animation: blinkEffect 1s infinite steps(2, start) 1.1s;
-    }
-
-    @keyframes drawContainerEffect {
-        to {
-            stroke-dashoffset: 0;
-        }
-    }
-
-    @keyframes drawBracketEffect {
-        to {
-            stroke-dashoffset: 0;
-        }
-    }
-
-    @keyframes blinkEffect {
-        0%,
-        49% {
-            opacity: 1;
-        }
-        50%,
-        100% {
-            opacity: 0;
-        }
-    }
-</style>

@@ -11,6 +11,7 @@ import AdminNav from "$lib/components/AdminNav.svelte";
 	import { page } from "$app/stores";
 	import { afterNavigate } from "$app/navigation";
 	import { logPageView } from "$lib/firebase/analytics";
+	import interLatin from "@fontsource-variable/inter/files/inter-latin-wght-normal.woff2?url";
 
 	const isHome = $derived($page.url.pathname === "/");
 
@@ -18,19 +19,13 @@ import AdminNav from "$lib/components/AdminNav.svelte";
 	let showLoaderDOM = $state(true);
 
 	onMount(() => {
-		document.body.classList.add("overflow-hidden");
-
+		// The loader is faded out by the inline CSS in app.html; this only
+		// removes the node afterwards. Keep the timing aligned (900ms + 400ms).
 		const timer = setTimeout(() => {
-			setTimeout(() => {
-				showLoaderDOM = false;
-				document.body.classList.remove("overflow-hidden");
-			}, 400);
-		}, 800);
+			showLoaderDOM = false;
+		}, 1300);
 
-		return () => {
-			clearTimeout(timer);
-			document.body.classList.remove("overflow-hidden");
-		};
+		return () => clearTimeout(timer);
 	});
 
 	afterNavigate(() => {
@@ -60,6 +55,16 @@ import AdminNav from "$lib/components/AdminNav.svelte";
 		mobileOpen = false;
 	}
 </script>
+
+<svelte:head>
+	<link
+		rel="preload"
+		as="font"
+		type="font/woff2"
+		href={interLatin}
+		crossorigin="anonymous"
+	/>
+</svelte:head>
 
 <svelte:window onscroll={onScroll} />
 
