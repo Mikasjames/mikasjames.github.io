@@ -29,6 +29,7 @@ export async function GET(): Promise<Response> {
 
 	const urls = [
 		urlEntry("/", undefined),
+		urlEntry("/resume.pdf", undefined),
 		urlEntry("/blogs/", undefined),
 		...posts.map((post: BlogPost) =>
 			urlEntry(
