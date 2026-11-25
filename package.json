@@ -16,7 +16,9 @@
 		"test": "pnpm run test:app && pnpm run test:functions",
 		"test:app": "vitest run",
 		"test:functions": "cd functions && pnpm test && cd ..",
-		"test:e2e": "playwright test"
+		"test:e2e": "playwright test",
+		"format": "prettier --write .",
+		"format:check": "prettier --check ."
 	},
 	"devDependencies": {
 		"@playwright/test": "^1.61.0",
@@ -27,6 +29,8 @@
 		"@testing-library/jest-dom": "^7.0.1",
 		"@testing-library/svelte": "^5.4.2",
 		"jsdom": "^30.0.1",
+		"prettier": "^3.10.1",
+		"prettier-plugin-svelte": "^4.2.0",
 		"svelte": "^5.55.2",
 		"svelte-check": "^4.4.6",
 		"tailwindcss": "^4.1.8",

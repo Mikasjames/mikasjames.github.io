@@ -51,6 +51,12 @@ importers:
       jsdom:
         specifier: ^30.0.1
         version: 30.0.1
+      prettier:
+        specifier: ^3.10.1
+        version: 3.10.1
+      prettier-plugin-svelte:
+        specifier: ^4.2.0
+        version: 4.2.0(prettier@3.10.1)(svelte@5.56.1)
       svelte:
         specifier: ^5.55.2
         version: 5.56.1
@@ -3117,6 +3123,18 @@ packages:
   prelude-ls@1.1.2:
     resolution: {integrity: sha512-ESF23V4SKG6lVSGZgYNpbsiaAkdab6ZgOxe52p7+Kid3W3u3bxR4Vfd/o21dmN7jSt0IwgZ4v5MUd26FEtXE9w==}
     engines: {node: '>= 0.8.0'}
+
+  prettier-plugin-svelte@4.2.0:
+    resolution: {integrity: sha512-VgUFSR6+7/KLloVSIgKMwY/9OFxaixY/xsOBUCP95ZKaxSa6JBtLKzq6L1L/Tw6Jc1C7K+op7D1Yu5qD+YdPHA==}
+    engines: {node: '>=20'}
+    peerDependencies:
+      prettier: ^3.0.0
+      svelte: ^5.0.0
+
+  prettier@3.10.1:
+    resolution: {integrity: sha512-70vp3ZUYoPlFbF9uiTdXHUUCGEIp7d4+6p+8DYbkm2jP7x/3i/paXVF6dopSI3zd/CEitrZN1rc4i85xWmmXlg==}
+    engines: {node: '>=14'}
+    hasBin: true
 
   pretty-bytes@5.6.0:
     resolution: {integrity: sha512-FFw039TmrBqFK8ma/7OL3sDz/VytdtJr044/QUJtH0wK9lb9jLq9tJyIxUwtQJHwar2BqtiA4iCWSwo9JLkzFg==}
@@ -7385,6 +7403,13 @@ snapshots:
       source-map-js: 1.2.1
 
   prelude-ls@1.1.2: {}
+
+  prettier-plugin-svelte@4.2.0(prettier@3.10.1)(svelte@5.56.1):
+    dependencies:
+      prettier: 3.10.1
+      svelte: 5.56.1
+
+  prettier@3.10.1: {}
 
   pretty-bytes@5.6.0: {}
 
