@@ -11,7 +11,7 @@
 		footer,
 	}: {
 		show: boolean;
-		size?: "sm" | "md" | "lg";
+		size?: "sm" | "md" | "lg" | "xl";
 		title?: string;
 		description?: string;
 		onclose?: () => void;
@@ -37,7 +37,16 @@
 		sm: "max-w-sm",
 		md: "max-w-lg",
 		lg: "max-w-2xl",
+		xl: "max-w-4xl",
 	};
+
+	let dialogEl: HTMLDivElement | undefined = $state();
+
+	$effect(() => {
+		if (show) {
+			dialogEl?.focus();
+		}
+	});
 
 	$effect(() => {
 		if (show) {
@@ -55,6 +64,7 @@
 
 {#if show}
 	<div
+		bind:this={dialogEl}
 		transition:fade={{ duration: 150 }}
 		class="fixed inset-0 z-50 flex items-start justify-center bg-black/80 backdrop-blur-md sm:items-center overflow-y-auto"
 		role="dialog"

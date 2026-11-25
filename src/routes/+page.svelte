@@ -1,8 +1,26 @@
 <script lang="ts">
     import { onMount } from "svelte";
     import { fly } from "svelte/transition";
+    import ResumeModal from "$lib/components/ResumeModal.svelte";
     import { logEvent } from "$lib/firebase/analytics";
     import { RESUME_URL } from "$lib/site";
+
+    let resumeOpen = $state(false);
+    let resumeTrigger: HTMLElement | null = null;
+
+    function openResume(event: MouseEvent) {
+        event.preventDefault();
+        resumeTrigger = event.currentTarget as HTMLElement;
+        resumeOpen = true;
+        logEvent("click_cta", {
+            label: "Hero Resume",
+            url: RESUME_URL,
+        });
+    }
+
+    function closeResume() {
+        resumeTrigger?.focus();
+    }
 
     let activeSkillTab = $state("Frontend");
     let visibleSections = $state<Set<string>>(new Set());
@@ -468,14 +486,9 @@
         <div class="flex flex-wrap gap-4">
             <a
                 href={RESUME_URL}
-                target="_blank"
-                rel="noopener noreferrer"
                 id="hero-resume-link"
-                onclick={() =>
-                    logEvent("click_cta", {
-                        label: "Hero Resume",
-                        url: RESUME_URL,
-                    })}
+                aria-haspopup="dialog"
+                onclick={openResume}
                 class="inline-flex items-center gap-2.5 px-5 py-2.5 rounded-lg bg-accent-500 text-white text-sm font-semibold hover:bg-accent-600 transition-all duration-200 shadow-lg shadow-accent-500/25 group"
             >
                 <svg
@@ -1181,3 +1194,5 @@
         </footer>
     </div>
 </section>
+
+<ResumeModal bind:open={resumeOpen} onclose={closeResume} />
