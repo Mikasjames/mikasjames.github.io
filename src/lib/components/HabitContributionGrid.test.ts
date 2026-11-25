@@ -23,9 +23,7 @@ describe('HabitContributionGrid', () => {
 			},
 		});
 		const done = cells(container).filter((c) => c.getAttribute('title')?.endsWith('· done'));
-		const missed = cells(container).filter((c) =>
-			c.getAttribute('title')?.endsWith('· not done'),
-		);
+		const missed = cells(container).filter((c) => c.getAttribute('title')?.endsWith('· not done'));
 		expect(done).toHaveLength(2);
 		expect(missed).toHaveLength(5);
 		expect(done[0].className).toContain('bg-accent-500');

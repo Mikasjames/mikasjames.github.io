@@ -1,31 +1,31 @@
 <script lang="ts">
-	import CoverImage from "$lib/components/CoverImage.svelte";
-	import MarkdownEditor from "$lib/components/MarkdownEditor.svelte";
-	import ContentImagesHelper from "$lib/components/ContentImagesHelper.svelte";
+	import CoverImage from '$lib/components/CoverImage.svelte';
+	import MarkdownEditor from '$lib/components/MarkdownEditor.svelte';
+	import ContentImagesHelper from '$lib/components/ContentImagesHelper.svelte';
 	import {
 		createPost,
 		updatePost,
 		type BlogPost,
 		type ImageMeta,
-	} from "$lib/firebase/firestore.svelte";
+	} from '$lib/firebase/firestore.svelte';
 	import {
 		resolveMissingImageMeta,
 		sanitizeImageMetaFromMarkdown,
 		enrichImageMetaFromGallery,
-	} from "$lib/utils/imageMeta";
-	import type { MediaItem } from "$lib/firebase/firestore.svelte";
-	import type { createMediaStore } from "$lib/firebase/media.svelte";
+	} from '$lib/utils/imageMeta';
+	import type { MediaItem } from '$lib/firebase/firestore.svelte';
+	import type { createMediaStore } from '$lib/firebase/media.svelte';
 	import {
 		insertMarkdownAtCursor as sharedInsertMarkdown,
 		handleContentUpload as sharedHandleContentUpload,
 		copyToClipboard as sharedCopyToClipboard,
 		setEditorCoverImage as sharedSetEditorCoverImage,
 		handleDeleteMediaWrapper as sharedHandleDeleteMediaWrapper,
-	} from "$lib/utils/editorActions";
-	import MediaGalleryDialog from "$lib/components/MediaGalleryDialog.svelte";
-	import ConfirmDialog from "$lib/components/ConfirmDialog.svelte";
-	import AppButton from "$lib/components/AppButton.svelte";
-	import { toast } from "$lib/stores/toast.svelte";
+	} from '$lib/utils/editorActions';
+	import MediaGalleryDialog from '$lib/components/MediaGalleryDialog.svelte';
+	import ConfirmDialog from '$lib/components/ConfirmDialog.svelte';
+	import AppButton from '$lib/components/AppButton.svelte';
+	import { toast } from '$lib/stores/toast.svelte';
 
 	type MediaStore = ReturnType<typeof createMediaStore>;
 
@@ -35,7 +35,7 @@
 		slug: string;
 		excerpt: string;
 		content: string;
-		status: "draft" | "published" | "unlisted";
+		status: 'draft' | 'published' | 'unlisted';
 		coverImage: string | null;
 		imageMeta: Record<string, ImageMeta>;
 		slugManuallyEdited: boolean;
@@ -53,26 +53,26 @@
 
 	let blogForm = $state<BlogFormState>({
 		id: null,
-		title: "",
-		slug: "",
-		excerpt: "",
-		content: "",
-		status: "published",
+		title: '',
+		slug: '',
+		excerpt: '',
+		content: '',
+		status: 'published',
 		coverImage: null,
 		imageMeta: {},
 		slugManuallyEdited: false,
 		submitting: false,
-		successMsg: "",
-		error: "",
+		successMsg: '',
+		error: '',
 		coverUploading: false,
-		coverError: "",
+		coverError: '',
 	});
 
 	let showMediaGallery = $state(false);
 	let showConfirmDelete = $state(false);
-	let confirmDeleteMessage = $state("");
+	let confirmDeleteMessage = $state('');
 	let confirmDeleteAction = $state<(val: boolean) => void>(() => {});
-	let activeTab = $state<"write" | "preview">("write");
+	let activeTab = $state<'write' | 'preview'>('write');
 	let textareaRef = $state<HTMLTextAreaElement | null>(null);
 
 	export function startEdit(post: BlogPost) {
@@ -82,60 +82,45 @@
 		blogForm.excerpt = post.excerpt;
 		blogForm.content = post.content;
 		blogForm.coverImage = post.coverImage;
-		blogForm.status = post.status ?? "published";
+		blogForm.status = post.status ?? 'published';
 		blogForm.imageMeta = sanitizeImageMetaFromMarkdown(
 			post.content,
-			enrichImageMetaFromGallery(
-				post.content,
-				post.imageMeta ?? {},
-				mediaStore.mediaItems,
-			),
+			enrichImageMetaFromGallery(post.content, post.imageMeta ?? {}, mediaStore.mediaItems),
 		);
 		blogForm.slugManuallyEdited = true;
-		blogForm.successMsg = "";
-		blogForm.error = "";
-		window.scrollTo({ top: 0, behavior: "smooth" });
+		blogForm.successMsg = '';
+		blogForm.error = '';
+		window.scrollTo({ top: 0, behavior: 'smooth' });
 	}
 
 	export function resetForm() {
 		blogForm.id = null;
-		blogForm.title = "";
-		blogForm.slug = "";
-		blogForm.excerpt = "";
-		blogForm.content = "";
+		blogForm.title = '';
+		blogForm.slug = '';
+		blogForm.excerpt = '';
+		blogForm.content = '';
 		blogForm.coverImage = null;
-		blogForm.status = "published";
+		blogForm.status = 'published';
 		blogForm.imageMeta = {};
 		blogForm.slugManuallyEdited = false;
-		blogForm.successMsg = "";
-		blogForm.error = "";
+		blogForm.successMsg = '';
+		blogForm.error = '';
 	}
 
 	async function handlePublish(e: Event) {
 		e.preventDefault();
-		if (
-			!blogForm.title ||
-			!blogForm.slug ||
-			!blogForm.excerpt ||
-			!blogForm.content
-		) {
-			blogForm.error = "All fields are required.";
+		if (!blogForm.title || !blogForm.slug || !blogForm.excerpt || !blogForm.content) {
+			blogForm.error = 'All fields are required.';
 			return;
 		}
 
 		blogForm.submitting = true;
-		blogForm.error = "";
-		blogForm.successMsg = "";
+		blogForm.error = '';
+		blogForm.successMsg = '';
 
 		try {
-			const resolvedImageMeta = await resolveMissingImageMeta(
-				blogForm.content,
-				blogForm.imageMeta,
-			);
-			const sanitizedImageMeta = sanitizeImageMetaFromMarkdown(
-				blogForm.content,
-				resolvedImageMeta,
-			);
+			const resolvedImageMeta = await resolveMissingImageMeta(blogForm.content, blogForm.imageMeta);
+			const sanitizedImageMeta = sanitizeImageMetaFromMarkdown(blogForm.content, resolvedImageMeta);
 			blogForm.imageMeta = sanitizedImageMeta;
 
 			const postPayload = {
@@ -158,8 +143,7 @@
 			resetForm();
 			await loadPosts();
 		} catch (err: unknown) {
-			blogForm.error =
-				err instanceof Error ? err.message : "Failed to save post.";
+			blogForm.error = err instanceof Error ? err.message : 'Failed to save post.';
 		} finally {
 			blogForm.submitting = false;
 		}
@@ -174,22 +158,25 @@
 		const target = e.target as HTMLInputElement;
 		if (!target.files || target.files.length === 0) return;
 		try {
-			const result = await mediaStore.handleGalleryUpload(
-				target.files[0],
-			);
+			const result = await mediaStore.handleGalleryUpload(target.files[0]);
 			blogForm.coverImage = result.url;
 		} catch (err: unknown) {
-			blogForm.coverError =
-				err instanceof Error ? err.message : "Upload failed.";
+			blogForm.coverError = err instanceof Error ? err.message : 'Upload failed.';
 		} finally {
-			target.value = "";
+			target.value = '';
 		}
 	}
 
 	async function handleContentUpload(e: Event) {
-		await sharedHandleContentUpload(e, mediaStore, () => blogForm, (patch) => {
-			blogForm = { ...blogForm, ...patch };
-		}, insertMarkdownAtCursor);
+		await sharedHandleContentUpload(
+			e,
+			mediaStore,
+			() => blogForm,
+			(patch) => {
+				blogForm = { ...blogForm, ...patch };
+			},
+			insertMarkdownAtCursor,
+		);
 	}
 
 	async function insertMarkdownAtCursor(
@@ -198,16 +185,24 @@
 		dims?: { width?: number; height?: number },
 	) {
 		await sharedInsertMarkdown(
-			url, altText, textareaRef,
-			(tab) => { activeTab = tab; },
+			url,
+			altText,
+			textareaRef,
+			(tab) => {
+				activeTab = tab;
+			},
 			dims,
 			() => blogForm,
-			(patch) => { blogForm = { ...blogForm, ...patch }; },
+			(patch) => {
+				blogForm = { ...blogForm, ...patch };
+			},
 		);
 	}
 
 	function setEditorCoverImage(url: string | null) {
-		sharedSetEditorCoverImage(url, (u) => { blogForm.coverImage = u; });
+		sharedSetEditorCoverImage(url, (u) => {
+			blogForm.coverImage = u;
+		});
 	}
 
 	function copyToClipboard(text: string) {
@@ -222,16 +217,13 @@
 					confirmDeleteAction = resolve;
 					showConfirmDelete = true;
 				}),
-			onError: (message: string) => toast(message, "error"),
+			onError: (message: string) => toast(message, 'error'),
 			onRemoveImage: (url: string) => {
 				blogForm.imageMeta = { ...blogForm.imageMeta };
 				delete blogForm.imageMeta[url];
 			},
 			onRemoveMarkdown: (url: string) => {
-				blogForm.content = blogForm.content.replace(
-					new RegExp(`!\\[.*?\\]\\(${url}\\)`, "g"),
-					"",
-				);
+				blogForm.content = blogForm.content.replace(new RegExp(`!\\[.*?\\]\\(${url}\\)`, 'g'), '');
 			},
 		});
 	}
@@ -241,9 +233,9 @@
 			blogForm.slug = blogForm.title
 				.toLowerCase()
 				.trim()
-				.replace(/[^a-z0-9\s-]/g, "")
-				.replace(/\s+/g, "-")
-				.replace(/-+/g, "-");
+				.replace(/[^a-z0-9\s-]/g, '')
+				.replace(/\s+/g, '-')
+				.replace(/-+/g, '-');
 		}
 	});
 
@@ -255,16 +247,9 @@
 <section
 	class="bg-surface-900/80 rounded-xl border border-zinc-800/60 p-4 shadow-2xl shadow-black/40 backdrop-blur-md sm:rounded-2xl sm:p-5 md:p-8"
 >
-	<h2
-		class="text-lg font-semibold text-zinc-100 mb-6 flex items-center gap-2"
-	>
+	<h2 class="text-lg font-semibold text-zinc-100 mb-6 flex items-center gap-2">
 		{#if blogForm.id}
-			<svg
-				class="w-4 h-4 text-accent-400"
-				fill="none"
-				stroke="currentColor"
-				viewBox="0 0 24 24"
-			>
+			<svg class="w-4 h-4 text-accent-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
 				<path
 					stroke-linecap="round"
 					stroke-linejoin="round"
@@ -274,18 +259,8 @@
 			</svg>
 			Edit Post
 		{:else}
-			<svg
-				class="w-4 h-4 text-accent-400"
-				fill="none"
-				stroke="currentColor"
-				viewBox="0 0 24 24"
-			>
-				<path
-					stroke-linecap="round"
-					stroke-linejoin="round"
-					stroke-width="2"
-					d="M12 4v16m8-8H4"
-				/>
+			<svg class="w-4 h-4 text-accent-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+				<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" />
 			</svg>
 			New Post
 		{/if}
@@ -296,8 +271,9 @@
 			<label
 				for="post-title"
 				class="block text-xs font-medium text-zinc-400 tracking-wide uppercase"
-				>Title</label
 			>
+				Title
+			</label>
 			<input
 				id="post-title"
 				type="text"
@@ -315,9 +291,7 @@
 					class="block text-xs font-medium text-zinc-400 tracking-wide uppercase"
 				>
 					Slug
-					<span class="ml-1 text-zinc-600 normal-case font-normal"
-						>(auto-generated)</span
-					>
+					<span class="ml-1 text-zinc-600 normal-case font-normal">(auto-generated)</span>
 				</label>
 				<input
 					id="post-slug"
@@ -334,8 +308,9 @@
 				<label
 					for="post-status"
 					class="block text-xs font-medium text-zinc-400 tracking-wide uppercase"
-					>Status</label
 				>
+					Status
+				</label>
 				<select
 					id="post-status"
 					bind:value={blogForm.status}
@@ -359,8 +334,9 @@
 			<label
 				for="post-excerpt"
 				class="block text-xs font-medium text-zinc-400 tracking-wide uppercase"
-				>Excerpt</label
 			>
+				Excerpt
+			</label>
 			<textarea
 				id="post-excerpt"
 				bind:value={blogForm.excerpt}
@@ -404,12 +380,7 @@
 			<div
 				class="flex items-center gap-2 px-3.5 py-2.5 rounded-lg bg-red-500/10 border border-red-500/20 text-red-400 text-sm"
 			>
-				<svg
-					class="w-4 h-4 shrink-0"
-					fill="none"
-					stroke="currentColor"
-					viewBox="0 0 24 24"
-				>
+				<svg class="w-4 h-4 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
 					<path
 						stroke-linecap="round"
 						stroke-linejoin="round"
@@ -425,12 +396,7 @@
 			<div
 				class="flex items-center gap-2 px-3.5 py-2.5 rounded-lg bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 text-sm"
 			>
-				<svg
-					class="w-4 h-4 shrink-0"
-					fill="none"
-					stroke="currentColor"
-					viewBox="0 0 24 24"
-				>
+				<svg class="w-4 h-4 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
 					<path
 						stroke-linecap="round"
 						stroke-linejoin="round"
@@ -447,7 +413,14 @@
 				<AppButton variant="ghost" size="md" onclick={resetForm}>Cancel Edit</AppButton>
 			{/if}
 
-			<AppButton id="publish-btn" variant="primary" size="md" type="submit" disabled={blogForm.submitting} loading={blogForm.submitting}>
+			<AppButton
+				id="publish-btn"
+				variant="primary"
+				size="md"
+				type="submit"
+				disabled={blogForm.submitting}
+				loading={blogForm.submitting}
+			>
 				{#if blogForm.submitting}
 					{#if blogForm.id}Saving…{:else}Publishing…{/if}
 				{:else}

@@ -7,7 +7,7 @@ export const prerender = true;
 export async function entries(): Promise<Array<{ slug: string }>> {
 	const posts = await getPrerenderPosts();
 	return posts.map((post: BlogPost) => ({
-		slug: post.slug
+		slug: post.slug,
 	}));
 }
 

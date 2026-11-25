@@ -66,11 +66,9 @@ describe('analytics', () => {
 		logEvent('cta_click', { button: 'contact' });
 
 		await vi.waitFor(() => {
-			expect(mockFirebaseLogEvent).toHaveBeenCalledWith(
-				expect.anything(),
-				'cta_click',
-				{ button: 'contact' },
-			);
+			expect(mockFirebaseLogEvent).toHaveBeenCalledWith(expect.anything(), 'cta_click', {
+				button: 'contact',
+			});
 		});
 	});
 
@@ -78,11 +76,7 @@ describe('analytics', () => {
 		logEvent('test_event');
 
 		await vi.waitFor(() => {
-			expect(mockFirebaseLogEvent).toHaveBeenCalledWith(
-				expect.anything(),
-				'test_event',
-				undefined,
-			);
+			expect(mockFirebaseLogEvent).toHaveBeenCalledWith(expect.anything(), 'test_event', undefined);
 		});
 	});
 

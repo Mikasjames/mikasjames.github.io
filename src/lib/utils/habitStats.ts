@@ -26,7 +26,7 @@ export type HabitLogLite = {
 	completedAt: Date | null;
 };
 
-export type RangeKind = "month" | "year" | "all";
+export type RangeKind = 'month' | 'year' | 'all';
 
 export type ResolvedRange = {
 	start: string;
@@ -110,21 +110,21 @@ export type PeriodStats = {
 };
 
 const WEEKDAY_LABELS = [
-	"Sunday",
-	"Monday",
-	"Tuesday",
-	"Wednesday",
-	"Thursday",
-	"Friday",
-	"Saturday",
+	'Sunday',
+	'Monday',
+	'Tuesday',
+	'Wednesday',
+	'Thursday',
+	'Friday',
+	'Saturday',
 ];
 
 export function weekdayLabel(index: number): string {
-	return WEEKDAY_LABELS[index] ?? "";
+	return WEEKDAY_LABELS[index] ?? '';
 }
 
 export function weekdayShortLabel(index: number): string {
-	return (WEEKDAY_LABELS[index] ?? "").slice(0, 3);
+	return (WEEKDAY_LABELS[index] ?? '').slice(0, 3);
 }
 
 // ---------------------------------------------------------------------------
@@ -156,8 +156,8 @@ function daysInMonth(year: number, month: number): number {
 }
 
 function lastDayOfMonthKey(monthKey: string): string {
-	const [year, month] = monthKey.split("-").map(Number);
-	return `${monthKey}-${String(daysInMonth(year, month)).padStart(2, "0")}`;
+	const [year, month] = monthKey.split('-').map(Number);
+	return `${monthKey}-${String(daysInMonth(year, month)).padStart(2, '0')}`;
 }
 
 /** Inclusive day count between two keys. */
@@ -167,10 +167,10 @@ export function inclusiveDays(start: string, end: string): number {
 
 function monthKeysBetween(start: string, end: string): string[] {
 	const keys: string[] = [];
-	let [year, month] = start.split("-").map(Number);
-	const [endYear, endMonth] = end.split("-").map(Number);
+	let [year, month] = start.split('-').map(Number);
+	const [endYear, endMonth] = end.split('-').map(Number);
 	while (year < endYear || (year === endYear && month <= endMonth)) {
-		keys.push(`${year}-${String(month).padStart(2, "0")}`);
+		keys.push(`${year}-${String(month).padStart(2, '0')}`);
 		month += 1;
 		if (month > 12) {
 			month = 1;
@@ -182,7 +182,7 @@ function monthKeysBetween(start: string, end: string): string[] {
 
 /** Local YYYY-MM-DD for a Date, matching the local date keys habits use. */
 function localDateKey(date: Date): string {
-	return date.toLocaleDateString("en-CA");
+	return date.toLocaleDateString('en-CA');
 }
 
 function clamp(value: string, min: string, max: string): string {
@@ -211,13 +211,13 @@ export function resolveRange(input: {
 	const { kind, today } = input;
 	const end = today;
 
-	if (kind === "month" && input.anchorMonth) {
+	if (kind === 'month' && input.anchorMonth) {
 		const start = `${input.anchorMonth}-01`;
 		const bounded = clamp(lastDayOfMonthKey(input.anchorMonth), start, end);
 		return { start, end: bounded, days: inclusiveDays(start, bounded) };
 	}
 
-	if (kind === "year" && input.anchorYear) {
+	if (kind === 'year' && input.anchorYear) {
 		const year = input.anchorYear;
 		const start = `${year}-01-01`;
 		const last = `${year}-12-31`;
@@ -324,14 +324,12 @@ export function computePeriodStats(input: {
 
 	// Only habits that still exist are reported. deleteHabit does not cascade,
 	// so orphaned logs would otherwise show up as ghost habits.
-	const knownHabits = habits.filter(
-		(habit) => habit.id && (habit.name || byHabit.has(habit.id)),
-	);
+	const knownHabits = habits.filter((habit) => habit.id && (habit.name || byHabit.has(habit.id)));
 
 	const stats: HabitPeriodStats[] = knownHabits.map((habit) => {
-		const habitLogs = (byHabit.get(habit.id) ?? []).slice().sort((a, b) =>
-			a.date < b.date ? -1 : a.date > b.date ? 1 : 0,
-		);
+		const habitLogs = (byHabit.get(habit.id) ?? [])
+			.slice()
+			.sort((a, b) => (a.date < b.date ? -1 : a.date > b.date ? 1 : 0));
 		const doneDates = habitLogs.map((log) => log.date);
 		const doneDays = new Set(doneDates.map(dayNumber));
 
@@ -350,8 +348,7 @@ export function computePeriodStats(input: {
 
 		const eligibleDays = inclusiveDays(activeFrom, range.end);
 		const checkIns = doneDates.length;
-		const completionRate =
-			eligibleDays > 0 ? Math.min(1, checkIns / eligibleDays) : 0;
+		const completionRate = eligibleDays > 0 ? Math.min(1, checkIns / eligibleDays) : 0;
 
 		const byWeekday = [0, 0, 0, 0, 0, 0, 0];
 		for (const date of doneDates) {
@@ -380,24 +377,20 @@ export function computePeriodStats(input: {
 		// A month that ends before activeFrom is emitted with days: 0 rather
 		// than having its start clamped up to activeFrom, which would hand a
 		// pre-creation month a bogus one-day denominator and a bar.
-		const monthlyRates: MonthRate[] = monthKeysBetween(range.start, range.end).map(
-			(month) => {
-				const monthStart = `${month}-01`;
-				const monthEnd = lastDayOfMonthKey(month);
-				if (monthEnd < activeFrom) {
-					return { month, count: 0, days: 0, rate: 0 };
-				}
-				const start = monthStart < activeFrom ? activeFrom : monthStart;
-				const end = monthEnd < range.end ? monthEnd : range.end;
-				const days = inclusiveDays(start, end);
-				// Counted within the scored window, so a log dated before
-				// activeFrom cannot inflate the rate against a shorter span.
-				const count = doneDates.filter(
-					(date) => date >= start && date <= end,
-				).length;
-				return { month, count, days, rate: days > 0 ? Math.min(1, count / days) : 0 };
-			},
-		);
+		const monthlyRates: MonthRate[] = monthKeysBetween(range.start, range.end).map((month) => {
+			const monthStart = `${month}-01`;
+			const monthEnd = lastDayOfMonthKey(month);
+			if (monthEnd < activeFrom) {
+				return { month, count: 0, days: 0, rate: 0 };
+			}
+			const start = monthStart < activeFrom ? activeFrom : monthStart;
+			const end = monthEnd < range.end ? monthEnd : range.end;
+			const days = inclusiveDays(start, end);
+			// Counted within the scored window, so a log dated before
+			// activeFrom cannot inflate the rate against a shorter span.
+			const count = doneDates.filter((date) => date >= start && date <= end).length;
+			return { month, count, days, rate: days > 0 ? Math.min(1, count / days) : 0 };
+		});
 
 		return {
 			habitId: habit.id,
@@ -469,8 +462,7 @@ export function computePeriodStats(input: {
 			emoji: habit.emoji,
 			doneAvg: doneAvg === null ? null : round(doneAvg, 2),
 			missedAvg: missedAvg === null ? null : round(missedAvg, 2),
-			delta:
-				doneAvg === null || missedAvg === null ? null : round(doneAvg - missedAvg, 2),
+			delta: doneAvg === null || missedAvg === null ? null : round(doneAvg - missedAvg, 2),
 			doneDays: doneRatings.length,
 			missedDays: missedRatings.length,
 		};
@@ -507,28 +499,28 @@ export function percent(rate: number, places = 0): string {
 
 /** CSS width for a 0..1 rate bar. */
 export function rateBarWidth(rate: number | null): string {
-	if (typeof rate !== "number" || Number.isNaN(rate)) return "0%";
+	if (typeof rate !== 'number' || Number.isNaN(rate)) return '0%';
 	return `${Math.max(0, Math.min(100, rate * 100))}%`;
 }
 
 /** CSS width for a 1..5 rating bar, matching the insights dashboard scale. */
 export function ratingBarWidth(value: number | null): string {
-	if (typeof value !== "number" || Number.isNaN(value)) return "0%";
+	if (typeof value !== 'number' || Number.isNaN(value)) return '0%';
 	return `${Math.max(0, Math.min(100, (value / 5) * 100))}%`;
 }
 
 export function formatAverageHour(hour: number | null): string {
-	if (hour === null) return "—";
+	if (hour === null) return '—';
 	const whole = Math.floor(hour);
 	const minutes = Math.round((hour - whole) * 60);
-	const suffix = whole < 12 ? "AM" : "PM";
+	const suffix = whole < 12 ? 'AM' : 'PM';
 	const display = whole % 12 === 0 ? 12 : whole % 12;
 	if (minutes === 0) return `${display} ${suffix}`;
-	return `${display}:${String(minutes).padStart(2, "0")} ${suffix}`;
+	return `${display}:${String(minutes).padStart(2, '0')} ${suffix}`;
 }
 
 export function formatStreak(days: number): string {
-	return days === 1 ? "1 day" : `${days} days`;
+	return days === 1 ? '1 day' : `${days} days`;
 }
 
 /** Anchor key for the month range selector. */
@@ -537,17 +529,17 @@ export function currentMonthKey(today: string): string {
 }
 
 export function shiftMonthKey(monthKey: string, delta: number): string {
-	const [year, month] = monthKey.split("-").map(Number);
+	const [year, month] = monthKey.split('-').map(Number);
 	const next = new Date(Date.UTC(year, month - 1 + delta, 1));
-	return `${next.getUTCFullYear()}-${String(next.getUTCMonth() + 1).padStart(2, "0")}`;
+	return `${next.getUTCFullYear()}-${String(next.getUTCMonth() + 1).padStart(2, '0')}`;
 }
 
 export function formatRangeLabel(range: ResolvedRange, kind: RangeKind): string {
-	if (kind === "all") {
-		const [year, month] = range.start.split("-");
+	if (kind === 'all') {
+		const [year, month] = range.start.split('-');
 		return `All time · from ${monthName(month)} ${year}`;
 	}
-	const [year, month] = range.start.split("-");
+	const [year, month] = range.start.split('-');
 	return `${monthName(month)} ${year}`;
 }
 
@@ -555,18 +547,18 @@ function monthName(month: string): string {
 	const index = Number(month) - 1;
 	return (
 		[
-			"January",
-			"February",
-			"March",
-			"April",
-			"May",
-			"June",
-			"July",
-			"August",
-			"September",
-			"October",
-			"November",
-			"December",
+			'January',
+			'February',
+			'March',
+			'April',
+			'May',
+			'June',
+			'July',
+			'August',
+			'September',
+			'October',
+			'November',
+			'December',
 		][index] ?? month
 	);
 }

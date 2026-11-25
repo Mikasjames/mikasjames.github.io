@@ -39,7 +39,7 @@ describe('HabitsManager', () => {
 			props: { habitsStore: store, userId: 'test-uid' },
 		});
 		const emptyText = Array.from(container.querySelectorAll('p')).find((p) =>
-			p.textContent?.includes('No habits yet')
+			p.textContent?.includes('No habits yet'),
 		);
 		expect(emptyText).toBeDefined();
 		expect(getByText('Add one')).toBeInTheDocument();
@@ -143,7 +143,12 @@ describe('HabitsManager', () => {
 	it('uses custom labels', () => {
 		const store = createMockHabitsStore({ habits: [] });
 		const { getByText } = render(HabitsManager, {
-			props: { habitsStore: store, userId: 'test-uid', manageLabel: 'Configure', doneLabel: 'Done' },
+			props: {
+				habitsStore: store,
+				userId: 'test-uid',
+				manageLabel: 'Configure',
+				doneLabel: 'Done',
+			},
 		});
 		expect(getByText('Configure')).toBeInTheDocument();
 	});

@@ -4,27 +4,27 @@ Personal portfolio and blog built with [SvelteKit](https://kit.svelte.dev/), pow
 
 ## Tech Stack
 
-| Layer | Technology |
-|-------|-----------|
-| Framework | [SvelteKit 2](https://kit.svelte.dev/) (runes mode) |
-| Language | [TypeScript](https://www.typescriptlang.org/) |
-| Styling | [Tailwind CSS v4](https://tailwindcss.com/) |
-| CMS / Database | [Firebase Firestore](https://firebase.google.com/products/firestore) |
-| Auth | [Firebase Auth](https://firebase.google.com/products/auth) (Google provider) |
-| Storage | [Firebase Storage](https://firebase.google.com/products/storage) |
-| Analytics | [Firebase Analytics](https://firebase.google.com/products/analytics) |
-| Functions | [Firebase Cloud Functions](https://firebase.google.com/products/functions) |
-| Adapter | [`@sveltejs/adapter-static`](https://kit.svelte.dev/docs/adapter-static) |
-| Hosting | [GitHub Pages](https://pages.github.com/) |
-| CI/CD | [GitHub Actions](https://github.com/features/actions) |
-| Testing | [Playwright](https://playwright.dev/) |
-| Fonts | Inter Variable, JetBrains Mono |
+| Layer          | Technology                                                                   |
+| -------------- | ---------------------------------------------------------------------------- |
+| Framework      | [SvelteKit 2](https://kit.svelte.dev/) (runes mode)                          |
+| Language       | [TypeScript](https://www.typescriptlang.org/)                                |
+| Styling        | [Tailwind CSS v4](https://tailwindcss.com/)                                  |
+| CMS / Database | [Firebase Firestore](https://firebase.google.com/products/firestore)         |
+| Auth           | [Firebase Auth](https://firebase.google.com/products/auth) (Google provider) |
+| Storage        | [Firebase Storage](https://firebase.google.com/products/storage)             |
+| Analytics      | [Firebase Analytics](https://firebase.google.com/products/analytics)         |
+| Functions      | [Firebase Cloud Functions](https://firebase.google.com/products/functions)   |
+| Adapter        | [`@sveltejs/adapter-static`](https://kit.svelte.dev/docs/adapter-static)     |
+| Hosting        | [GitHub Pages](https://pages.github.com/)                                    |
+| CI/CD          | [GitHub Actions](https://github.com/features/actions)                        |
+| Testing        | [Playwright](https://playwright.dev/)                                        |
+| Fonts          | Inter Variable, JetBrains Mono                                               |
 
 ## Features
 
 - **Portfolio** — Project showcase with live demos, tech stacks, and feature highlights
 - **Blog** — Full CRUD blog with Firestore-backed content, draft system, markdown rendering, reading time estimates
-- **Admin Dashboard** — Authenticated CMS for creating, editing, and publishing blog posts and journal entries 
+- **Admin Dashboard** — Authenticated CMS for creating, editing, and publishing blog posts and journal entries
 - **SEO** — Dynamic OG meta tags, auto-generated sitemap, robots.txt, canonical URLs
 - **Performance** — Static prerendering, hover preloads, optimized fonts, lazy-loaded images with placeholders
 - **PWA-ready** — Offline-capable architecture via service worker
@@ -57,16 +57,16 @@ cp .env.example .env
 
 ### Environment Variables
 
-| Variable | Description |
-|----------|-------------|
-| `PUBLIC_SITE_URL` | Canonical site URL (default: `https://mikasjames.com`) |
-| `PUBLIC_FIREBASE_API_KEY` | Firebase Web API key |
-| `PUBLIC_FIREBASE_AUTH_DOMAIN` | Firebase Auth domain |
-| `PUBLIC_FIREBASE_PROJECT_ID` | Firebase project ID |
-| `PUBLIC_FIREBASE_STORAGE_BUCKET` | Firebase Storage bucket |
-| `PUBLIC_FIREBASE_MESSAGING_SENDER_ID` | Firebase messaging sender ID |
-| `PUBLIC_FIREBASE_APP_ID` | Firebase app ID |
-| `PUBLIC_FIREBASE_MEASUREMENT_ID` | Firebase measurement ID |
+| Variable                              | Description                                            |
+| ------------------------------------- | ------------------------------------------------------ |
+| `PUBLIC_SITE_URL`                     | Canonical site URL (default: `https://mikasjames.com`) |
+| `PUBLIC_FIREBASE_API_KEY`             | Firebase Web API key                                   |
+| `PUBLIC_FIREBASE_AUTH_DOMAIN`         | Firebase Auth domain                                   |
+| `PUBLIC_FIREBASE_PROJECT_ID`          | Firebase project ID                                    |
+| `PUBLIC_FIREBASE_STORAGE_BUCKET`      | Firebase Storage bucket                                |
+| `PUBLIC_FIREBASE_MESSAGING_SENDER_ID` | Firebase messaging sender ID                           |
+| `PUBLIC_FIREBASE_APP_ID`              | Firebase app ID                                        |
+| `PUBLIC_FIREBASE_MEASUREMENT_ID`      | Firebase measurement ID                                |
 
 ### Development
 
@@ -180,6 +180,6 @@ Or trigger from the Actions tab in GitHub.
 
 ## License
 
-The code under this repository is licensed under the [MIT License](LICENSE). 
+The code under this repository is licensed under the [MIT License](LICENSE).
 
 However, all personal content, project copy, writing, images, and branding assets are reserved under copyright and may not be used, republished, or redistributed without explicit permission. Feel free to use the underlying SvelteKit engine, CMS setup, and GitHub Actions pipelines for your own projects!

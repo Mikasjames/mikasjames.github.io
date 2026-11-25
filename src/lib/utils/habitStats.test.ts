@@ -186,11 +186,7 @@ describe('computePeriodStats', () => {
 	});
 
 	it('scores a full month when the whole month is in the past', () => {
-		const logs = [
-			log('h1', '2026-06-01'),
-			log('h1', '2026-06-02'),
-			log('h1', '2026-06-03'),
-		];
+		const logs = [log('h1', '2026-06-01'), log('h1', '2026-06-02'), log('h1', '2026-06-03')];
 		const stats = computePeriodStats({
 			habits: [habit('h1', localDate(2026, 1, 1))],
 			logs,
@@ -413,11 +409,7 @@ describe('computePeriodStats', () => {
 	it('counts perfect days across multiple habits', () => {
 		const stats = computePeriodStats({
 			habits: [habit('h1', localDate(2026, 1, 1)), habit('h2', localDate(2026, 1, 1))],
-			logs: [
-				log('h1', '2026-07-09'),
-				log('h1', '2026-07-10'),
-				log('h2', '2026-07-10'),
-			],
+			logs: [log('h1', '2026-07-09'), log('h1', '2026-07-10'), log('h2', '2026-07-10')],
 			ratingsByDate: {},
 			kind: 'month',
 			anchorMonth: '2026-07',
@@ -490,11 +482,7 @@ describe('computePeriodStats', () => {
 	it('breaks a year range into monthly rates', () => {
 		const stats = computePeriodStats({
 			habits: [habit('h1')],
-			logs: [
-				log('h1', '2026-01-05'),
-				log('h1', '2026-01-06'),
-				log('h1', '2026-02-05'),
-			],
+			logs: [log('h1', '2026-01-05'), log('h1', '2026-01-06'), log('h1', '2026-02-05')],
 			ratingsByDate: {},
 			kind: 'year',
 			anchorYear: 2026,

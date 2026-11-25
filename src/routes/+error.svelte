@@ -6,7 +6,9 @@
 	<title>Error · Mikas James</title>
 </svelte:head>
 
-<div class="min-h-screen bg-[#09090b] flex items-center justify-center px-6 py-20 relative overflow-hidden">
+<div
+	class="min-h-screen bg-[#09090b] flex items-center justify-center px-6 py-20 relative overflow-hidden"
+>
 	<div
 		class="fixed inset-0 bg-[linear-gradient(to_right,#27272a18_1px,transparent_1px),linear-gradient(to_bottom,#27272a18_1px,transparent_1px)] bg-[size:4rem_4rem] pointer-events-none"
 	></div>
@@ -16,13 +18,10 @@
 
 	<div class="relative max-w-2xl mx-auto text-center">
 		<div class="mb-8">
-			<div class="inline-flex items-center justify-center w-16 h-16 rounded-2xl bg-accent-500/10 border border-accent-500/20 mb-6">
-				<svg
-					class="w-8 h-8 text-accent-400"
-					fill="none"
-					stroke="currentColor"
-					viewBox="0 0 24 24"
-				>
+			<div
+				class="inline-flex items-center justify-center w-16 h-16 rounded-2xl bg-accent-500/10 border border-accent-500/20 mb-6"
+			>
+				<svg class="w-8 h-8 text-accent-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
 					<path
 						stroke-linecap="round"
 						stroke-linejoin="round"
@@ -58,12 +57,7 @@
 				href="/blogs/"
 				class="inline-flex items-center gap-2.5 px-6 py-3 rounded-lg bg-accent-500/10 border border-accent-500/30 text-accent-400 text-sm font-medium hover:bg-accent-500/20 hover:border-accent-400/50 transition-all duration-200"
 			>
-				<svg
-					class="w-4 h-4"
-					fill="none"
-					stroke="currentColor"
-					viewBox="0 0 24 24"
-				>
+				<svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
 					<path
 						stroke-linecap="round"
 						stroke-linejoin="round"
@@ -77,12 +71,7 @@
 				href="/"
 				class="inline-flex items-center gap-2.5 px-6 py-3 rounded-lg bg-zinc-900 border border-zinc-800 text-zinc-200 text-sm font-medium hover:bg-zinc-800 hover:border-zinc-700 transition-all duration-200"
 			>
-				<svg
-					class="w-4 h-4"
-					fill="none"
-					stroke="currentColor"
-					viewBox="0 0 24 24"
-				>
+				<svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
 					<path
 						stroke-linecap="round"
 						stroke-linejoin="round"

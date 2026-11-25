@@ -64,7 +64,13 @@ describe('loadJournalEntries', () => {
 		);
 
 		expect(entries).toHaveLength(2);
-		expect(entries[0]).toEqual({ id: 'a', uid: 'u1', entryDate: '2026-07-02', rating: 4, content: 'text' });
+		expect(entries[0]).toEqual({
+			id: 'a',
+			uid: 'u1',
+			entryDate: '2026-07-02',
+			rating: 4,
+			content: 'text',
+		});
 		expect(entries[1].content).toBe('');
 	});
 

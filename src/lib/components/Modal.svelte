@@ -1,22 +1,22 @@
 <script lang="ts">
-	import { fade, fly } from "svelte/transition";
+	import { fade, fly } from 'svelte/transition';
 
 	let {
 		show = $bindable(false),
-		size = "md",
-		title = "",
-		description = "",
+		size = 'md',
+		title = '',
+		description = '',
 		onclose,
 		children,
 		footer,
 	}: {
 		show: boolean;
-		size?: "sm" | "md" | "lg" | "xl";
+		size?: 'sm' | 'md' | 'lg' | 'xl';
 		title?: string;
 		description?: string;
 		onclose?: () => void;
-		children?: import("svelte").Snippet;
-		footer?: import("svelte").Snippet;
+		children?: import('svelte').Snippet;
+		footer?: import('svelte').Snippet;
 	} = $props();
 
 	function close() {
@@ -30,14 +30,14 @@
 	}
 
 	function onKeydown(e: KeyboardEvent) {
-		if (e.key === "Escape") close();
+		if (e.key === 'Escape') close();
 	}
 
 	const sizeClasses: Record<string, string> = {
-		sm: "max-w-sm",
-		md: "max-w-lg",
-		lg: "max-w-2xl",
-		xl: "max-w-4xl",
+		sm: 'max-w-sm',
+		md: 'max-w-lg',
+		lg: 'max-w-2xl',
+		xl: 'max-w-4xl',
 	};
 
 	let dialogEl: HTMLDivElement | undefined = $state();
@@ -50,12 +50,12 @@
 
 	$effect(() => {
 		if (show) {
-			document.body.classList.add("overflow-hidden");
+			document.body.classList.add('overflow-hidden');
 		} else {
-			document.body.classList.remove("overflow-hidden");
+			document.body.classList.remove('overflow-hidden');
 		}
 		return () => {
-			document.body.classList.remove("overflow-hidden");
+			document.body.classList.remove('overflow-hidden');
 		};
 	});
 </script>
@@ -70,13 +70,15 @@
 		role="dialog"
 		aria-modal="true"
 		tabindex="-1"
-		aria-label={title || "Dialog"}
+		aria-label={title || 'Dialog'}
 		onclick={onBackdropClick}
 		onkeydown={onKeydown}
 	>
 		<div
 			transition:fly={{ y: 16, duration: 200 }}
-			class="relative my-8 w-full {sizeClasses[size]} flex flex-col overflow-hidden rounded-xl border border-zinc-800 bg-zinc-900 shadow-2xl shadow-black/40 sm:my-4 sm:rounded-2xl"
+			class="relative my-8 w-full {sizeClasses[
+				size
+			]} flex flex-col overflow-hidden rounded-xl border border-zinc-800 bg-zinc-900 shadow-2xl shadow-black/40 sm:my-4 sm:rounded-2xl"
 		>
 			{#if title || description}
 				<div
@@ -100,12 +102,7 @@
 						class="text-zinc-400 hover:text-zinc-200 transition-colors p-1.5 hover:bg-zinc-800 rounded-lg cursor-pointer"
 						aria-label="Close"
 					>
-						<svg
-							class="w-5 h-5"
-							fill="none"
-							stroke="currentColor"
-							viewBox="0 0 24 24"
-						>
+						<svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
 							<path
 								stroke-linecap="round"
 								stroke-linejoin="round"
@@ -122,12 +119,7 @@
 					class="absolute top-3 right-3 z-10 text-zinc-400 hover:text-zinc-200 transition-colors p-1.5 hover:bg-zinc-800 rounded-lg cursor-pointer"
 					aria-label="Close"
 				>
-					<svg
-						class="w-5 h-5"
-						fill="none"
-						stroke="currentColor"
-						viewBox="0 0 24 24"
-					>
+					<svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
 						<path
 							stroke-linecap="round"
 							stroke-linejoin="round"

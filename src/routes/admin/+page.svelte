@@ -1,8 +1,8 @@
 <script lang="ts">
-import { goto } from "$app/navigation";
-import { subscribeToAuth } from "$lib/firebase/auth";
-import { page } from "$app/stores";
-import {
+	import { goto } from '$app/navigation';
+	import { subscribeToAuth } from '$lib/firebase/auth';
+	import { page } from '$app/stores';
+	import {
 		getPostsPage,
 		deletePost,
 		type BlogPost,
@@ -10,24 +10,24 @@ import {
 		deleteJournalEntry,
 		type JournalEntry,
 		DEFAULT_PAGE_SIZE,
-	} from "$lib/firebase/firestore.svelte";
-	import type { DocumentSnapshot } from "firebase/firestore";
-	import type { User } from "firebase/auth";
-	import { createInsightsStore } from "$lib/firebase/insights.svelte";
-	import { createMediaStore } from "$lib/firebase/media.svelte";
-	import { createHabitsStore } from "$lib/firebase/habits.svelte";
-	import { createHabitStatsStore } from "$lib/firebase/habitStats.svelte";
-	import { createOljStore } from "$lib/firebase/olj.svelte";
-	import GridBackground from "$lib/components/GridBackground.svelte";
-	import Spinner from "$lib/components/Spinner.svelte";
-	import BlogPostForm from "./BlogPostForm.svelte";
-	import JournalEntryForm from "./JournalEntryForm.svelte";
-	import InsightsDashboard from "./InsightsDashboard.svelte";
-	import HabitsStatsDashboard from "./HabitsStatsDashboard.svelte";
-	import EntryList from "./EntryList.svelte";
-	import OljLoginPanel from "./OljLoginPanel.svelte";
-	import ConfirmDialog from "$lib/components/ConfirmDialog.svelte";
-	import { toast } from "$lib/stores/toast.svelte";
+	} from '$lib/firebase/firestore.svelte';
+	import type { DocumentSnapshot } from 'firebase/firestore';
+	import type { User } from 'firebase/auth';
+	import { createInsightsStore } from '$lib/firebase/insights.svelte';
+	import { createMediaStore } from '$lib/firebase/media.svelte';
+	import { createHabitsStore } from '$lib/firebase/habits.svelte';
+	import { createHabitStatsStore } from '$lib/firebase/habitStats.svelte';
+	import { createOljStore } from '$lib/firebase/olj.svelte';
+	import GridBackground from '$lib/components/GridBackground.svelte';
+	import Spinner from '$lib/components/Spinner.svelte';
+	import BlogPostForm from './BlogPostForm.svelte';
+	import JournalEntryForm from './JournalEntryForm.svelte';
+	import InsightsDashboard from './InsightsDashboard.svelte';
+	import HabitsStatsDashboard from './HabitsStatsDashboard.svelte';
+	import EntryList from './EntryList.svelte';
+	import OljLoginPanel from './OljLoginPanel.svelte';
+	import ConfirmDialog from '$lib/components/ConfirmDialog.svelte';
+	import { toast } from '$lib/stores/toast.svelte';
 
 	let user = $state<User | null>(null);
 	let authReady = $state(false);
@@ -41,13 +41,13 @@ import {
 	let blogPostFormRef = $state<ReturnType<typeof BlogPostForm>>();
 	let journalEntryFormRef = $state<ReturnType<typeof JournalEntryForm>>();
 
-	let currentSection = $state<"blogs" | "journal" | "insights" | "habits" | "olj">("journal");
+	let currentSection = $state<'blogs' | 'journal' | 'insights' | 'habits' | 'olj'>('journal');
 
 	$effect(() => {
 		const unsub = subscribeToAuth((u) => {
 			user = u;
 			authReady = true;
-			if (!u) goto("/admin/login/");
+			if (!u) goto('/admin/login/');
 		});
 		return unsub;
 	});
@@ -66,11 +66,11 @@ import {
 
 	$effect(() => {
 		if (!authReady || !user || posts.length === 0) return;
-		const editId = $page.url.searchParams.get("edit");
+		const editId = $page.url.searchParams.get('edit');
 		if (editId) {
 			const post = posts.find((p) => p.id === editId);
 			if (post) {
-				currentSection = "blogs";
+				currentSection = 'blogs';
 				blogPostFormRef?.startEdit(post);
 			}
 		}
@@ -84,16 +84,16 @@ import {
 	let postsStatusFilter = $state<string | undefined>(undefined);
 
 	let showConfirm = $state(false);
-	let confirmTitle = $state("");
-	let confirmMessage = $state("");
-	let confirmVariant = $state<"danger" | "primary">("danger");
+	let confirmTitle = $state('');
+	let confirmMessage = $state('');
+	let confirmVariant = $state<'danger' | 'primary'>('danger');
 	let confirmAction = $state<() => void>(() => {});
 
 	function openConfirm(
 		title: string,
 		message: string,
 		action: () => void,
-		variant: "danger" | "primary" = "danger",
+		variant: 'danger' | 'primary' = 'danger',
 	) {
 		confirmTitle = title;
 		confirmMessage = message;
@@ -103,7 +103,7 @@ import {
 	}
 	let journalEntries = $state<JournalEntry[]>([]);
 	let journalEntriesLoading = $state(false);
-	let journalEntriesLoadError = $state("");
+	let journalEntriesLoadError = $state('');
 	let journalEntriesLoadingMore = $state(false);
 	let journalEntriesCursor = $state<DocumentSnapshot | null>(null);
 	let journalEntriesHasMore = $state(false);
@@ -114,7 +114,11 @@ import {
 		posts = [];
 		postsCursor = null;
 		try {
-			const result = await getPostsPage(undefined, DEFAULT_PAGE_SIZE, status ? { status: status as 'draft' | 'published' | 'unlisted' } : undefined);
+			const result = await getPostsPage(
+				undefined,
+				DEFAULT_PAGE_SIZE,
+				status ? { status: status as 'draft' | 'published' | 'unlisted' } : undefined,
+			);
 			posts = result.items;
 			postsCursor = result.nextCursor;
 			postsHasMore = result.hasMore;
@@ -127,7 +131,13 @@ import {
 		if (!postsCursor || postsLoadingMore) return;
 		postsLoadingMore = true;
 		try {
-			const result = await getPostsPage(postsCursor, DEFAULT_PAGE_SIZE, postsStatusFilter ? { status: postsStatusFilter as 'draft' | 'published' | 'unlisted' } : undefined);
+			const result = await getPostsPage(
+				postsCursor,
+				DEFAULT_PAGE_SIZE,
+				postsStatusFilter
+					? { status: postsStatusFilter as 'draft' | 'published' | 'unlisted' }
+					: undefined,
+			);
 			posts = [...posts, ...result.items];
 			postsCursor = result.nextCursor;
 			postsHasMore = result.hasMore;
@@ -138,7 +148,7 @@ import {
 
 	async function loadJournalEntries() {
 		journalEntriesLoading = true;
-		journalEntriesLoadError = "";
+		journalEntriesLoadError = '';
 		journalEntries = [];
 		journalEntriesCursor = null;
 		try {
@@ -147,11 +157,11 @@ import {
 			journalEntriesCursor = result.nextCursor;
 			journalEntriesHasMore = result.hasMore;
 		} catch (err: unknown) {
-			console.error("Failed to load journal entries:", err);
+			console.error('Failed to load journal entries:', err);
 			journalEntriesLoadError =
 				err instanceof Error
 					? err.message
-					: "Failed to load journal entries. Check Firestore rules.";
+					: 'Failed to load journal entries. Check Firestore rules.';
 		} finally {
 			journalEntriesLoading = false;
 		}
@@ -166,7 +176,7 @@ import {
 			journalEntriesCursor = result.nextCursor;
 			journalEntriesHasMore = result.hasMore;
 		} catch (err: unknown) {
-			console.error("Failed to load more journal entries:", err);
+			console.error('Failed to load more journal entries:', err);
 		} finally {
 			journalEntriesLoadingMore = false;
 		}
@@ -174,8 +184,8 @@ import {
 
 	async function handleDeleteJournal(entry: JournalEntry) {
 		openConfirm(
-			"Delete Journal Entry",
-			"Are you sure you want to delete this journal entry? This action cannot be undone.",
+			'Delete Journal Entry',
+			'Are you sure you want to delete this journal entry? This action cannot be undone.',
 			async () => {
 				try {
 					await deleteJournalEntry(entry.id);
@@ -184,12 +194,7 @@ import {
 					}
 					await loadJournalEntries();
 				} catch (err: unknown) {
-					toast(
-						err instanceof Error
-							? err.message
-							: "Failed to delete journal entry.",
-						"error",
-					);
+					toast(err instanceof Error ? err.message : 'Failed to delete journal entry.', 'error');
 				}
 			},
 		);
@@ -197,7 +202,7 @@ import {
 
 	async function handleDelete(post: BlogPost) {
 		openConfirm(
-			"Delete Blog Post",
+			'Delete Blog Post',
 			`Are you sure you want to delete "${post.title}"? This action cannot be undone.`,
 			async () => {
 				try {
@@ -207,12 +212,7 @@ import {
 					}
 					await loadPosts();
 				} catch (err: unknown) {
-					toast(
-						err instanceof Error
-							? err.message
-							: "Failed to delete post.",
-						"error",
-					);
+					toast(err instanceof Error ? err.message : 'Failed to delete post.', 'error');
 				}
 			},
 		);
@@ -233,111 +233,96 @@ import {
 		<Spinner size="lg" color="accent" />
 	</div>
 {:else if user}
-	<div
-		class="min-h-screen bg-[#09090b] px-3 pt-16 pb-12 sm:px-4 sm:pt-20 sm:pb-16 lg:px-6"
-	>
+	<div class="min-h-screen bg-[#09090b] px-3 pt-16 pb-12 sm:px-4 sm:pt-20 sm:pb-16 lg:px-6">
 		<GridBackground opacity="3" />
 
 		<div class="relative mx-auto w-full max-w-5xl space-y-8 sm:space-y-10">
-			<div
-				class="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between"
-			>
+			<div class="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
 				<div class="min-w-0">
-					<p
-						class="font-mono text-xs text-accent-400 tracking-widest uppercase mb-1"
-					>
+					<p class="font-mono text-xs text-accent-400 tracking-widest uppercase mb-1">
 						&gt;_ admin
 					</p>
 					<h1 class="text-2xl font-bold text-zinc-100">Dashboard</h1>
 					<p class="mt-0.5 break-words text-sm text-zinc-500">
-						Signed in as <span class="text-zinc-300"
-							>{user.email}</span
-						>
+						Signed in as <span class="text-zinc-300">{user.email}</span>
 					</p>
 				</div>
-		</div>
+			</div>
 
-		<div
-				class="flex gap-5 overflow-x-auto border-b border-zinc-800/40 sm:gap-6"
-			>
+			<div class="flex gap-5 overflow-x-auto border-b border-zinc-800/40 sm:gap-6">
 				<button
 					type="button"
-					onclick={() => (currentSection = "journal")}
+					onclick={() => (currentSection = 'journal')}
 					class="relative shrink-0 pb-3 text-sm font-semibold tracking-wide transition-all duration-200 {currentSection ===
 					'journal'
 						? 'text-accent-400'
 						: 'text-zinc-400 hover:text-zinc-200'}"
 				>
 					Personal Journal
-					{#if currentSection === "journal"}
-						<span
-							class="absolute bottom-0 left-0 right-0 h-0.5 bg-accent-500 rounded-t-full"
+					{#if currentSection === 'journal'}
+						<span class="absolute bottom-0 left-0 right-0 h-0.5 bg-accent-500 rounded-t-full"
 						></span>
 					{/if}
 				</button>
 				<button
 					type="button"
-					onclick={() => (currentSection = "blogs")}
+					onclick={() => (currentSection = 'blogs')}
 					class="relative shrink-0 pb-3 text-sm font-semibold tracking-wide transition-all duration-200 {currentSection ===
 					'blogs'
 						? 'text-accent-400'
 						: 'text-zinc-400 hover:text-zinc-200'}"
 				>
 					Blog Posts
-					{#if currentSection === "blogs"}
-						<span
-							class="absolute bottom-0 left-0 right-0 h-0.5 bg-accent-500 rounded-t-full"
+					{#if currentSection === 'blogs'}
+						<span class="absolute bottom-0 left-0 right-0 h-0.5 bg-accent-500 rounded-t-full"
 						></span>
 					{/if}
 				</button>
 				<button
 					type="button"
-					onclick={() => (currentSection = "insights")}
+					onclick={() => (currentSection = 'insights')}
 					class="relative shrink-0 pb-3 text-sm font-semibold tracking-wide transition-all duration-200 {currentSection ===
 					'insights'
 						? 'text-accent-400'
 						: 'text-zinc-400 hover:text-zinc-200'}"
 				>
 					Insights
-					{#if currentSection === "insights"}
-						<span
-							class="absolute bottom-0 left-0 right-0 h-0.5 bg-accent-500 rounded-t-full"
+					{#if currentSection === 'insights'}
+						<span class="absolute bottom-0 left-0 right-0 h-0.5 bg-accent-500 rounded-t-full"
 						></span>
 					{/if}
 				</button>
 				<button
 					type="button"
-					onclick={() => (currentSection = "habits")}
+					onclick={() => (currentSection = 'habits')}
 					class="relative shrink-0 pb-3 text-sm font-semibold tracking-wide transition-all duration-200 {currentSection ===
 					'habits'
 						? 'text-accent-400'
 						: 'text-zinc-400 hover:text-zinc-200'}"
 				>
 					Habits
-					{#if currentSection === "habits"}
-						<span
-							class="absolute bottom-0 left-0 right-0 h-0.5 bg-accent-500 rounded-t-full"
+					{#if currentSection === 'habits'}
+						<span class="absolute bottom-0 left-0 right-0 h-0.5 bg-accent-500 rounded-t-full"
 						></span>
 					{/if}
 				</button>
 				<button
 					type="button"
-					onclick={() => (currentSection = "olj")}
+					onclick={() => (currentSection = 'olj')}
 					class="relative shrink-0 pb-3 text-sm font-semibold tracking-wide transition-all duration-200 {currentSection ===
 					'olj'
 						? 'text-accent-400'
 						: 'text-zinc-400 hover:text-zinc-200'}"
 				>
 					OLJ Logins
-					{#if currentSection === "olj"}
-						<span
-							class="absolute bottom-0 left-0 right-0 h-0.5 bg-accent-500 rounded-t-full"
+					{#if currentSection === 'olj'}
+						<span class="absolute bottom-0 left-0 right-0 h-0.5 bg-accent-500 rounded-t-full"
 						></span>
 					{/if}
 				</button>
 			</div>
 
-			{#if currentSection === "journal"}
+			{#if currentSection === 'journal'}
 				<JournalEntryForm
 					bind:this={journalEntryFormRef}
 					{user}
@@ -350,41 +335,32 @@ import {
 					items={journalEntries}
 					loading={journalEntriesLoading}
 					type="journal"
-					onEdit={(entry) =>
-						journalEntryFormRef?.startEditJournal(
-							entry as JournalEntry,
-						)}
-					onDelete={(entry) =>
-						handleDeleteJournal(entry as JournalEntry)}
+					onEdit={(entry) => journalEntryFormRef?.startEditJournal(entry as JournalEntry)}
+					onDelete={(entry) => handleDeleteJournal(entry as JournalEntry)}
 					error={journalEntriesLoadError}
 					onLoadMore={loadMoreJournalEntries}
 					hasMore={journalEntriesHasMore}
 					loadingMore={journalEntriesLoadingMore}
 				/>
-			{:else if currentSection === "blogs"}
-				<BlogPostForm
-					bind:this={blogPostFormRef}
-					{mediaStore}
-					{loadPosts}
-				/>
+			{:else if currentSection === 'blogs'}
+				<BlogPostForm bind:this={blogPostFormRef} {mediaStore} {loadPosts} />
 
 				<EntryList
 					items={posts}
 					loading={postsLoading}
 					type="blog"
-					onEdit={(post) =>
-						blogPostFormRef?.startEdit(post as BlogPost)}
+					onEdit={(post) => blogPostFormRef?.startEdit(post as BlogPost)}
 					onDelete={(post) => handleDelete(post as BlogPost)}
 					onLoadMore={loadMorePosts}
 					hasMore={postsHasMore}
 					loadingMore={postsLoadingMore}
 					onStatusFilterChange={handlePostsStatusFilterChange}
 				/>
-			{:else if currentSection === "insights"}
+			{:else if currentSection === 'insights'}
 				<InsightsDashboard {user} {insightsStore} />
-			{:else if currentSection === "habits"}
+			{:else if currentSection === 'habits'}
 				<HabitsStatsDashboard statsStore={habitStatsStore} />
-			{:else if currentSection === "olj"}
+			{:else if currentSection === 'olj'}
 				<OljLoginPanel {oljStore} />
 			{/if}
 		</div>

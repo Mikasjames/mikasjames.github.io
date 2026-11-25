@@ -1,38 +1,43 @@
 <script lang="ts">
-	import { tick, onMount, onDestroy } from "svelte";
-	import CoverImage from "$lib/components/CoverImage.svelte";
-	import MarkdownEditor from "$lib/components/MarkdownEditor.svelte";
-	import ContentImagesHelper from "$lib/components/ContentImagesHelper.svelte";
+	import { tick, onMount, onDestroy } from 'svelte';
+	import CoverImage from '$lib/components/CoverImage.svelte';
+	import MarkdownEditor from '$lib/components/MarkdownEditor.svelte';
+	import ContentImagesHelper from '$lib/components/ContentImagesHelper.svelte';
 	import {
 		upsertJournalEntry,
 		type ImageMeta,
 		type JournalEntry,
-	} from "$lib/firebase/firestore.svelte";
+	} from '$lib/firebase/firestore.svelte';
 	import {
 		resolveMissingImageMeta,
 		sanitizeImageMetaFromMarkdown,
 		enrichImageMetaFromGallery,
-	} from "$lib/utils/imageMeta";
-	import { todayDateKey, getHappinessLabel } from "$lib/utils/date";
-	import { saveNoteDraft, loadNoteDraft, clearNoteDraft, createNoteDraftDebouncer } from "$lib/utils/noteDraft";
-	import { createDraftPromptController } from "$lib/utils/draftPrompt.svelte";
-	import type { User } from "firebase/auth";
-	import type { MediaItem, Habit } from "$lib/firebase/firestore.svelte";
-	import type { createMediaStore } from "$lib/firebase/media.svelte";
-	import type { createHabitsStore } from "$lib/firebase/habits.svelte";
+	} from '$lib/utils/imageMeta';
+	import { todayDateKey, getHappinessLabel } from '$lib/utils/date';
+	import {
+		saveNoteDraft,
+		loadNoteDraft,
+		clearNoteDraft,
+		createNoteDraftDebouncer,
+	} from '$lib/utils/noteDraft';
+	import { createDraftPromptController } from '$lib/utils/draftPrompt.svelte';
+	import type { User } from 'firebase/auth';
+	import type { MediaItem, Habit } from '$lib/firebase/firestore.svelte';
+	import type { createMediaStore } from '$lib/firebase/media.svelte';
+	import type { createHabitsStore } from '$lib/firebase/habits.svelte';
 	import {
 		insertMarkdownAtCursor as sharedInsertMarkdown,
 		handleContentUpload as sharedHandleContentUpload,
 		copyToClipboard as sharedCopyToClipboard,
 		setEditorCoverImage as sharedSetEditorCoverImage,
 		handleDeleteMediaWrapper as sharedHandleDeleteMediaWrapper,
-	} from "$lib/utils/editorActions";
-	import MediaGalleryDialog from "$lib/components/MediaGalleryDialog.svelte";
-	import ConfirmDialog from "$lib/components/ConfirmDialog.svelte";
-	import DraftRestoreDialog from "$lib/components/DraftRestoreDialog.svelte";
-	import AppButton from "$lib/components/AppButton.svelte";
-	import HabitsManager from "$lib/components/HabitsManager.svelte";
-	import { toast } from "$lib/stores/toast.svelte";
+	} from '$lib/utils/editorActions';
+	import MediaGalleryDialog from '$lib/components/MediaGalleryDialog.svelte';
+	import ConfirmDialog from '$lib/components/ConfirmDialog.svelte';
+	import DraftRestoreDialog from '$lib/components/DraftRestoreDialog.svelte';
+	import AppButton from '$lib/components/AppButton.svelte';
+	import HabitsManager from '$lib/components/HabitsManager.svelte';
+	import { toast } from '$lib/stores/toast.svelte';
 
 	type MediaStore = ReturnType<typeof createMediaStore>;
 	type HabitsStore = ReturnType<typeof createHabitsStore>;
@@ -61,28 +66,28 @@
 
 	let journalForm = $state<JournalFormState>({
 		id: null,
-		title: "",
-		excerpt: "",
-		content: "",
+		title: '',
+		excerpt: '',
+		content: '',
 		coverImage: null,
 		imageMeta: {},
 		happinessRating: 3,
 		submitting: false,
-		successMsg: "",
-		error: "",
+		successMsg: '',
+		error: '',
 		coverUploading: false,
-		coverError: "",
+		coverError: '',
 	});
 
 	let selectedJournalEntryDate = $state<string | null>(todayDateKey());
 	let showMediaGallery = $state(false);
 	let showConfirmDelete = $state(false);
-	let confirmDeleteMessage = $state("");
+	let confirmDeleteMessage = $state('');
 	let confirmDeleteAction = $state<(val: boolean) => void>(() => {});
 	let showConfirmHabitDelete = $state(false);
-	let confirmHabitDeleteMessage = $state("");
+	let confirmHabitDeleteMessage = $state('');
 	let confirmHabitDeleteAction = $state<(val: boolean) => void>(() => {});
-	let activeTab = $state<"write" | "preview">("write");
+	let activeTab = $state<'write' | 'preview'>('write');
 	let textareaRef = $state<HTMLTextAreaElement | null>(null);
 	let showJournalDetails = $state(false);
 
@@ -152,7 +157,7 @@
 	export async function startEditJournal(entry: JournalEntry) {
 		journalForm.id = entry.id;
 		journalForm.title = entry.title;
-		journalForm.excerpt = entry.excerpt || "";
+		journalForm.excerpt = entry.excerpt || '';
 		journalForm.content = entry.content;
 		journalForm.coverImage = entry.coverImage || null;
 		journalForm.happinessRating = entry.happinessRating ?? 3;
@@ -160,16 +165,12 @@
 		habitsStore.selectedHabitIds = new Set();
 		journalForm.imageMeta = sanitizeImageMetaFromMarkdown(
 			entry.content,
-			enrichImageMetaFromGallery(
-				entry.content,
-				entry.imageMeta ?? {},
-				mediaStore.mediaItems,
-			),
+			enrichImageMetaFromGallery(entry.content, entry.imageMeta ?? {}, mediaStore.mediaItems),
 		);
-		journalForm.successMsg = "";
-		journalForm.error = "";
+		journalForm.successMsg = '';
+		journalForm.error = '';
 		showJournalDetails = !!entry.content || !!entry.title || !!entry.coverImage;
-		window.scrollTo({ top: 0, behavior: "smooth" });
+		window.scrollTo({ top: 0, behavior: 'smooth' });
 		if (!user) return;
 
 		// Load the stored selection first; a draft only prompts when it
@@ -188,14 +189,14 @@
 			clearNoteDraft(user.uid, selectedJournalEntryDate);
 		}
 		journalForm.id = null;
-		journalForm.title = "";
-		journalForm.excerpt = "";
-		journalForm.content = "";
+		journalForm.title = '';
+		journalForm.excerpt = '';
+		journalForm.content = '';
 		journalForm.coverImage = null;
 		journalForm.imageMeta = {};
 		journalForm.happinessRating = 3;
-		journalForm.successMsg = "";
-		journalForm.error = "";
+		journalForm.successMsg = '';
+		journalForm.error = '';
 		selectedJournalEntryDate = todayDateKey();
 		habitsStore.selectedHabitIds = new Set();
 		showJournalDetails = false;
@@ -205,8 +206,8 @@
 		e.preventDefault();
 
 		journalForm.submitting = true;
-		journalForm.error = "";
-		journalForm.successMsg = "";
+		journalForm.error = '';
+		journalForm.successMsg = '';
 		try {
 			const resolvedImageMeta = await resolveMissingImageMeta(
 				journalForm.content,
@@ -219,7 +220,7 @@
 			journalForm.imageMeta = sanitizedImageMeta;
 
 			const payload = {
-				title: journalForm.title || (journalForm.content ? "Untitled Entry" : ""),
+				title: journalForm.title || (journalForm.content ? 'Untitled Entry' : ''),
 				excerpt: journalForm.excerpt,
 				content: journalForm.content,
 				coverImage: journalForm.coverImage,
@@ -230,19 +231,12 @@
 			};
 
 			if (journalForm.id) {
-				journalForm.successMsg = "Journal entry updated successfully!";
+				journalForm.successMsg = 'Journal entry updated successfully!';
 			} else {
-				journalForm.successMsg = "Journal entry added successfully!";
+				journalForm.successMsg = 'Journal entry added successfully!';
 			}
-			const entryId = await upsertJournalEntry(
-				payload,
-				journalForm.id,
-			);
-			await habitsStore.saveSelectedHabitLogs(
-				user!.uid,
-				entryId,
-				payload.entryDate,
-			);
+			const entryId = await upsertJournalEntry(payload, journalForm.id);
+			await habitsStore.saveSelectedHabitLogs(user!.uid, entryId, payload.entryDate);
 			habitsStore.clearDraft(user!.uid, payload.entryDate);
 			clearNoteDraft(user!.uid, payload.entryDate);
 			noteDraftSaver.cancel();
@@ -250,10 +244,7 @@
 			await loadJournalEntries();
 			await habitsStore.loadHabits(user!.uid);
 		} catch (err: unknown) {
-			journalForm.error =
-				err instanceof Error
-					? err.message
-					: "Failed to save journal entry.";
+			journalForm.error = err instanceof Error ? err.message : 'Failed to save journal entry.';
 		} finally {
 			journalForm.submitting = false;
 		}
@@ -263,22 +254,25 @@
 		const target = e.target as HTMLInputElement;
 		if (!target.files || target.files.length === 0) return;
 		try {
-			const result = await mediaStore.handleGalleryUpload(
-				target.files[0],
-			);
+			const result = await mediaStore.handleGalleryUpload(target.files[0]);
 			journalForm.coverImage = result.url;
 		} catch (err: unknown) {
-			journalForm.coverError =
-				err instanceof Error ? err.message : "Upload failed.";
+			journalForm.coverError = err instanceof Error ? err.message : 'Upload failed.';
 		} finally {
-			target.value = "";
+			target.value = '';
 		}
 	}
 
 	async function handleContentUpload(e: Event) {
-		await sharedHandleContentUpload(e, mediaStore, () => journalForm, (patch) => {
-			journalForm = { ...journalForm, ...patch };
-		}, insertMarkdownAtCursor);
+		await sharedHandleContentUpload(
+			e,
+			mediaStore,
+			() => journalForm,
+			(patch) => {
+				journalForm = { ...journalForm, ...patch };
+			},
+			insertMarkdownAtCursor,
+		);
 	}
 
 	async function insertMarkdownAtCursor(
@@ -287,17 +281,23 @@
 		dims?: { width?: number; height?: number },
 	) {
 		await sharedInsertMarkdown(
-			url, altText, textareaRef,
-			(tab) => { activeTab = tab; },
+			url,
+			altText,
+			textareaRef,
+			(tab) => {
+				activeTab = tab;
+			},
 			dims,
 			() => journalForm,
-			(patch) => { journalForm = { ...journalForm, ...patch }; },
+			(patch) => {
+				journalForm = { ...journalForm, ...patch };
+			},
 		);
 		noteDraftSaver.schedule(journalForm.content);
 	}
 
 	async function insertTextAtCursor(textToInsert: string) {
-		activeTab = "write";
+		activeTab = 'write';
 		await tick();
 		if (!textareaRef) return;
 
@@ -316,26 +316,27 @@
 
 		if (textareaRef) {
 			textareaRef.focus();
-			textareaRef.selectionStart = textareaRef.selectionEnd =
-				start + textToInsert.length;
+			textareaRef.selectionStart = textareaRef.selectionEnd = start + textToInsert.length;
 		}
 	}
 
 	async function insertCurrentJournalTimestamp() {
 		const now = new Date();
-		const stamp = now.toLocaleString("en-US", {
-			weekday: "long",
-			year: "numeric",
-			month: "long",
-			day: "numeric",
-			hour: "numeric",
-			minute: "2-digit",
+		const stamp = now.toLocaleString('en-US', {
+			weekday: 'long',
+			year: 'numeric',
+			month: 'long',
+			day: 'numeric',
+			hour: 'numeric',
+			minute: '2-digit',
 		});
 		await insertTextAtCursor(`\n\n### ${stamp}\n\n`);
 	}
 
 	function setEditorCoverImage(url: string | null) {
-		sharedSetEditorCoverImage(url, (u) => { journalForm.coverImage = u; });
+		sharedSetEditorCoverImage(url, (u) => {
+			journalForm.coverImage = u;
+		});
 	}
 
 	function copyToClipboard(text: string) {
@@ -350,15 +351,15 @@
 					confirmDeleteAction = resolve;
 					showConfirmDelete = true;
 				}),
-			onError: (message: string) => toast(message, "error"),
+			onError: (message: string) => toast(message, 'error'),
 			onRemoveImage: (url: string) => {
 				journalForm.imageMeta = { ...journalForm.imageMeta };
 				delete journalForm.imageMeta[url];
 			},
 			onRemoveMarkdown: (url: string) => {
 				journalForm.content = journalForm.content.replace(
-					new RegExp(`!\\[.*?\\]\\(${url}\\)`, "g"),
-					"",
+					new RegExp(`!\\[.*?\\]\\(${url}\\)`, 'g'),
+					'',
 				);
 			},
 		});
@@ -385,16 +386,9 @@
 <section
 	class="bg-surface-900/80 rounded-xl border border-zinc-800/60 p-4 shadow-2xl shadow-black/40 backdrop-blur-md sm:rounded-2xl sm:p-5 md:p-8"
 >
-	<h2
-		class="text-lg font-semibold text-zinc-100 mb-6 flex items-center gap-2"
-	>
+	<h2 class="text-lg font-semibold text-zinc-100 mb-6 flex items-center gap-2">
 		{#if journalForm.id}
-			<svg
-				class="w-4 h-4 text-accent-400"
-				fill="none"
-				stroke="currentColor"
-				viewBox="0 0 24 24"
-			>
+			<svg class="w-4 h-4 text-accent-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
 				<path
 					stroke-linecap="round"
 					stroke-linejoin="round"
@@ -404,18 +398,8 @@
 			</svg>
 			Edit Journal Entry
 		{:else}
-			<svg
-				class="w-4 h-4 text-accent-400"
-				fill="none"
-				stroke="currentColor"
-				viewBox="0 0 24 24"
-			>
-				<path
-					stroke-linecap="round"
-					stroke-linejoin="round"
-					stroke-width="2"
-					d="M12 4v16m8-8H4"
-				/>
+			<svg class="w-4 h-4 text-accent-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+				<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" />
 			</svg>
 			New Journal Entry
 		{/if}
@@ -423,19 +407,14 @@
 
 	<form onsubmit={handleJournalSubmit} class="space-y-5">
 		{#if selectedJournalEntryDate && selectedJournalEntryDate !== todayDateKey()}
-			<div
-				class="rounded-lg bg-amber-500/10 border border-amber-500/20 p-3 mb-4"
-			>
+			<div class="rounded-lg bg-amber-500/10 border border-amber-500/20 p-3 mb-4">
 				<p class="text-sm text-amber-300">
-					Editing a past entry from {selectedJournalEntryDate}.
-					Habits will be saved for this date.
+					Editing a past entry from {selectedJournalEntryDate}. Habits will be saved for this date.
 				</p>
 			</div>
 		{/if}
 
-		<div
-			class="space-y-3 rounded-xl border border-zinc-800/60 bg-zinc-900/40 p-4"
-		>
+		<div class="space-y-3 rounded-xl border border-zinc-800/60 bg-zinc-900/40 p-4">
 			<HabitsManager
 				{habitsStore}
 				userId={user!.uid}
@@ -448,28 +427,23 @@
 		</div>
 
 		<div class="rounded-xl border border-zinc-800/60 bg-zinc-900/40 p-4">
-			<div
-				class="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between"
-			>
+			<div class="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
 				<div>
 					<label
 						for="journal-happiness"
 						class="block text-xs font-semibold text-zinc-400 tracking-wide uppercase"
-						>Overall Happiness</label
 					>
-					<p class="mt-1 text-xs text-zinc-550">
-						Daily rating for monthly and yearly insights.
-					</p>
+						Overall Happiness
+					</label>
+					<p class="mt-1 text-xs text-zinc-550">Daily rating for monthly and yearly insights.</p>
 				</div>
 				<div
 					class="flex items-center gap-2 rounded-lg border border-accent-500/20 bg-accent-500/10 px-3 py-2"
 				>
-					<span class="text-2xl font-bold text-accent-300"
-						>{journalForm.happinessRating}</span
-					>
-					<span class="text-xs font-medium text-accent-200"
-						>{getHappinessLabel(journalForm.happinessRating)}</span
-					>
+					<span class="text-2xl font-bold text-accent-300">{journalForm.happinessRating}</span>
+					<span class="text-xs font-medium text-accent-200">
+						{getHappinessLabel(journalForm.happinessRating)}
+					</span>
 				</div>
 			</div>
 			<div class="mt-4">
@@ -513,9 +487,16 @@
 				<span>Journal Details</span>
 				<svg
 					class="h-4 w-4 transition-transform {showJournalDetails ? 'rotate-180' : ''}"
-					fill="none" stroke="currentColor" viewBox="0 0 24 24"
+					fill="none"
+					stroke="currentColor"
+					viewBox="0 0 24 24"
 				>
-					<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
+					<path
+						stroke-linecap="round"
+						stroke-linejoin="round"
+						stroke-width="2"
+						d="M19 9l-7 7-7-7"
+					/>
 				</svg>
 			</button>
 			{#if showJournalDetails}
@@ -525,8 +506,9 @@
 							<label
 								for="journal-title"
 								class="block text-xs font-medium text-zinc-400 tracking-wide uppercase"
-								>Title <span class="normal-case font-normal text-zinc-600">(Optional)</span></label
 							>
+								Title <span class="normal-case font-normal text-zinc-600">(Optional)</span>
+							</label>
 							<input
 								id="journal-title"
 								type="text"
@@ -539,8 +521,9 @@
 							<label
 								for="journal-excerpt"
 								class="block text-xs font-medium text-zinc-400 tracking-wide uppercase"
-								>Excerpt <span class="normal-case font-normal text-zinc-600">(Optional)</span></label
 							>
+								Excerpt <span class="normal-case font-normal text-zinc-600">(Optional)</span>
+							</label>
 							<input
 								id="journal-excerpt"
 								type="text"
@@ -555,8 +538,9 @@
 						<label
 							for="journal-entry-date"
 							class="block text-xs font-medium text-zinc-400 tracking-wide uppercase"
-							>Entry Date</label
 						>
+							Entry Date
+						</label>
 						<input
 							id="journal-entry-date"
 							type="date"
@@ -581,7 +565,12 @@
 						<div class="flex justify-end">
 							<AppButton variant="ghost" size="sm" onclick={insertCurrentJournalTimestamp}>
 								<svg class="h-3.5 w-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-									<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+									<path
+										stroke-linecap="round"
+										stroke-linejoin="round"
+										stroke-width="2"
+										d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"
+									/>
 								</svg>
 								Insert Date & Time
 							</AppButton>
@@ -623,7 +612,12 @@
 				class="flex items-center gap-2 px-3.5 py-2.5 rounded-lg bg-red-500/10 border border-red-500/20 text-red-400 text-sm"
 			>
 				<svg class="w-4 h-4 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-					<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+					<path
+						stroke-linecap="round"
+						stroke-linejoin="round"
+						stroke-width="2"
+						d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
+					/>
 				</svg>
 				{journalForm.error}
 			</div>
@@ -634,7 +628,12 @@
 				class="flex items-center gap-2 px-3.5 py-2.5 rounded-lg bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 text-sm"
 			>
 				<svg class="w-4 h-4 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-					<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
+					<path
+						stroke-linecap="round"
+						stroke-linejoin="round"
+						stroke-width="2"
+						d="M5 13l4 4L19 7"
+					/>
 				</svg>
 				{journalForm.successMsg}
 			</div>
@@ -645,7 +644,13 @@
 				<AppButton variant="ghost" size="md" onclick={resetJournalForm}>Cancel Edit</AppButton>
 			{/if}
 
-			<AppButton variant="primary" size="md" type="submit" disabled={journalForm.submitting} loading={journalForm.submitting}>
+			<AppButton
+				variant="primary"
+				size="md"
+				type="submit"
+				disabled={journalForm.submitting}
+				loading={journalForm.submitting}
+			>
 				{#if journalForm.id}Save Changes{:else}Save Entry{/if}
 			</AppButton>
 		</div>

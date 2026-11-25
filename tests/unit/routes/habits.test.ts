@@ -67,7 +67,9 @@ function makeHabit(id: string, name: string): Habit {
 	return { id, name, emoji: '💪', ownerUid: uid, createdAt: null, order: 0 };
 }
 
-function makeEntry(overrides: Partial<JournalEntry> & { id: string; entryDate: string }): JournalEntry {
+function makeEntry(
+	overrides: Partial<JournalEntry> & { id: string; entryDate: string },
+): JournalEntry {
 	return {
 		title: 'Entry',
 		excerpt: '',
@@ -99,10 +101,7 @@ describe('Habits page draft persistence', () => {
 		vi.mocked(getJournalEntriesByMonth).mockResolvedValue([]);
 		vi.mocked(getHabitLogsForDates).mockResolvedValue({});
 		vi.mocked(getHabitLogsForDate).mockResolvedValue([]);
-		vi.mocked(getHabits).mockResolvedValue([
-			makeHabit('h1', 'Exercise'),
-			makeHabit('h2', 'Read'),
-		]);
+		vi.mocked(getHabits).mockResolvedValue([makeHabit('h1', 'Exercise'), makeHabit('h2', 'Read')]);
 		vi.mocked(upsertJournalEntry).mockResolvedValue('entry-1');
 		vi.mocked(saveHabitLogsForDateAtomic).mockResolvedValue(undefined);
 
@@ -219,7 +218,8 @@ describe('Habits page draft persistence', () => {
 		seedHabitDraft(date, ['h1']);
 		seedNoteDraft(date, 'Unsaved words');
 
-		const { container, findByText, getByText, getByRole, getByPlaceholderText } = render(HabitsPage);
+		const { container, findByText, getByText, getByRole, getByPlaceholderText } =
+			render(HabitsPage);
 
 		await findByText('Restore unsaved changes?');
 		expect(container.querySelectorAll('[role="dialog"]')).toHaveLength(1);
@@ -366,7 +366,10 @@ describe('Habits page draft persistence', () => {
 
 		const resolvers: Array<(logs: HabitLog[]) => void> = [];
 		vi.mocked(getHabitLogsForDate).mockImplementation(
-			() => new Promise((resolve) => { resolvers.push(resolve); }),
+			() =>
+				new Promise((resolve) => {
+					resolvers.push(resolve);
+				}),
 		);
 
 		const { container, findByText, getByText } = render(HabitsPage);

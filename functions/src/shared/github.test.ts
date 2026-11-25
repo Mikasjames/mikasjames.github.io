@@ -1,8 +1,7 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { triggerGitHubDispatch } from './github.js';
 
-const OK = (status: number, statusText = '') =>
-	new Response(null, { status, statusText });
+const OK = (status: number, statusText = '') => new Response(null, { status, statusText });
 
 beforeEach(() => {
 	vi.useFakeTimers();
@@ -57,10 +56,7 @@ describe('triggerGitHubDispatch', () => {
 	});
 
 	it('retries on 429 with linear backoff and then succeeds', async () => {
-		const fetchMock = stubFetchQueue([
-			OK(429, 'Too Many Requests'),
-			OK(204),
-		]);
+		const fetchMock = stubFetchQueue([OK(429, 'Too Many Requests'), OK(204)]);
 		const promise = triggerGitHubDispatch('t', 'o', 'r');
 
 		await vi.advanceTimersByTimeAsync(0);
@@ -90,9 +86,7 @@ describe('triggerGitHubDispatch', () => {
 	it('fails fast on non-retryable statuses like 403', async () => {
 		const fetchMock = stubFetchQueue([OK(403, 'Forbidden')]);
 		const promise = triggerGitHubDispatch('t', 'o', 'r');
-		const expectation = expect(promise).rejects.toThrow(
-			'GitHub API error: 403 Forbidden',
-		);
+		const expectation = expect(promise).rejects.toThrow('GitHub API error: 403 Forbidden');
 
 		await vi.runAllTimersAsync();
 		await expectation;
@@ -102,11 +96,7 @@ describe('triggerGitHubDispatch', () => {
 	it('maps AbortError rejections onto a timeout message across attempts', async () => {
 		const abort = new Error('The operation was aborted');
 		abort.name = 'AbortError';
-		const fetchMock = stubFetchQueue([
-			abort,
-			abort,
-			abort,
-		]);
+		const fetchMock = stubFetchQueue([abort, abort, abort]);
 
 		const captured = triggerGitHubDispatch('t', 'o', 'r').then(
 			() => null,

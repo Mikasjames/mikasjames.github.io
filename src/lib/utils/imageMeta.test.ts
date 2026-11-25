@@ -1,23 +1,22 @@
 import { describe, expect, it } from 'vitest';
-import {
-	enrichImageMetaFromGallery,
-	removeImageReferencesFromMarkdown,
-} from './imageMeta';
+import { enrichImageMetaFromGallery, removeImageReferencesFromMarkdown } from './imageMeta';
 import type { MediaItem } from '$lib/firebase/firestore.svelte';
 
 function item(id: string, url: string, width?: number | null, height?: number | null): MediaItem {
-	return { id, url, width: width ?? null, height: height ?? null, name: id } as unknown as MediaItem;
+	return {
+		id,
+		url,
+		width: width ?? null,
+		height: height ?? null,
+		name: id,
+	} as unknown as MediaItem;
 }
 
 describe('enrichImageMetaFromGallery', () => {
 	const md = '![a](https://a.com/x.png)\n\nhttps://b.com/y.jpg\n\nhttps://c.com/z.gif';
 
 	it('adopts gallery dimensions for known URLs found in markdown', () => {
-		const meta = enrichImageMetaFromGallery(
-			md,
-			{},
-			[item('m1', 'https://a.com/x.png', 800, 600)],
-		);
+		const meta = enrichImageMetaFromGallery(md, {}, [item('m1', 'https://a.com/x.png', 800, 600)]);
 		expect(meta).toEqual({ 'https://a.com/x.png': { width: 800, height: 600 } });
 	});
 
@@ -74,7 +73,8 @@ describe('removeImageReferencesFromMarkdown', () => {
 	});
 
 	it('collapses triple newlines left behind by removals and trims edges', () => {
-		const md = '\npara one\n![gone](https://a.com/g.png)\n\n\n![gone](https://a.com/g.png)\n\npara two\n';
+		const md =
+			'\npara one\n![gone](https://a.com/g.png)\n\n\n![gone](https://a.com/g.png)\n\npara two\n';
 		const out = removeImageReferencesFromMarkdown(md, 'https://a.com/g.png');
 		expect(out).not.toMatch(/\n{3,}/);
 		expect(out.startsWith('para one')).toBe(true);

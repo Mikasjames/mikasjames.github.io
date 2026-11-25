@@ -1,7 +1,13 @@
-import { getMediaItemsPage, getRecentMediaItems, addMediaItem, deleteMediaItem, type MediaItem } from "./firestore.svelte";
-import type { DocumentSnapshot } from "firebase/firestore";
-import { uploadImage, deleteImage } from "./storage";
-import { compressAndGetMeta } from "$lib/utils/imageMeta";
+import {
+	getMediaItemsPage,
+	getRecentMediaItems,
+	addMediaItem,
+	deleteMediaItem,
+	type MediaItem,
+} from './firestore.svelte';
+import type { DocumentSnapshot } from 'firebase/firestore';
+import { uploadImage, deleteImage } from './storage';
+import { compressAndGetMeta } from '$lib/utils/imageMeta';
 
 export function createMediaStore() {
 	let mediaItems = $state<MediaItem[]>([]);
@@ -9,15 +15,15 @@ export function createMediaStore() {
 	let mediaLoaded = $state(false);
 	let mediaLoading = $state(false);
 	let mediaUploading = $state(false);
-	let mediaUploadError = $state("");
-	let mediaLoadError = $state("");
+	let mediaUploadError = $state('');
+	let mediaLoadError = $state('');
 	let deletingMediaIds = $state<Set<string>>(new Set());
 	let mediaCursor = $state<DocumentSnapshot | null>(null);
 	let mediaHasMore = $state(false);
 
 	async function loadMediaItems() {
 		mediaLoading = true;
-		mediaLoadError = "";
+		mediaLoadError = '';
 		mediaItems = [];
 		mediaCursor = null;
 		try {
@@ -27,11 +33,8 @@ export function createMediaStore() {
 			mediaHasMore = result.hasMore;
 			mediaLoaded = true;
 		} catch (err) {
-			console.error("Failed to load media items:", err);
-			mediaLoadError =
-				err instanceof Error
-					? err.message
-					: "Failed to load gallery items.";
+			console.error('Failed to load media items:', err);
+			mediaLoadError = err instanceof Error ? err.message : 'Failed to load gallery items.';
 		} finally {
 			mediaLoading = false;
 		}
@@ -46,11 +49,8 @@ export function createMediaStore() {
 			mediaCursor = result.nextCursor;
 			mediaHasMore = result.hasMore;
 		} catch (err) {
-			console.error("Failed to load more media items:", err);
-			mediaLoadError =
-				err instanceof Error
-					? err.message
-					: "Failed to load more gallery items.";
+			console.error('Failed to load more media items:', err);
+			mediaLoadError = err instanceof Error ? err.message : 'Failed to load more gallery items.';
 		} finally {
 			mediaLoading = false;
 		}
@@ -60,7 +60,7 @@ export function createMediaStore() {
 		try {
 			recentMediaItems = await getRecentMediaItems(4);
 		} catch (err) {
-			console.error("Failed to load recent media:", err);
+			console.error('Failed to load recent media:', err);
 		}
 	}
 
@@ -73,11 +73,10 @@ export function createMediaStore() {
 
 	async function handleGalleryUpload(file: File) {
 		mediaUploading = true;
-		mediaUploadError = "";
+		mediaUploadError = '';
 		try {
-			const { compressedFile, width, height } =
-				await compressAndGetMeta(file);
-			const url = await uploadImage(compressedFile, "blog-content");
+			const { compressedFile, width, height } = await compressAndGetMeta(file);
+			const url = await uploadImage(compressedFile, 'blog-content');
 			await addMediaItem({
 				url,
 				name: compressedFile.name,
@@ -88,8 +87,7 @@ export function createMediaStore() {
 			await loadRecentMedia();
 			return { url, width, height, name: compressedFile.name };
 		} catch (err: unknown) {
-			mediaUploadError =
-				err instanceof Error ? err.message : "Upload failed.";
+			mediaUploadError = err instanceof Error ? err.message : 'Upload failed.';
 			throw err;
 		} finally {
 			mediaUploading = false;
@@ -115,7 +113,7 @@ export function createMediaStore() {
 			await loadMediaItems();
 			await loadRecentMedia();
 		} catch (err: unknown) {
-			const msg = err instanceof Error ? err.message : "Failed to delete image.";
+			const msg = err instanceof Error ? err.message : 'Failed to delete image.';
 			if (onError) {
 				onError(msg);
 			} else {
@@ -128,16 +126,36 @@ export function createMediaStore() {
 	}
 
 	return {
-		get mediaItems() { return mediaItems; },
-		get recentMediaItems() { return recentMediaItems; },
-		get mediaLoaded() { return mediaLoaded; },
-		set mediaLoaded(v) { mediaLoaded = v; },
-		get mediaLoading() { return mediaLoading; },
-		get mediaUploading() { return mediaUploading; },
-		get mediaUploadError() { return mediaUploadError; },
-		get mediaLoadError() { return mediaLoadError; },
-		get deletingMediaIds() { return deletingMediaIds; },
-		get mediaHasMore() { return mediaHasMore; },
+		get mediaItems() {
+			return mediaItems;
+		},
+		get recentMediaItems() {
+			return recentMediaItems;
+		},
+		get mediaLoaded() {
+			return mediaLoaded;
+		},
+		set mediaLoaded(v) {
+			mediaLoaded = v;
+		},
+		get mediaLoading() {
+			return mediaLoading;
+		},
+		get mediaUploading() {
+			return mediaUploading;
+		},
+		get mediaUploadError() {
+			return mediaUploadError;
+		},
+		get mediaLoadError() {
+			return mediaLoadError;
+		},
+		get deletingMediaIds() {
+			return deletingMediaIds;
+		},
+		get mediaHasMore() {
+			return mediaHasMore;
+		},
 		loadMediaItems,
 		loadMoreMediaItems,
 		loadRecentMedia,

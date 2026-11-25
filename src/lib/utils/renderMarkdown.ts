@@ -1,7 +1,7 @@
-import { Marked, type Tokens } from "marked";
-import { sanitize } from "isomorphic-dompurify";
-import { escapeHtml, transformMediaMarkdown } from "./mediaMarkdown";
-import type { MediaDimensions } from "./mediaMeta";
+import { Marked, type Tokens } from 'marked';
+import { sanitize } from 'isomorphic-dompurify';
+import { escapeHtml, transformMediaMarkdown } from './mediaMarkdown';
+import type { MediaDimensions } from './mediaMeta';
 
 /**
  * `marked` performs no sanitization, and its output is injected with `{@html}`,
@@ -15,22 +15,59 @@ import type { MediaDimensions } from "./mediaMeta";
  */
 const ALLOWED_TAGS = [
 	// emitted by marked
-	"p", "br", "hr",
-	"h1", "h2", "h3", "h4", "h5", "h6",
-	"strong", "em", "del", "code", "pre",
-	"blockquote", "ul", "ol", "li",
-	"a", "table", "thead", "tbody", "tr", "th", "td",
-	"input",
+	'p',
+	'br',
+	'hr',
+	'h1',
+	'h2',
+	'h3',
+	'h4',
+	'h5',
+	'h6',
+	'strong',
+	'em',
+	'del',
+	'code',
+	'pre',
+	'blockquote',
+	'ul',
+	'ol',
+	'li',
+	'a',
+	'table',
+	'thead',
+	'tbody',
+	'tr',
+	'th',
+	'td',
+	'input',
 	// emitted by mediaMarkdown.ts / createImageRenderer below
-	"div", "img", "iframe", "video", "source",
+	'div',
+	'img',
+	'iframe',
+	'video',
+	'source',
 ];
 
 const ALLOWED_ATTR = [
-	"href", "title", "src", "alt",
-	"width", "height", "align", "class", "id",
-	"loading", "controls", "preload", "frameborder",
-	"allow", "allowfullscreen",
-	"type", "checked", "disabled",
+	'href',
+	'title',
+	'src',
+	'alt',
+	'width',
+	'height',
+	'align',
+	'class',
+	'id',
+	'loading',
+	'controls',
+	'preload',
+	'frameborder',
+	'allow',
+	'allowfullscreen',
+	'type',
+	'checked',
+	'disabled',
 ];
 
 const SANITIZE_CONFIG = {
@@ -45,9 +82,9 @@ const SANITIZE_CONFIG = {
  * interpolating. A stringy `width` would otherwise break out of the attribute.
  */
 function dimensionAttr(name: string, value: number | undefined): string {
-	return typeof value === "number" && Number.isFinite(value) && value > 0
+	return typeof value === 'number' && Number.isFinite(value) && value > 0
 		? ` ${name}="${String(Math.round(value))}"`
-		: "";
+		: '';
 }
 
 function createImageRenderer(meta: Record<string, MediaDimensions>) {
@@ -58,18 +95,15 @@ function createImageRenderer(meta: Record<string, MediaDimensions>) {
 				`<img src="${escapeHtml(token.href)}"` +
 				` alt="${escapeHtml(token.text)}"` +
 				` loading="lazy"` +
-				`${dimensionAttr("width", dimensions?.width)}` +
-				`${dimensionAttr("height", dimensions?.height)} />`
+				`${dimensionAttr('width', dimensions?.width)}` +
+				`${dimensionAttr('height', dimensions?.height)} />`
 			);
 		},
 	};
 }
 
-export function renderMarkdown(
-	md: string,
-	imageMeta?: Record<string, MediaDimensions>,
-): string {
-	if (!md) return "";
+export function renderMarkdown(md: string, imageMeta?: Record<string, MediaDimensions>): string {
+	if (!md) return '';
 
 	const meta = imageMeta ?? {};
 
@@ -78,10 +112,9 @@ export function renderMarkdown(
 	// captured by an earlier one.
 	const parser = new Marked({ renderer: createImageRenderer(meta) });
 
-	const html = parser.parse(
-		transformMediaMarkdown(md, { imageMeta: meta }),
-		{ async: false },
-	) as string;
+	const html = parser.parse(transformMediaMarkdown(md, { imageMeta: meta }), {
+		async: false,
+	}) as string;
 
 	return sanitize(html, SANITIZE_CONFIG);
 }

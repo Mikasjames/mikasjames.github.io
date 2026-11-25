@@ -121,8 +121,22 @@ describe('ContentImagesHelper', () => {
 
 	it('renders recent media items', () => {
 		const items = [
-			{ id: '1', url: 'https://example.com/img1.jpg', name: 'img1.jpg', uploadedAt: null, width: 100, height: 100 },
-			{ id: '2', url: 'https://example.com/img2.png', name: 'img2.png', uploadedAt: null, width: 200, height: 150 },
+			{
+				id: '1',
+				url: 'https://example.com/img1.jpg',
+				name: 'img1.jpg',
+				uploadedAt: null,
+				width: 100,
+				height: 100,
+			},
+			{
+				id: '2',
+				url: 'https://example.com/img2.png',
+				name: 'img2.png',
+				uploadedAt: null,
+				width: 200,
+				height: 150,
+			},
 		];
 		const { getByText } = render(ContentImagesHelper, {
 			props: {
@@ -143,7 +157,14 @@ describe('ContentImagesHelper', () => {
 	it('calls insertMarkdownAtCursor when Insert is clicked', async () => {
 		const insertMarkdownAtCursor = vi.fn();
 		const items = [
-			{ id: '1', url: 'https://example.com/img1.jpg', name: 'img1.jpg', uploadedAt: null, width: 100, height: 100 },
+			{
+				id: '1',
+				url: 'https://example.com/img1.jpg',
+				name: 'img1.jpg',
+				uploadedAt: null,
+				width: 100,
+				height: 100,
+			},
 		];
 		const { container } = render(ContentImagesHelper, {
 			props: {
@@ -157,19 +178,27 @@ describe('ContentImagesHelper', () => {
 				setEditorCoverImage: vi.fn(),
 			},
 		});
-		const insertButton = container.querySelector('button[title="Insert image into editor content"]')!;
+		const insertButton = container.querySelector(
+			'button[title="Insert image into editor content"]',
+		)!;
 		await fireEvent.click(insertButton);
-		expect(insertMarkdownAtCursor).toHaveBeenCalledWith(
-			'https://example.com/img1.jpg',
-			'img1',
-			{ width: 100, height: 100 },
-		);
+		expect(insertMarkdownAtCursor).toHaveBeenCalledWith('https://example.com/img1.jpg', 'img1', {
+			width: 100,
+			height: 100,
+		});
 	});
 
 	it('calls setEditorCoverImage when Cover is clicked', async () => {
 		const setEditorCoverImage = vi.fn();
 		const items = [
-			{ id: '1', url: 'https://example.com/img1.jpg', name: 'img1.jpg', uploadedAt: null, width: 100, height: 100 },
+			{
+				id: '1',
+				url: 'https://example.com/img1.jpg',
+				name: 'img1.jpg',
+				uploadedAt: null,
+				width: 100,
+				height: 100,
+			},
 		];
 		const { container } = render(ContentImagesHelper, {
 			props: {

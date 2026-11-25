@@ -1,23 +1,23 @@
 {
-  "compilerOptions": {
-    "moduleResolution": "nodenext",
-    "target": "ES2020",
-    "module": "nodenext",
-    "lib": ["ES2020"],
-    "outDir": "./lib",
-    "rootDir": "./src",
-    "strict": true,
-    "noUnusedLocals": true,
-    "noUnusedParameters": true,
-    "noFallthroughCasesInSwitch": true,
-    "esModuleInterop": true,
-    "skipLibCheck": true,
-    "forceConsistentCasingInFileNames": true,
-    "resolveJsonModule": true,
-    "declaration": true,
-    "declarationMap": true,
-    "sourceMap": true
-  },
-  "include": ["src/**/*.ts"],
-  "exclude": ["node_modules", "lib", "src/**/*.test.ts"]
+	"compilerOptions": {
+		"moduleResolution": "nodenext",
+		"target": "ES2020",
+		"module": "nodenext",
+		"lib": ["ES2020"],
+		"outDir": "./lib",
+		"rootDir": "./src",
+		"strict": true,
+		"noUnusedLocals": true,
+		"noUnusedParameters": true,
+		"noFallthroughCasesInSwitch": true,
+		"esModuleInterop": true,
+		"skipLibCheck": true,
+		"forceConsistentCasingInFileNames": true,
+		"resolveJsonModule": true,
+		"declaration": true,
+		"declarationMap": true,
+		"sourceMap": true
+	},
+	"include": ["src/**/*.ts"],
+	"exclude": ["node_modules", "lib", "src/**/*.test.ts"]
 }

@@ -109,7 +109,9 @@ function makeHabit(id: string, name: string): Habit {
 	return { id, name, emoji: '💪', ownerUid: uid, createdAt: null, order: 0 };
 }
 
-function makeEntry(overrides: Partial<JournalEntry> & { id: string; entryDate: string }): JournalEntry {
+function makeEntry(
+	overrides: Partial<JournalEntry> & { id: string; entryDate: string },
+): JournalEntry {
 	return {
 		title: 'Entry',
 		excerpt: '',
@@ -134,10 +136,7 @@ describe('JournalEntryForm draft persistence', () => {
 		vi.mocked(getHabitLogsForDates).mockResolvedValue({});
 		vi.mocked(getHabitLogsForJournalEntry).mockResolvedValue([]);
 		vi.mocked(getHabitLogsForDate).mockResolvedValue([]);
-		vi.mocked(getHabits).mockResolvedValue([
-			makeHabit('h1', 'Exercise'),
-			makeHabit('h2', 'Read'),
-		]);
+		vi.mocked(getHabits).mockResolvedValue([makeHabit('h1', 'Exercise'), makeHabit('h2', 'Read')]);
 		vi.mocked(upsertJournalEntry).mockResolvedValue('entry-1');
 		vi.mocked(saveHabitLogsForDateAtomic).mockResolvedValue(undefined);
 		vi.mocked(saveHabitLogsForJournalEntryAtomic).mockResolvedValue(undefined);
@@ -176,9 +175,7 @@ describe('JournalEntryForm draft persistence', () => {
 	it('does not prompt when the habit draft matches the stored logs', async () => {
 		const entry = makeEntry({ id: 'entry-1', entryDate: pastDate });
 		seedHabitDraft(pastDate, ['h1']);
-		vi.mocked(getHabitLogsForJournalEntry).mockResolvedValue([
-			{ habitId: 'h1' } as HabitLog,
-		]);
+		vi.mocked(getHabitLogsForJournalEntry).mockResolvedValue([{ habitId: 'h1' } as HabitLog]);
 
 		const { component, container } = renderForm();
 		await component.startEditJournal(entry);

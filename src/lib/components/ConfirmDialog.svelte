@@ -1,13 +1,13 @@
 <script lang="ts">
-	import Modal from "./Modal.svelte";
+	import Modal from './Modal.svelte';
 
 	let {
 		show = $bindable(false),
-		title = "Confirm",
-		message = "Are you sure?",
-		confirmText = "Confirm",
-		cancelText = "Cancel",
-		variant = "danger",
+		title = 'Confirm',
+		message = 'Are you sure?',
+		confirmText = 'Confirm',
+		cancelText = 'Cancel',
+		variant = 'danger',
 		onConfirm,
 		onCancel,
 		onDismiss,
@@ -17,7 +17,7 @@
 		message?: string;
 		confirmText?: string;
 		cancelText?: string;
-		variant?: "danger" | "primary";
+		variant?: 'danger' | 'primary';
 		onConfirm?: () => void;
 		onCancel?: () => void;
 		/**
@@ -40,9 +40,8 @@
 
 	const confirmBtnStyles: Record<string, string> = {
 		danger:
-			"bg-red-950/40 border border-red-900/40 text-red-400 hover:border-red-700/60 hover:bg-red-900/60",
-		primary:
-			"bg-accent-600 text-white hover:bg-accent-500 shadow-lg shadow-accent-600/20",
+			'bg-red-950/40 border border-red-900/40 text-red-400 hover:border-red-700/60 hover:bg-red-900/60',
+		primary: 'bg-accent-600 text-white hover:bg-accent-500 shadow-lg shadow-accent-600/20',
 	};
 </script>
 
@@ -61,7 +60,9 @@
 		<button
 			type="button"
 			onclick={confirm}
-			class="w-full cursor-pointer rounded-lg px-4 py-2 text-xs font-semibold transition-colors sm:w-auto {confirmBtnStyles[variant]}"
+			class="w-full cursor-pointer rounded-lg px-4 py-2 text-xs font-semibold transition-colors sm:w-auto {confirmBtnStyles[
+				variant
+			]}"
 		>
 			{confirmText}
 		</button>

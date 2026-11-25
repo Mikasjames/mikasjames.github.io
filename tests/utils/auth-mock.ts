@@ -1,5 +1,5 @@
-import { vi } from "vitest";
-import type { User } from "firebase/auth";
+import { vi } from 'vitest';
+import type { User } from 'firebase/auth';
 
 let currentCallback: ((user: User | null) => void) | null = null;
 let currentUser: User | null = null;
@@ -13,7 +13,7 @@ const mockSubscribeToAuth = vi.fn((cb: (user: User | null) => void) => {
 });
 
 const mockLogin = vi.fn(async (email: string, _password: string): Promise<User> => {
-	const user = { uid: "test-uid", email, displayName: "Test User" } as User;
+	const user = { uid: 'test-uid', email, displayName: 'Test User' } as User;
 	currentUser = user;
 	if (currentCallback) currentCallback(user);
 	return user;
@@ -47,14 +47,14 @@ export const mockAuth = {
 	},
 };
 
-vi.mock("$lib/firebase/auth", () => ({
+vi.mock('$lib/firebase/auth', () => ({
 	subscribeToAuth: mockSubscribeToAuth,
 	login: mockLogin,
 	logout: mockLogout,
 	getCurrentUser: mockGetCurrentUser,
 }));
 
-vi.mock("firebase/auth", () => ({
+vi.mock('firebase/auth', () => ({
 	getAuth: vi.fn(),
 	signInWithEmailAndPassword: vi.fn(),
 	signOut: vi.fn(),

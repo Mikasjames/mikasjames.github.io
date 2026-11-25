@@ -1,6 +1,6 @@
 packages:
-  - "."
-  - "functions"
+  - '.'
+  - 'functions'
 allowBuilds:
   '@firebase/util': true
   protobufjs: true

@@ -1,6 +1,6 @@
 <script lang="ts">
-	import HabitContributionGrid from "$lib/components/HabitContributionGrid.svelte";
-	import { getHappinessLabel } from "$lib/utils/date";
+	import HabitContributionGrid from '$lib/components/HabitContributionGrid.svelte';
+	import { getHappinessLabel } from '$lib/utils/date';
 	import {
 		formatAverageHour,
 		formatRangeLabel,
@@ -12,8 +12,8 @@
 		type MoodDelta,
 		type PeriodStats,
 		type RangeKind,
-	} from "$lib/utils/habitStats";
-	import type { createHabitStatsStore } from "$lib/firebase/habitStats.svelte";
+	} from '$lib/utils/habitStats';
+	import type { createHabitStatsStore } from '$lib/firebase/habitStats.svelte';
 
 	type StatsStore = ReturnType<typeof createHabitStatsStore>;
 
@@ -22,9 +22,9 @@
 	const stats: PeriodStats = $derived(statsStore.stats);
 
 	const RANGES: Array<{ kind: RangeKind; label: string }> = [
-		{ kind: "month", label: "This Month" },
-		{ kind: "year", label: "This Year" },
-		{ kind: "all", label: "All Time" },
+		{ kind: 'month', label: 'This Month' },
+		{ kind: 'year', label: 'This Year' },
+		{ kind: 'all', label: 'All Time' },
 	];
 
 	function moodFor(habitId: string): MoodDelta | undefined {
@@ -32,16 +32,16 @@
 	}
 
 	function rateTone(rate: number): string {
-		if (rate >= 0.8) return "text-emerald-400";
-		if (rate >= 0.5) return "text-amber-400";
-		return "text-zinc-400";
+		if (rate >= 0.8) return 'text-emerald-400';
+		if (rate >= 0.5) return 'text-amber-400';
+		return 'text-zinc-400';
 	}
 
 	// Height as a percentage of the habits that were trackable that day, so
 	// the tallest possible bar is 100% regardless of how many habits exist.
 	// A nonzero share gets a 6% floor so single-habit days stay visible.
 	function barHeight(done: number, total: number): string {
-		if (total === 0) return "0%";
+		if (total === 0) return '0%';
 		const ratio = done / total;
 		return `${Math.max(ratio > 0 ? 6 : 0, ratio * 100)}%`;
 	}
@@ -53,14 +53,12 @@
 	>
 		<div class="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
 			<div class="flex items-center justify-center gap-3 sm:justify-start">
-				{#if statsStore.kind !== "all"}
+				{#if statsStore.kind !== 'all'}
 					<button
 						type="button"
 						aria-label="Previous period"
 						onclick={() =>
-							statsStore.kind === "month"
-								? statsStore.stepMonth(-1)
-								: statsStore.stepYear(-1)}
+							statsStore.kind === 'month' ? statsStore.stepMonth(-1) : statsStore.stepYear(-1)}
 						class="rounded-lg border border-zinc-700/60 bg-zinc-900 px-3 py-2 text-sm text-zinc-300 transition hover:border-accent-500/50 hover:text-accent-300"
 					>
 						←
@@ -69,15 +67,13 @@
 				<p class="min-w-40 text-center text-sm font-semibold text-zinc-100">
 					{formatRangeLabel(stats.range, statsStore.kind)}
 				</p>
-				{#if statsStore.kind !== "all"}
+				{#if statsStore.kind !== 'all'}
 					<button
 						type="button"
 						aria-label="Next period"
 						disabled={!statsStore.canStepForward()}
 						onclick={() =>
-							statsStore.kind === "month"
-								? statsStore.stepMonth(1)
-								: statsStore.stepYear(1)}
+							statsStore.kind === 'month' ? statsStore.stepMonth(1) : statsStore.stepYear(1)}
 						class="rounded-lg border border-zinc-700/60 bg-zinc-900 px-3 py-2 text-sm text-zinc-300 transition hover:border-accent-500/50 hover:text-accent-300 disabled:cursor-not-allowed disabled:opacity-30 disabled:hover:border-zinc-700/60 disabled:hover:text-zinc-300"
 					>
 						→
@@ -101,8 +97,7 @@
 		</div>
 
 		<p class="mt-4 text-xs text-zinc-600">
-			Computed live from your check-ins. No AI analysis involved, and the current month is
-			included.
+			Computed live from your check-ins. No AI analysis involved, and the current month is included.
 		</p>
 
 		{#if statsStore.loading}
@@ -112,13 +107,19 @@
 				{/each}
 			</div>
 		{:else if statsStore.error}
-			<div class="mt-6 rounded-lg border border-red-500/20 bg-red-500/10 px-4 py-3 text-sm text-red-300">
+			<div
+				class="mt-6 rounded-lg border border-red-500/20 bg-red-500/10 px-4 py-3 text-sm text-red-300"
+			>
 				{statsStore.error}
 			</div>
 		{:else if stats.totals.habitCount === 0}
-			<div class="mt-6 rounded-lg border border-zinc-800/60 bg-zinc-900/40 px-4 py-8 text-center text-sm text-zinc-500">
+			<div
+				class="mt-6 rounded-lg border border-zinc-800/60 bg-zinc-900/40 px-4 py-8 text-center text-sm text-zinc-500"
+			>
 				No habits to report on yet. Add one from the
-				<a href="/habits/" class="text-accent-400 hover:text-accent-300 underline">check-in page</a>.
+				<a href="/habits/" class="text-accent-400 hover:text-accent-300 underline">
+					check-in page
+				</a>.
 			</div>
 		{:else}
 			<div class="mt-6 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
@@ -128,7 +129,7 @@
 						{stats.totals.checkIns}
 					</p>
 					<p class="mt-0.5 text-xs text-zinc-500">
-						{stats.totals.avgPerActiveDay ?? "—"} per active day
+						{stats.totals.avgPerActiveDay ?? '—'} per active day
 					</p>
 				</div>
 				<div class="rounded-xl border border-zinc-800/60 bg-zinc-900/50 p-4">
@@ -192,14 +193,18 @@
 
 					<div class="mt-4 grid grid-cols-2 gap-3 sm:grid-cols-4">
 						<div class="rounded-lg border border-zinc-800/50 bg-zinc-950/30 p-3">
-							<p class="text-[10px] font-mono uppercase tracking-wider text-zinc-500">Current streak</p>
+							<p class="text-[10px] font-mono uppercase tracking-wider text-zinc-500">
+								Current streak
+							</p>
 							<p class="mt-1 text-lg font-bold tabular-nums text-zinc-100">
 								{habit.currentStreak}
 								<span class="text-xs font-normal text-zinc-500">d</span>
 							</p>
 						</div>
 						<div class="rounded-lg border border-zinc-800/50 bg-zinc-950/30 p-3">
-							<p class="text-[10px] font-mono uppercase tracking-wider text-zinc-500">Longest streak</p>
+							<p class="text-[10px] font-mono uppercase tracking-wider text-zinc-500">
+								Longest streak
+							</p>
 							<p class="mt-1 text-lg font-bold tabular-nums text-zinc-100">
 								{habit.longestStreak}
 								<span class="text-xs font-normal text-zinc-500">d</span>
@@ -209,9 +214,9 @@
 							<p class="text-[10px] font-mono uppercase tracking-wider text-zinc-500">Last done</p>
 							<p class="mt-1 text-lg font-bold tabular-nums text-zinc-100">
 								{habit.daysSinceLast === null
-									? "—"
+									? '—'
 									: habit.daysSinceLast === 0
-										? "today"
+										? 'today'
 										: `${habit.daysSinceLast}d`}
 							</p>
 						</div>
@@ -298,7 +303,7 @@
 												style={`width: ${ratingBarWidth(mood.doneAvg)}`}
 											></div>
 										</div>
-										<span class="tabular-nums text-zinc-300">{mood.doneAvg ?? "—"}</span>
+										<span class="tabular-nums text-zinc-300">{mood.doneAvg ?? '—'}</span>
 									</div>
 									<div class="grid grid-cols-[7.5rem_minmax(0,1fr)_3rem] items-center gap-2">
 										<span>Missed days:</span>
@@ -308,11 +313,11 @@
 												style={`width: ${ratingBarWidth(mood.missedAvg)}`}
 											></div>
 										</div>
-										<span class="tabular-nums text-zinc-300">{mood.missedAvg ?? "—"}</span>
+										<span class="tabular-nums text-zinc-300">{mood.missedAvg ?? '—'}</span>
 									</div>
 								</div>
 								<p class="mt-2 text-xs text-zinc-500">
-									{mood.delta > 0 ? "+" : ""}{mood.delta} average
+									{mood.delta > 0 ? '+' : ''}{mood.delta} average
 									{mood.doneDays}d done / {mood.missedDays}d missed
 									{#if mood.doneAvg !== null}
 										· {getHappinessLabel(Math.round(mood.doneAvg)).toLowerCase()} vs {getHappinessLabel(
@@ -332,7 +337,9 @@
 		</div>
 
 		{#if stats.dailyScores.length > 0}
-			<div class="rounded-xl border border-zinc-800/60 bg-surface-900/80 p-4 shadow-2xl shadow-black/40 backdrop-blur-md sm:rounded-2xl sm:p-5">
+			<div
+				class="rounded-xl border border-zinc-800/60 bg-surface-900/80 p-4 shadow-2xl shadow-black/40 backdrop-blur-md sm:rounded-2xl sm:p-5"
+			>
 				<div class="flex flex-wrap items-baseline justify-between gap-2">
 					<p class="text-sm font-semibold text-zinc-200">Daily completion</p>
 					<p class="text-xs text-zinc-500">
@@ -342,7 +349,7 @@
 				<div class="mt-4 flex h-28 items-end gap-px overflow-x-auto">
 					{#each stats.dailyScores as day (day.date)}
 						<div
-							title={`${day.date} · ${day.done}/${day.total} habits${day.rating === null ? "" : ` · mood ${day.rating}`}`}
+							title={`${day.date} · ${day.done}/${day.total} habits${day.rating === null ? '' : ` · mood ${day.rating}`}`}
 							class="flex h-full w-1.5 shrink-0 items-end"
 						>
 							<div
@@ -362,8 +369,8 @@
 		{/if}
 
 		<p class="text-center text-[11px] text-zinc-600">
-			"Average time" is when you saved the check-in, which is the closest available proxy for
-			when you did the habit. Editing a past day updates it.
+			"Average time" is when you saved the check-in, which is the closest available proxy for when
+			you did the habit. Editing a past day updates it.
 		</p>
 	{/if}
 </section>

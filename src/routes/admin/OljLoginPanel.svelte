@@ -1,7 +1,7 @@
 <script lang="ts">
-	import AppButton from "$lib/components/AppButton.svelte";
-	import { toast } from "$lib/stores/toast.svelte";
-	import type { createOljStore } from "$lib/firebase/olj.svelte";
+	import AppButton from '$lib/components/AppButton.svelte';
+	import { toast } from '$lib/stores/toast.svelte';
+	import type { createOljStore } from '$lib/firebase/olj.svelte';
 
 	type OljStore = ReturnType<typeof createOljStore>;
 
@@ -19,18 +19,18 @@
 		const ok = await oljStore.runLoginNow();
 		toast(
 			ok
-				? `OLJ login succeeded${oljStore.log?.pointsBalance !== null ? ` — ${oljStore.log?.pointsBalance} points` : ""}`
-				: (oljStore.error || "OLJ login failed."),
-			ok ? "success" : "error",
+				? `OLJ login succeeded${oljStore.log?.pointsBalance !== null ? ` — ${oljStore.log?.pointsBalance} points` : ''}`
+				: oljStore.error || 'OLJ login failed.',
+			ok ? 'success' : 'error',
 		);
 	}
 
 	function formatRanAt(ranAt: Date | null): string {
-		if (!ranAt) return "Unknown";
-		return ranAt.toLocaleString("en-PH", {
-			timeZone: "Asia/Manila",
-			dateStyle: "medium",
-			timeStyle: "short",
+		if (!ranAt) return 'Unknown';
+		return ranAt.toLocaleString('en-PH', {
+			timeZone: 'Asia/Manila',
+			dateStyle: 'medium',
+			timeStyle: 'short',
 		});
 	}
 </script>
@@ -39,9 +39,7 @@
 	<div
 		class="rounded-xl border border-zinc-800/60 bg-surface-900/80 p-4 shadow-2xl shadow-black/40 backdrop-blur-md sm:rounded-2xl sm:p-6 md:p-8"
 	>
-		<div
-			class="mb-5 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between"
-		>
+		<div class="mb-5 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
 			<div>
 				<h2 class="text-lg font-semibold text-zinc-100">OnlineJobs.ph Login</h2>
 				<p class="mt-0.5 text-sm text-zinc-500">
@@ -49,15 +47,8 @@
 				</p>
 			</div>
 			<div class="flex gap-2">
-				<AppButton variant="ghost" size="sm" onclick={() => oljStore.loadLog()}>
-					Refresh
-				</AppButton>
-				<AppButton
-					variant="primary"
-					size="sm"
-					loading={oljStore.running}
-					onclick={handleRunLogin}
-				>
+				<AppButton variant="ghost" size="sm" onclick={() => oljStore.loadLog()}>Refresh</AppButton>
+				<AppButton variant="primary" size="sm" loading={oljStore.running} onclick={handleRunLogin}>
 					Run Login Now
 				</AppButton>
 			</div>
@@ -82,7 +73,7 @@
 							? 'bg-emerald-400'
 							: 'bg-red-400'}"
 					></span>
-					Last run: {oljStore.log.status === "success" ? "Success" : "Failed"}
+					Last run: {oljStore.log.status === 'success' ? 'Success' : 'Failed'}
 				</div>
 				{#if oljStore.log.atCap}
 					<div
@@ -96,25 +87,19 @@
 
 			<div class="grid grid-cols-2 gap-3 lg:grid-cols-4">
 				<div class="rounded-xl border border-zinc-800/60 bg-zinc-950/40 p-4">
-					<p class="text-xs font-medium uppercase tracking-wide text-zinc-500">
-						Points Balance
-					</p>
+					<p class="text-xs font-medium uppercase tracking-wide text-zinc-500">Points Balance</p>
 					<p class="mt-1 text-2xl font-bold text-zinc-100">
-						{oljStore.log.pointsBalance ?? "—"}
+						{oljStore.log.pointsBalance ?? '—'}
 					</p>
 				</div>
 				<div class="rounded-xl border border-zinc-800/60 bg-zinc-950/40 p-4">
-					<p class="text-xs font-medium uppercase tracking-wide text-zinc-500">
-						Previous Balance
-					</p>
+					<p class="text-xs font-medium uppercase tracking-wide text-zinc-500">Previous Balance</p>
 					<p class="mt-1 text-2xl font-bold text-zinc-100">
-						{oljStore.log.previousBalance ?? "—"}
+						{oljStore.log.previousBalance ?? '—'}
 					</p>
 				</div>
 				<div class="rounded-xl border border-zinc-800/60 bg-zinc-950/40 p-4">
-					<p class="text-xs font-medium uppercase tracking-wide text-zinc-500">
-						Change
-					</p>
+					<p class="text-xs font-medium uppercase tracking-wide text-zinc-500">Change</p>
 					<p
 						class="mt-1 text-2xl font-bold {balanceDelta === null
 							? 'text-zinc-100'
@@ -134,9 +119,7 @@
 					</p>
 				</div>
 				<div class="rounded-xl border border-zinc-800/60 bg-zinc-950/40 p-4">
-					<p class="text-xs font-medium uppercase tracking-wide text-zinc-500">
-						Date
-					</p>
+					<p class="text-xs font-medium uppercase tracking-wide text-zinc-500">Date</p>
 					<p class="mt-1 text-2xl font-bold text-zinc-100">{oljStore.log.date}</p>
 				</div>
 			</div>
@@ -160,7 +143,7 @@
 					class="mt-3 text-xs font-medium text-accent-400 hover:text-accent-300"
 					onclick={() => (showDebug = !showDebug)}
 				>
-					{showDebug ? "Hide" : "Show"} debug diagnostics
+					{showDebug ? 'Hide' : 'Show'} debug diagnostics
 				</button>
 				{#if showDebug}
 					<pre

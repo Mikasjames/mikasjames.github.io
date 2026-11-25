@@ -52,7 +52,11 @@ describe('habit stats store', () => {
 		expect(store.anchorMonth).toBe('2026-07');
 		// July ends on the 31st, but only today has happened.
 		expect(firestore.getHabitLogsInRange).toHaveBeenCalledWith('u', '2026-07-01', '2026-07-10');
-		expect(firestore.getJournalRatingsInRange).toHaveBeenCalledWith('u', '2026-07-01', '2026-07-10');
+		expect(firestore.getJournalRatingsInRange).toHaveBeenCalledWith(
+			'u',
+			'2026-07-01',
+			'2026-07-10',
+		);
 		expect(firestore.getAllHabitLogs).not.toHaveBeenCalled();
 	});
 

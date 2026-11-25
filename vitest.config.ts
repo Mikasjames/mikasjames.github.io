@@ -19,9 +19,9 @@ export default defineConfig({
 			$lib: resolve(root, './src/lib'),
 			$app: resolve(root, './tests/unit/stubs/app'),
 			'$env/static/public': resolve(root, './tests/unit/stubs/env-static-public.ts'),
-			'$env/dynamic/public': resolve(root, './tests/unit/stubs/env-dynamic-public.ts')
+			'$env/dynamic/public': resolve(root, './tests/unit/stubs/env-dynamic-public.ts'),
 		},
-		conditions: ['browser']
+		conditions: ['browser'],
 	},
 	test: {
 		environment: 'jsdom',

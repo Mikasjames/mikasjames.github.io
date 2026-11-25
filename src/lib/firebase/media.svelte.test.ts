@@ -34,7 +34,7 @@ function mediaItem(id: string): MediaItem {
 		name: `${id}.png`,
 		width: 10,
 		height: 10,
-		createdAt: new Date(0)
+		createdAt: new Date(0),
 	} as unknown as MediaItem;
 }
 
@@ -62,9 +62,7 @@ describe('media store — pagination', () => {
 		expect(store.mediaLoaded).toBe(true);
 		expect(store.mediaLoading).toBe(false);
 
-		firestore.getMediaItemsPage.mockResolvedValueOnce(
-			page([mediaItem('fresh')], false),
-		);
+		firestore.getMediaItemsPage.mockResolvedValueOnce(page([mediaItem('fresh')], false));
 		await store.loadMediaItems();
 		expect(store.mediaItems.map((m) => m.id)).toEqual(['fresh']);
 		expect(store.mediaHasMore).toBe(false);

@@ -58,14 +58,7 @@ function habitStat(overrides: Record<string, unknown> = {}) {
 		bestWeekday: { index: 0, rate: 0.5 },
 		avgCompletedHour: 7.5,
 		monthlyRates: [{ month: '2026-07', count: 6, days: 10, rate: 0.6 }],
-		doneDates: [
-			'2026-07-01',
-			'2026-07-02',
-			'2026-07-03',
-			'2026-07-06',
-			'2026-07-07',
-			'2026-07-08',
-		],
+		doneDates: ['2026-07-01', '2026-07-02', '2026-07-03', '2026-07-06', '2026-07-07', '2026-07-08'],
 		activeFrom: '2026-07-01',
 		...overrides,
 	};
@@ -233,23 +226,20 @@ describe('HabitsStatsDashboard', () => {
 
 	it('explains an absent mood comparison rather than showing dashes', () => {
 		const store = mockStore({
-			stats: statsWith(
-				[habitStat()],
-				{
-					moodDeltas: [
-						{
-							habitId: 'h1',
-							name: 'Gym',
-							emoji: '🏋️',
-							doneAvg: null,
-							missedAvg: null,
-							delta: null,
-							doneDays: 0,
-							missedDays: 0,
-						},
-					],
-				},
-			),
+			stats: statsWith([habitStat()], {
+				moodDeltas: [
+					{
+						habitId: 'h1',
+						name: 'Gym',
+						emoji: '🏋️',
+						doneAvg: null,
+						missedAvg: null,
+						delta: null,
+						doneDays: 0,
+						missedDays: 0,
+					},
+				],
+			}),
 		});
 		const { getByText } = render(HabitsStatsDashboard, { props: { statsStore: store } });
 		expect(getByText(/Not enough rated days in this period/)).toBeInTheDocument();
@@ -306,7 +296,7 @@ describe('HabitsStatsDashboard', () => {
 		expect(getByText(/closest available proxy/)).toBeInTheDocument();
 	});
 
-	it('scales daily bars against that day\'s own habit count', () => {
+	it("scales daily bars against that day's own habit count", () => {
 		// A perfect day must reach full height even with 4 habits tracked. This
 		// regressed once when the bar was additionally divided by the largest
 		// daily total, capping every bar at 25%.

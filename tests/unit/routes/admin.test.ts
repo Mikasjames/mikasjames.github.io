@@ -1,9 +1,9 @@
-import { vi, describe, it, expect, beforeEach } from "vitest";
-import { render, screen, waitFor } from "@testing-library/svelte";
-import AdminPage from "../../../src/routes/admin/+page.svelte";
-import { subscribeToAuth } from "$lib/firebase/auth";
-import { goto } from "$app/navigation";
-import { MOCK_USER } from "../../fixtures/user";
+import { vi, describe, it, expect, beforeEach } from 'vitest';
+import { render, screen, waitFor } from '@testing-library/svelte';
+import AdminPage from '../../../src/routes/admin/+page.svelte';
+import { subscribeToAuth } from '$lib/firebase/auth';
+import { goto } from '$app/navigation';
+import { MOCK_USER } from '../../fixtures/user';
 
 interface PageStoreValue {
 	url: { searchParams: URLSearchParams };
@@ -28,12 +28,12 @@ const { mockPageStore } = vi.hoisted(() => {
 	};
 });
 
-vi.mock("$lib/firebase/auth", () => ({
+vi.mock('$lib/firebase/auth', () => ({
 	subscribeToAuth: vi.fn(),
 	logout: vi.fn().mockResolvedValue(undefined),
 }));
 
-vi.mock("$lib/firebase/firestore.svelte", () => ({
+vi.mock('$lib/firebase/firestore.svelte', () => ({
 	getPostsPage: vi.fn().mockResolvedValue({ items: [], nextCursor: null, hasMore: false }),
 	deletePost: vi.fn(),
 	DEFAULT_PAGE_SIZE: 10,
@@ -41,39 +41,39 @@ vi.mock("$lib/firebase/firestore.svelte", () => ({
 	deleteJournalEntry: vi.fn(),
 }));
 
-vi.mock("$app/stores", () => ({
+vi.mock('$app/stores', () => ({
 	page: mockPageStore,
 }));
 
-vi.mock("$app/navigation", () => ({
+vi.mock('$app/navigation', () => ({
 	goto: vi.fn(),
 }));
 
-vi.mock("$lib/stores/toast.svelte", () => ({
+vi.mock('$lib/stores/toast.svelte', () => ({
 	toast: vi.fn(),
 }));
 
-vi.mock("$lib/firebase/insights.svelte", () => ({
+vi.mock('$lib/firebase/insights.svelte', () => ({
 	createInsightsStore: () => ({
 		loadLatest: vi.fn(),
 	}),
 }));
 
-vi.mock("$lib/firebase/media.svelte", () => ({
+vi.mock('$lib/firebase/media.svelte', () => ({
 	createMediaStore: () => ({
 		loadRecentMedia: vi.fn(),
 		recentMediaItems: [],
 		mediaItems: [],
 		mediaUploading: false,
-		mediaUploadError: "",
-		mediaLoadError: "",
+		mediaUploadError: '',
+		mediaLoadError: '',
 		openMediaGallery: vi.fn(),
 		handleGalleryUpload: vi.fn(),
 		handleDeleteMedia: vi.fn(),
 	}),
 }));
 
-vi.mock("$lib/firebase/habits.svelte", () => ({
+vi.mock('$lib/firebase/habits.svelte', () => ({
 	createHabitsStore: () => ({
 		loadHabits: vi.fn(),
 		habits: [],
@@ -87,23 +87,23 @@ vi.mock("$lib/firebase/habits.svelte", () => ({
 	}),
 }));
 
-vi.mock("$lib/firebase/olj.svelte", () => ({
+vi.mock('$lib/firebase/olj.svelte', () => ({
 	createOljStore: () => ({
 		loadLog: vi.fn(),
 	}),
 }));
 
-describe("Admin Dashboard", () => {
+describe('Admin Dashboard', () => {
 	const mockSubscribeToAuth = vi.mocked(subscribeToAuth);
 	const mockGoto = vi.mocked(goto);
 
 	beforeEach(() => {
 		vi.clearAllMocks();
-		window.localStorage.removeItem("mj_admin_session");
+		window.localStorage.removeItem('mj_admin_session');
 		mockPageStore.set({ url: { searchParams: new URLSearchParams() }, params: {} });
 	});
 
-	it("redirects to /admin/login/ when unauthenticated", async () => {
+	it('redirects to /admin/login/ when unauthenticated', async () => {
 		mockSubscribeToAuth.mockImplementation((cb) => {
 			cb(null);
 			return () => {};
@@ -111,10 +111,10 @@ describe("Admin Dashboard", () => {
 
 		render(AdminPage);
 
-		expect(mockGoto).toHaveBeenCalledWith("/admin/login/");
+		expect(mockGoto).toHaveBeenCalledWith('/admin/login/');
 	});
 
-	it("renders dashboard when authenticated", async () => {
+	it('renders dashboard when authenticated', async () => {
 		mockSubscribeToAuth.mockImplementation((cb) => {
 			cb(MOCK_USER);
 			return () => {};
@@ -122,10 +122,10 @@ describe("Admin Dashboard", () => {
 
 		render(AdminPage);
 
-		expect(screen.getByText("Dashboard")).toBeInTheDocument();
+		expect(screen.getByText('Dashboard')).toBeInTheDocument();
 	});
 
-	it("defaults to journal section", async () => {
+	it('defaults to journal section', async () => {
 		mockSubscribeToAuth.mockImplementation((cb) => {
 			cb(MOCK_USER);
 			return () => {};

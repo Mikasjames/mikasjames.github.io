@@ -9,7 +9,10 @@ export interface GenerateInsightsResult {
 }
 
 export async function callGenerateInsightsNow(): Promise<GenerateInsightsResult> {
-	const callable = httpsCallable<undefined, GenerateInsightsResult>(getFunctions(app), 'generateInsightsNow');
+	const callable = httpsCallable<undefined, GenerateInsightsResult>(
+		getFunctions(app),
+		'generateInsightsNow',
+	);
 	const result = await callable();
 	return result.data;
 }

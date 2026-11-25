@@ -10,7 +10,7 @@ test('loads the homepage', async ({ page }) => {
 });
 
 test('displays hero section with key elements', async ({ page }) => {
-	await expect(page.getByText('Hi, I\'m')).toBeVisible();
+	await expect(page.getByText("Hi, I'm")).toBeVisible();
 	await expect(page.getByRole('heading', { name: /Mikas James/ })).toBeVisible();
 	await expect(page.getByText('Full-Stack Software Engineer')).toBeVisible();
 });

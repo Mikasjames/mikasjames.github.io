@@ -1,7 +1,7 @@
-import { tick } from "svelte";
-import type { ImageMeta, MediaItem } from "$lib/firebase/firestore.svelte";
-import type { createMediaStore } from "$lib/firebase/media.svelte";
-import { toast } from "$lib/stores/toast.svelte";
+import { tick } from 'svelte';
+import type { ImageMeta, MediaItem } from '$lib/firebase/firestore.svelte';
+import type { createMediaStore } from '$lib/firebase/media.svelte';
+import { toast } from '$lib/stores/toast.svelte';
 
 type MediaStore = ReturnType<typeof createMediaStore>;
 
@@ -22,12 +22,12 @@ export async function insertMarkdownAtCursor(
 	url: string,
 	altText: string,
 	textareaRef: HTMLTextAreaElement | null,
-	setActiveTab: (tab: "write" | "preview") => void,
+	setActiveTab: (tab: 'write' | 'preview') => void,
 	dims: { width?: number; height?: number } | undefined,
 	getForm: () => EditorForm,
 	setForm: (patch: Partial<EditorForm>) => void,
 ) {
-	setActiveTab("write");
+	setActiveTab('write');
 	await tick();
 	if (!textareaRef) return;
 
@@ -60,7 +60,7 @@ export async function insertMarkdownAtCursor(
 		textareaRef.selectionStart = textareaRef.selectionEnd = start + tag.length;
 	}
 
-	toast("Image inserted into editor", "success");
+	toast('Image inserted into editor', 'success');
 }
 
 export async function handleContentUpload(
@@ -68,7 +68,11 @@ export async function handleContentUpload(
 	mediaStore: MediaStore,
 	getForm: () => EditorForm,
 	setForm: (patch: Partial<EditorForm>) => void,
-	insertFn: (url: string, altText: string, dims?: { width?: number; height?: number }) => Promise<void>,
+	insertFn: (
+		url: string,
+		altText: string,
+		dims?: { width?: number; height?: number },
+	) => Promise<void>,
 ) {
 	const target = e.target as HTMLInputElement;
 	if (!target.files || target.files.length === 0) return;
@@ -77,21 +81,24 @@ export async function handleContentUpload(
 		const { url, width, height, name } = await mediaStore.handleGalleryUpload(file);
 		const form = getForm();
 		setForm({ imageMeta: { ...form.imageMeta, [url]: { width, height } } });
-		await insertFn(url, name.split(".")[0], { width, height });
+		await insertFn(url, name.split('.')[0], { width, height });
 	} catch (_err: unknown) {
 		// Content upload error handled by store
 	} finally {
-		target.value = "";
+		target.value = '';
 	}
 }
 
 export function copyToClipboard(text: string) {
 	navigator.clipboard.writeText(text).then(() => {
-		toast("Copied markdown image tag to clipboard!", "success");
+		toast('Copied markdown image tag to clipboard!', 'success');
 	});
 }
 
-export function setEditorCoverImage(url: string | null, setCoverImage: (url: string | null) => void) {
+export function setEditorCoverImage(
+	url: string | null,
+	setCoverImage: (url: string | null) => void,
+) {
 	setCoverImage(url);
 }
 

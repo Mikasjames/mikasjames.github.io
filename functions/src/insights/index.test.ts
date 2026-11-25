@@ -29,7 +29,9 @@ function entry(rating: number, day: number, content = 'some journal text'): Jour
 	};
 }
 
-function localResult(topicAverages: LocalTextAnalysisResult['topicAverages']): LocalTextAnalysisResult {
+function localResult(
+	topicAverages: LocalTextAnalysisResult['topicAverages'],
+): LocalTextAnalysisResult {
 	return {
 		source: 'local-fallback',
 		topicAverages,
@@ -51,13 +53,7 @@ describe('buildInsight — return shape', () => {
 	it('computes counts, averages, slope, variance and streaks', async () => {
 		mockedCall.mockResolvedValue(localResult({}));
 		const result = await buildInsight(
-			[
-				entry(5, 1),
-				entry(4, 2),
-				entry(2, 3),
-				entry(2, 4),
-				entry(5, 5),
-			],
+			[entry(5, 1), entry(4, 2), entry(2, 3), entry(2, 4), entry(5, 5)],
 			[],
 		);
 
@@ -81,9 +77,7 @@ describe('buildInsight — programmaticFactors', () => {
 		);
 		const result = await buildInsight([entry(3, 1)], []);
 		expect(result.textAnalysis.source === 'groq-api').toBe(false);
-		expect(
-			(result.textAnalysis as Record<string, unknown>).ratingCorrelations,
-		).toEqual([]);
+		expect((result.textAnalysis as Record<string, unknown>).ratingCorrelations).toEqual([]);
 	});
 
 	it('applies the ±0.15 threshold boundaries against the period average', async () => {
@@ -97,11 +91,11 @@ describe('buildInsight — programmaticFactors', () => {
 		);
 		const result = await buildInsight([entry(3, 1), entry(3, 2)], []);
 
-		const factors = (
-			result.textAnalysis as Record<string, unknown>
-		).ratingCorrelations as Array<{ factor: string; impact: string }>;
-		const impactOf = (factor: string) =>
-			factors.find((f) => f.factor === factor)?.impact;
+		const factors = (result.textAnalysis as Record<string, unknown>).ratingCorrelations as Array<{
+			factor: string;
+			impact: string;
+		}>;
+		const impactOf = (factor: string) => factors.find((f) => f.factor === factor)?.impact;
 
 		expect(impactOf('at positive boundary')).toBe('neutral');
 		expect(impactOf('past positive boundary')).toBe('positive');
@@ -118,8 +112,10 @@ describe('buildInsight — programmaticFactors', () => {
 		);
 		const result = await buildInsight([entry(3, 1), entry(3, 2)], []);
 
-		const factors = (result.textAnalysis as Record<string, unknown>)
-			.ratingCorrelations as Array<{ factor: string; averageRating: number }>;
+		const factors = (result.textAnalysis as Record<string, unknown>).ratingCorrelations as Array<{
+			factor: string;
+			averageRating: number;
+		}>;
 		expect(factors.map((f) => f.factor)).toEqual(['client work', 'health']);
 	});
 });
@@ -152,11 +148,8 @@ describe('buildInsight — remote analysis merge', () => {
 			typeof result.textAnalysis,
 			{ source: 'groq-api' | 'gemini-api' }
 		>;
-		const factors = (textAnalysis.result as { ratingCorrelations: unknown[] })
-			.ratingCorrelations;
-		expect(factors).toEqual([
-			{ factor: 'client work', impact: 'positive', averageRating: 4.5 },
-		]);
+		const factors = (textAnalysis.result as { ratingCorrelations: unknown[] }).ratingCorrelations;
+		expect(factors).toEqual([{ factor: 'client work', impact: 'positive', averageRating: 4.5 }]);
 	});
 
 	it('merges AI insights into correlations case-insensitively, defaulting otherwise', async () => {
@@ -180,9 +173,7 @@ describe('buildInsight — remote analysis merge', () => {
 		mockedCall.mockResolvedValue(fixture);
 
 		const result = await buildInsight([entry(5, 1), entry(3, 2)], [habit('h1', 'Prayer')]);
-		expect(result.habitCorrelations[0].insight).toBe(
-			'No qualitative analysis generated.',
-		);
+		expect(result.habitCorrelations[0].insight).toBe('No qualitative analysis generated.');
 	});
 });
 
@@ -198,10 +189,7 @@ describe('buildInsight — local fallback path', () => {
 	});
 
 	it('skips AI entirely and uses ALL entries when no content exists', async () => {
-		const result = await buildInsight(
-			[entry(5, 1, '   '), entry(3, 2, '')],
-			[],
-		);
+		const result = await buildInsight([entry(5, 1, '   '), entry(3, 2, '')], []);
 
 		expect(mockedCall).not.toHaveBeenCalled();
 		expect(result.textAnalysis.source).toBe('local-fallback');
@@ -267,7 +255,10 @@ describe('generateInsightsNow (callable) — auth & permission checks', () => {
 	it('throws permission-denied if UID != OWNER_UID', async () => {
 		const req = mockCallableRequest('attacker-uid');
 		await expect(generateInsightsNow.run(req)).rejects.toThrow(
-			new HttpsError('permission-denied', 'You do not have permission to run this insight generation.'),
+			new HttpsError(
+				'permission-denied',
+				'You do not have permission to run this insight generation.',
+			),
 		);
 	});
 
@@ -301,9 +292,7 @@ describe('generateInsightsNow (callable) — error handling', () => {
 
 	it('wraps generic Error as HttpsError(internal)', async () => {
 		const { processUserInsights } = await import('./index.js');
-		vi.spyOn({ processUserInsights }, 'processUserInsights').mockRejectedValue(
-			new Error('boom'),
-		);
+		vi.spyOn({ processUserInsights }, 'processUserInsights').mockRejectedValue(new Error('boom'));
 		const req = mockCallableRequest(OWNER_UID);
 		await expect(generateInsightsNow.run(req)).rejects.toThrow(HttpsError);
 	});
@@ -339,7 +328,17 @@ describe('processUserInsights (workflow)', () => {
 			variance: 0.25,
 			streaks: { longestHighDays: 2, longestLowDays: 0 },
 			dailyRatings: [],
-			textAnalysis: { source: 'local-fallback', topicAverages: {}, sentimentVsRating: { positiveWordCount: 0, negativeWordCount: 0, lexicalSentimentScore: 0, averageRating: null }, keywordFrequencyByRating: { highRated: {}, lowRated: {} } },
+			textAnalysis: {
+				source: 'local-fallback',
+				topicAverages: {},
+				sentimentVsRating: {
+					positiveWordCount: 0,
+					negativeWordCount: 0,
+					lexicalSentimentScore: 0,
+					averageRating: null,
+				},
+				keywordFrequencyByRating: { highRated: {}, lowRated: {} },
+			},
 			habitCorrelations: [],
 			habitSummary: { totalCheckIns: 0, byHabit: {} },
 		});
