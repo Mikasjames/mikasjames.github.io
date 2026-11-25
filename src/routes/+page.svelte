@@ -2,9 +2,7 @@
     import { onMount } from "svelte";
     import { fly } from "svelte/transition";
     import { logEvent } from "$lib/firebase/analytics";
-
-    const resumeUrl =
-        "https://www.dropbox.com/scl/fi/prxq3a4ps4suswo0hcrzv/MIKAS_JAMES_GAMBOA_ARAYATA.pdf?rlkey=mdcwsaxl19ntef06tf89nkm3p&dl=1";
+    import { RESUME_URL } from "$lib/site";
 
     let activeSkillTab = $state("Frontend");
     let visibleSections = $state<Set<string>>(new Set());
@@ -469,14 +467,14 @@
 
         <div class="flex flex-wrap gap-4">
             <a
-                href={resumeUrl}
+                href={RESUME_URL}
                 target="_blank"
                 rel="noopener noreferrer"
                 id="hero-resume-link"
                 onclick={() =>
                     logEvent("click_cta", {
                         label: "Hero Resume",
-                        url: resumeUrl,
+                        url: RESUME_URL,
                     })}
                 class="inline-flex items-center gap-2.5 px-5 py-2.5 rounded-lg bg-accent-500 text-white text-sm font-semibold hover:bg-accent-600 transition-all duration-200 shadow-lg shadow-accent-500/25 group"
             >
