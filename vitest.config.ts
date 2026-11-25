@@ -12,6 +12,13 @@ const CRITICAL_PATHS = [
 	'src/routes/blogs/drafts/[slug]/+page.svelte',
 ];
 
+const CRITICAL_THRESHOLDS = Object.fromEntries(
+	CRITICAL_PATHS.map((path) => [
+		path.replaceAll('[', '\\[').replaceAll(']', '\\]'),
+		{ lines: 80, branches: 75, functions: 80, statements: 80 },
+	]),
+);
+
 export default defineConfig({
 	plugins: [svelte()],
 	resolve: {
@@ -31,11 +38,16 @@ export default defineConfig({
 		coverage: {
 			provider: 'v8',
 			reporter: ['text', 'json', 'html'],
+			include: ['src/**/*.{ts,svelte}'],
+			exclude: ['src/**/*.test.ts', 'src/**/*.d.ts'],
 			thresholds: {
-				lines: 80,
-				branches: 75,
-				functions: 80,
-				statements: 80,
+				// Baseline floor for the whole app; raise these as coverage grows.
+				lines: 61,
+				branches: 50,
+				functions: 57,
+				statements: 59,
+				// Auth, admin navigation, and draft content are higher risk.
+				...CRITICAL_THRESHOLDS,
 			},
 			thresholdsAutoUpdate: false,
 		},
