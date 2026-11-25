@@ -15,8 +15,11 @@
 		"check:watch": "svelte-kit sync && svelte-check --tsconfig ./tsconfig.json --watch",
 		"test": "pnpm run test:app && pnpm run test:functions",
 		"test:app": "vitest run",
+		"test:coverage": "vitest run --coverage",
 		"test:functions": "cd functions && pnpm test && cd ..",
-		"test:e2e": "playwright test"
+		"test:e2e": "playwright test",
+		"format": "prettier --write .",
+		"format:check": "prettier --check ."
 	},
 	"devDependencies": {
 		"@playwright/test": "^1.61.0",
@@ -26,7 +29,10 @@
 		"@tailwindcss/vite": "^4.1.8",
 		"@testing-library/jest-dom": "^7.0.1",
 		"@testing-library/svelte": "^5.4.2",
+		"@vitest/coverage-v8": "^4.1.12",
 		"jsdom": "^30.0.1",
+		"prettier": "^3.10.1",
+		"prettier-plugin-svelte": "^4.2.0",
 		"svelte": "^5.55.2",
 		"svelte-check": "^4.4.6",
 		"tailwindcss": "^4.1.8",

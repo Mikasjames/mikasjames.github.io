@@ -3,14 +3,68 @@ import { describe, expect, it, vi } from 'vitest';
 import EntryList from './EntryList.svelte';
 
 const mockBlogPosts = [
-	{ id: '1', title: 'First Post', slug: 'first-post', excerpt: 'Excerpt 1', content: 'Content 1', coverImage: null, imageMeta: {}, createdAt: new Date('2026-01-15'), status: 'published' as const },
-	{ id: '2', title: 'Draft Post', slug: 'draft-post', excerpt: 'Excerpt 2', content: 'Content 2', coverImage: 'https://example.com/cover.jpg', imageMeta: {}, createdAt: new Date('2026-01-10'), status: 'draft' as const },
-	{ id: '3', title: 'Unlisted Post', slug: 'unlisted-post', excerpt: 'Excerpt 3', content: 'Content 3', coverImage: null, imageMeta: {}, createdAt: new Date('2026-01-05'), status: 'unlisted' as const },
+	{
+		id: '1',
+		title: 'First Post',
+		slug: 'first-post',
+		excerpt: 'Excerpt 1',
+		content: 'Content 1',
+		coverImage: null,
+		imageMeta: {},
+		createdAt: new Date('2026-01-15'),
+		status: 'published' as const,
+	},
+	{
+		id: '2',
+		title: 'Draft Post',
+		slug: 'draft-post',
+		excerpt: 'Excerpt 2',
+		content: 'Content 2',
+		coverImage: 'https://example.com/cover.jpg',
+		imageMeta: {},
+		createdAt: new Date('2026-01-10'),
+		status: 'draft' as const,
+	},
+	{
+		id: '3',
+		title: 'Unlisted Post',
+		slug: 'unlisted-post',
+		excerpt: 'Excerpt 3',
+		content: 'Content 3',
+		coverImage: null,
+		imageMeta: {},
+		createdAt: new Date('2026-01-05'),
+		status: 'unlisted' as const,
+	},
 ];
 
 const mockJournalEntries = [
-	{ id: 'j1', title: 'Journal Entry 1', content: 'Today was great', excerpt: '', coverImage: null, imageMeta: {}, happinessRating: 5, ownerUid: 'uid', entryDate: '2026-01-15', createdAt: new Date('2026-01-15'), updatedAt: null },
-	{ id: 'j2', title: 'Journal Entry 2', content: 'Feeling okay', excerpt: '', coverImage: null, imageMeta: {}, happinessRating: 3, ownerUid: 'uid', entryDate: '2026-01-14', createdAt: new Date('2026-01-14'), updatedAt: null },
+	{
+		id: 'j1',
+		title: 'Journal Entry 1',
+		content: 'Today was great',
+		excerpt: '',
+		coverImage: null,
+		imageMeta: {},
+		happinessRating: 5,
+		ownerUid: 'uid',
+		entryDate: '2026-01-15',
+		createdAt: new Date('2026-01-15'),
+		updatedAt: null,
+	},
+	{
+		id: 'j2',
+		title: 'Journal Entry 2',
+		content: 'Feeling okay',
+		excerpt: '',
+		coverImage: null,
+		imageMeta: {},
+		happinessRating: 3,
+		ownerUid: 'uid',
+		entryDate: '2026-01-14',
+		createdAt: new Date('2026-01-14'),
+		updatedAt: null,
+	},
 ];
 
 describe('EntryList', () => {
@@ -67,7 +121,9 @@ describe('EntryList', () => {
 			props: defaultProps,
 		});
 		const imgs = container.querySelectorAll('img');
-		const coverImg = Array.from(imgs).find((img) => img.getAttribute('src') === 'https://example.com/cover.jpg');
+		const coverImg = Array.from(imgs).find(
+			(img) => img.getAttribute('src') === 'https://example.com/cover.jpg',
+		);
 		expect(coverImg).not.toBeNull();
 	});
 

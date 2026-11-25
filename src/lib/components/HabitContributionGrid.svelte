@@ -5,7 +5,7 @@
 	 * is readable at a glance. Weeks before the habit existed, and days after
 	 * the range ends, are not tracked and render as empty placeholders.
 	 */
-	import { addDays, weekdayOf } from "$lib/utils/habitStats";
+	import { addDays, weekdayOf } from '$lib/utils/habitStats';
 
 	let {
 		doneDates,
@@ -19,7 +19,7 @@
 		weekdayLabels?: boolean;
 	} = $props();
 
-	const WEEKDAY_LABELS = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
+	const WEEKDAY_LABELS = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
 
 	const done = $derived(new Set(doneDates));
 
@@ -49,7 +49,7 @@
 	{#if weekdayLabels}
 		<div class="grid shrink-0 grid-rows-7 gap-0.5 pr-0.5 text-[9px] leading-none text-zinc-600">
 			{#each WEEKDAY_LABELS as label, index}
-				<span class="flex h-2.5 items-center">{index % 2 === 1 ? label : ""}</span>
+				<span class="flex h-2.5 items-center">{index % 2 === 1 ? label : ''}</span>
 			{/each}
 		</div>
 	{/if}

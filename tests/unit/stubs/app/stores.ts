@@ -1,7 +1,7 @@
-import { writable } from "svelte/store";
+import { writable } from 'svelte/store';
 
 export const page = writable({
-	url: new URL("http://localhost"),
+	url: new URL('http://localhost'),
 	params: {},
 	route: { id: null },
 	status: 200,

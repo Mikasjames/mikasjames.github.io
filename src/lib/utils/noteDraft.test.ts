@@ -79,7 +79,11 @@ describe('noteDraft', () => {
 
 	it('saveNoteDraft overwrites a previous draft for the same key', () => {
 		saveNoteDraft('user-1', '2026-09-21', { content: 'First', happinessRating: 1, showNote: true });
-		saveNoteDraft('user-1', '2026-09-21', { content: 'Second', happinessRating: 5, showNote: false });
+		saveNoteDraft('user-1', '2026-09-21', {
+			content: 'Second',
+			happinessRating: 5,
+			showNote: false,
+		});
 
 		const loaded = loadNoteDraft('user-1', '2026-09-21');
 		expect(loaded!.content).toBe('Second');
@@ -137,10 +141,7 @@ describe('noteDraft', () => {
 
 	it('loadNoteDraft returns null and prunes a draft with a missing timestamp', () => {
 		const key = `${STORAGE_KEY_PREFIX}user-1_2026-09-21`;
-		localStorage.setItem(
-			key,
-			JSON.stringify({ content: 'x', happinessRating: 3, showNote: true }),
-		);
+		localStorage.setItem(key, JSON.stringify({ content: 'x', happinessRating: 3, showNote: true }));
 
 		expect(loadNoteDraft('user-1', '2026-09-21')).toBeNull();
 		expect(localStorage.getItem(key)).toBeNull();

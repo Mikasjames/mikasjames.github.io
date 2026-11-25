@@ -1,6 +1,7 @@
 // Firebase Functions Setup Instructions
 
 ## Prerequisites
+
 - Firebase CLI: `npm install -g firebase-tools`
 - Google Cloud CLI: https://cloud.google.com/sdk/docs/install
 - Node 20+
@@ -13,27 +14,33 @@
    - Copy the token
 
 2. **Store Token in Firebase Secret Manager**
+
    ```bash
    echo "YOUR_GITHUB_PAT_HERE" | gcloud secrets create github-pat --data-file=-
    ```
+
    Or add to existing secret:
+
    ```bash
    gcloud secrets versions add github-pat --data-file=-
    ```
 
 3. **Set Firebase Project**
+
    ```bash
    firebase use YOUR_FIREBASE_PROJECT_ID
    ```
 
 4. **Update Environment Variables**
    Edit `functions/.env.yaml`:
+
    ```yaml
    deployOnPostChange.GITHUB_OWNER: your-github-username
    deployOnPostChange.GITHUB_REPO: your-repo-name
    ```
 
 5. **Install Dependencies**
+
    ```bash
    cd functions
    npm install
@@ -56,11 +63,13 @@
 ## Testing
 
 Emulate locally:
+
 ```bash
 npm run serve --prefix functions
 ```
 
 Trigger manually via Firestore console or CLI:
+
 ```bash
 firebase firestore:set posts/test-post --data '{"title":"Test","content":"test"}'
 ```

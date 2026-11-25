@@ -258,10 +258,7 @@ describe('habit draft persistence', () => {
 	});
 
 	it('loadDraft returns null when data has no selectedHabitIds array', async () => {
-		localStorage.setItem(
-			`${STORAGE_KEY_PREFIX}user-1_2026-09-21`,
-			JSON.stringify({ foo: 'bar' }),
-		);
+		localStorage.setItem(`${STORAGE_KEY_PREFIX}user-1_2026-09-21`, JSON.stringify({ foo: 'bar' }));
 		const { store } = await freshStore();
 		const loaded = store.loadDraft('user-1', '2026-09-21');
 		expect(loaded).toBeNull();

@@ -1,4 +1,4 @@
-import { clearNoteDraft } from "./noteDraft";
+import { clearNoteDraft } from './noteDraft';
 
 export interface DraftPromptFlags {
 	habits: boolean;

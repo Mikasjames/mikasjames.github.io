@@ -1,27 +1,27 @@
-import { vi, describe, it, expect, beforeEach, afterEach } from "vitest";
-import { render, screen } from "@testing-library/svelte";
-import DraftsPage from "../../../src/routes/blogs/drafts/+page.svelte";
-import { subscribeToAuth } from "$lib/firebase/auth";
-import { getPostsPage } from "$lib/firebase/firestore.svelte";
-import { MOCK_USER } from "../../fixtures/user";
+import { vi, describe, it, expect, beforeEach, afterEach } from 'vitest';
+import { render, screen } from '@testing-library/svelte';
+import DraftsPage from '../../../src/routes/blogs/drafts/+page.svelte';
+import { subscribeToAuth } from '$lib/firebase/auth';
+import { getPostsPage } from '$lib/firebase/firestore.svelte';
+import { MOCK_USER } from '../../fixtures/user';
 
-vi.mock("$lib/firebase/auth", () => ({
+vi.mock('$lib/firebase/auth', () => ({
 	subscribeToAuth: vi.fn(),
 }));
 
-vi.mock("$lib/firebase/firestore.svelte", () => ({
+vi.mock('$lib/firebase/firestore.svelte', () => ({
 	getPostsPage: vi.fn(),
 	DEFAULT_PAGE_SIZE: 10,
 }));
 
-describe("Drafts List (/blogs/drafts/)", () => {
+describe('Drafts List (/blogs/drafts/)', () => {
 	const mockSubscribeToAuth = vi.mocked(subscribeToAuth);
 	const mockGetPostsPage = vi.mocked(getPostsPage);
 
 	beforeEach(() => {
 		vi.useFakeTimers();
 		vi.clearAllMocks();
-		window.localStorage.removeItem("mj_admin_session");
+		window.localStorage.removeItem('mj_admin_session');
 	});
 
 	afterEach(() => {
@@ -29,10 +29,30 @@ describe("Drafts List (/blogs/drafts/)", () => {
 		vi.clearAllMocks();
 	});
 
-	it("draft cards link to /blogs/drafts/{slug}/", async () => {
+	it('draft cards link to /blogs/drafts/{slug}/', async () => {
 		const mockPosts = [
-			{ id: "draft-1", title: "Draft 1", slug: "draft-1", excerpt: "Excerpt 1", content: "Content 1", coverImage: "https://example.com/cover1.jpg", imageMeta: {}, createdAt: new Date(), status: "draft" as const },
-			{ id: "draft-2", title: "Draft 2", slug: "draft-2", excerpt: "Excerpt 2", content: "Content 2", coverImage: null, imageMeta: {}, createdAt: new Date(), status: "draft" as const },
+			{
+				id: 'draft-1',
+				title: 'Draft 1',
+				slug: 'draft-1',
+				excerpt: 'Excerpt 1',
+				content: 'Content 1',
+				coverImage: 'https://example.com/cover1.jpg',
+				imageMeta: {},
+				createdAt: new Date(),
+				status: 'draft' as const,
+			},
+			{
+				id: 'draft-2',
+				title: 'Draft 2',
+				slug: 'draft-2',
+				excerpt: 'Excerpt 2',
+				content: 'Content 2',
+				coverImage: null,
+				imageMeta: {},
+				createdAt: new Date(),
+				status: 'draft' as const,
+			},
 		];
 
 		mockGetPostsPage.mockResolvedValue({ items: mockPosts, nextCursor: null, hasMore: false });
@@ -46,15 +66,25 @@ describe("Drafts List (/blogs/drafts/)", () => {
 
 		await vi.runAllTimersAsync();
 
-		const links = screen.getAllByRole("link", { name: /View draft/i });
+		const links = screen.getAllByRole('link', { name: /View draft/i });
 		expect(links).toHaveLength(2);
-		expect(links[0]).toHaveAttribute("href", "/blogs/drafts/draft-1/");
-		expect(links[1]).toHaveAttribute("href", "/blogs/drafts/draft-2/");
+		expect(links[0]).toHaveAttribute('href', '/blogs/drafts/draft-1/');
+		expect(links[1]).toHaveAttribute('href', '/blogs/drafts/draft-2/');
 	});
 
 	it("no 'View draft' CTA text", async () => {
 		const mockPosts = [
-			{ id: "draft-1", title: "Draft 1", slug: "draft-1", excerpt: "Excerpt 1", content: "Content 1", coverImage: "https://example.com/cover1.jpg", imageMeta: {}, createdAt: new Date(), status: "draft" as const },
+			{
+				id: 'draft-1',
+				title: 'Draft 1',
+				slug: 'draft-1',
+				excerpt: 'Excerpt 1',
+				content: 'Content 1',
+				coverImage: 'https://example.com/cover1.jpg',
+				imageMeta: {},
+				createdAt: new Date(),
+				status: 'draft' as const,
+			},
 		];
 
 		mockGetPostsPage.mockResolvedValue({ items: mockPosts, nextCursor: null, hasMore: false });
@@ -68,13 +98,23 @@ describe("Drafts List (/blogs/drafts/)", () => {
 
 		await vi.runAllTimersAsync();
 
-		const cardLink = screen.getByRole("link", { name: /View draft/i });
+		const cardLink = screen.getByRole('link', { name: /View draft/i });
 		expect(cardLink).toBeInTheDocument();
 	});
 
-	it("cover image loads with correct priority", async () => {
+	it('cover image loads with correct priority', async () => {
 		const mockPosts = [
-			{ id: "draft-1", title: "Draft 1", slug: "draft-1", excerpt: "Excerpt 1", content: "Content 1", coverImage: "https://example.com/cover1.jpg", imageMeta: {}, createdAt: new Date(), status: "draft" as const },
+			{
+				id: 'draft-1',
+				title: 'Draft 1',
+				slug: 'draft-1',
+				excerpt: 'Excerpt 1',
+				content: 'Content 1',
+				coverImage: 'https://example.com/cover1.jpg',
+				imageMeta: {},
+				createdAt: new Date(),
+				status: 'draft' as const,
+			},
 		];
 
 		mockGetPostsPage.mockResolvedValue({ items: mockPosts, nextCursor: null, hasMore: false });
@@ -88,14 +128,24 @@ describe("Drafts List (/blogs/drafts/)", () => {
 
 		await vi.runAllTimersAsync();
 
-		const img = screen.getByAltText("");
-		expect(img).toHaveAttribute("src", "https://example.com/cover1.jpg");
-		expect(img).toHaveAttribute("fetchpriority", "high");
+		const img = screen.getByAltText('');
+		expect(img).toHaveAttribute('src', 'https://example.com/cover1.jpg');
+		expect(img).toHaveAttribute('fetchpriority', 'high');
 	});
 
-	it("Draft badge visible", async () => {
+	it('Draft badge visible', async () => {
 		const mockPosts = [
-			{ id: "draft-1", title: "Draft 1", slug: "draft-1", excerpt: "Excerpt 1", content: "Content 1", coverImage: "https://example.com/cover1.jpg", imageMeta: {}, createdAt: new Date(), status: "draft" as const },
+			{
+				id: 'draft-1',
+				title: 'Draft 1',
+				slug: 'draft-1',
+				excerpt: 'Excerpt 1',
+				content: 'Content 1',
+				coverImage: 'https://example.com/cover1.jpg',
+				imageMeta: {},
+				createdAt: new Date(),
+				status: 'draft' as const,
+			},
 		];
 
 		mockGetPostsPage.mockResolvedValue({ items: mockPosts, nextCursor: null, hasMore: false });
@@ -109,7 +159,7 @@ describe("Drafts List (/blogs/drafts/)", () => {
 
 		await vi.runAllTimersAsync();
 
-		const badge = screen.getByText("Draft");
+		const badge = screen.getByText('Draft');
 		expect(badge).toBeInTheDocument();
 	});
 });

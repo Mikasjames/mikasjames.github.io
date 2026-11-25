@@ -1,4 +1,4 @@
-export type ToastVariant = "success" | "error" | "info";
+export type ToastVariant = 'success' | 'error' | 'info';
 
 interface Toast {
 	id: string;
@@ -8,7 +8,7 @@ interface Toast {
 
 let toasts = $state<Toast[]>([]);
 
-export function toast(message: string, variant: ToastVariant = "info") {
+export function toast(message: string, variant: ToastVariant = 'info') {
 	const id = crypto.randomUUID();
 	toasts = [...toasts, { id, message, variant }];
 	setTimeout(() => {

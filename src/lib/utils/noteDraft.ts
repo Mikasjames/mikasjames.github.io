@@ -1,4 +1,4 @@
-const NOTE_DRAFT_PREFIX = "mj_note_draft_";
+const NOTE_DRAFT_PREFIX = 'mj_note_draft_';
 
 /** Drafts older than this are treated as abandoned and pruned on load. */
 export const DRAFT_TTL_MS = 30 * 24 * 60 * 60 * 1000;
@@ -17,7 +17,7 @@ function noteDraftKey(userId: string, date: string): string {
 export function saveNoteDraft(
 	userId: string,
 	date: string,
-	data: Pick<NoteDraft, "content" | "happinessRating" | "showNote">,
+	data: Pick<NoteDraft, 'content' | 'happinessRating' | 'showNote'>,
 ): void {
 	// An empty note is never worth offering to restore — don't persist one.
 	if (!data.content) return;
@@ -37,15 +37,12 @@ export function loadNoteDraft(userId: string, date: string): NoteDraft | null {
 		if (!raw) return null;
 		const parsed = JSON.parse(raw);
 		if (
-			typeof parsed.content === "string" &&
-			parsed.content !== "" &&
-			typeof parsed.happinessRating === "number" &&
-			typeof parsed.showNote === "boolean"
+			typeof parsed.content === 'string' &&
+			parsed.content !== '' &&
+			typeof parsed.happinessRating === 'number' &&
+			typeof parsed.showNote === 'boolean'
 		) {
-			if (
-				typeof parsed.timestamp === "number" &&
-				Date.now() - parsed.timestamp <= DRAFT_TTL_MS
-			) {
+			if (typeof parsed.timestamp === 'number' && Date.now() - parsed.timestamp <= DRAFT_TTL_MS) {
 				return parsed as NoteDraft;
 			}
 			// Expired (or timestamp missing/corrupt): treat as absent and prune.
@@ -81,7 +78,7 @@ export interface NoteDraftDebouncer {
 export function createNoteDraftDebouncer(options: {
 	getUid: () => string | null;
 	getDate: () => string | null;
-	getSnapshot: () => Pick<NoteDraft, "happinessRating" | "showNote">;
+	getSnapshot: () => Pick<NoteDraft, 'happinessRating' | 'showNote'>;
 }): NoteDraftDebouncer {
 	let timer: ReturnType<typeof setTimeout> | null = null;
 	let pending: (() => void) | null = null;

@@ -26,7 +26,12 @@ function createMockMediaStore() {
 		mediaLoadError: '',
 		recentMediaItems: [],
 		openMediaGallery: vi.fn(),
-		handleGalleryUpload: vi.fn().mockResolvedValue({ url: 'https://example.com/uploaded.jpg', width: 100, height: 100, name: 'uploaded.jpg' }),
+		handleGalleryUpload: vi.fn().mockResolvedValue({
+			url: 'https://example.com/uploaded.jpg',
+			width: 100,
+			height: 100,
+			name: 'uploaded.jpg',
+		}),
 		handleDeleteMedia: vi.fn(),
 		loadRecentMedia: vi.fn(),
 		mediaLoaded: false,

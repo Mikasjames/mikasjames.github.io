@@ -34,7 +34,11 @@ import { recordOljLogin, runOljLogin, oljLoginNow } from './index.js';
 
 type RedirectResult = { status: number; body: string; finalUrl: string; hops: string[] };
 
-function redirect(status: number, body: string, finalUrl = 'https://www.onlinejobs.test/x'): RedirectResult {
+function redirect(
+	status: number,
+	body: string,
+	finalUrl = 'https://www.onlinejobs.test/x',
+): RedirectResult {
 	return { status, body, finalUrl, hops: [] };
 }
 
@@ -50,9 +54,7 @@ beforeEach(() => {
 describe('runOljLogin', () => {
 	it('throws when credentials are missing', async () => {
 		delete process.env.OLJ_PASSWORD;
-		await expect(runOljLogin()).rejects.toThrow(
-			'OLJ_EMAIL or OLJ_PASSWORD secret is not set',
-		);
+		await expect(runOljLogin()).rejects.toThrow('OLJ_EMAIL or OLJ_PASSWORD secret is not set');
 		expect(httpMocks.oljFollowRedirects).not.toHaveBeenCalled();
 	});
 
@@ -88,10 +90,10 @@ describe('runOljLogin', () => {
 				),
 			);
 		httpMocks.extractOljCsrfToken.mockReturnValueOnce('csrf-1');
-		httpMocks.classifyOljLoginFailure.mockReturnValueOnce('Bad credentials rejected by OnlineJobs.ph');
-		httpMocks.extractErrorSnippet.mockReturnValueOnce(
-			'{"access_token":"SECRET"} invalid password',
+		httpMocks.classifyOljLoginFailure.mockReturnValueOnce(
+			'Bad credentials rejected by OnlineJobs.ph',
 		);
+		httpMocks.extractErrorSnippet.mockReturnValueOnce('{"access_token":"SECRET"} invalid password');
 
 		const result = await runOljLogin();
 
@@ -153,7 +155,11 @@ describe('runOljLogin', () => {
 });
 
 describe('recordOljLogin', () => {
-	function makeChain(current?: { date: string; pointsBalance: number; previousBalance?: number | null }) {
+	function makeChain(current?: {
+		date: string;
+		pointsBalance: number;
+		previousBalance?: number | null;
+	}) {
 		const state = {
 			docId: '',
 			set: vi.fn<(doc: Record<string, unknown>) => Promise<void>>(async () => {}),

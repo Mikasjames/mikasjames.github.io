@@ -1,7 +1,7 @@
 <script lang="ts">
-	import Modal from "./Modal.svelte";
-	import { logEvent } from "$lib/firebase/analytics";
-	import { RESUME_DOWNLOAD_NAME, RESUME_URL } from "$lib/site";
+	import Modal from './Modal.svelte';
+	import { logEvent } from '$lib/firebase/analytics';
+	import { RESUME_DOWNLOAD_NAME, RESUME_URL } from '$lib/site';
 
 	let {
 		open = $bindable(false),
@@ -12,7 +12,7 @@
 	} = $props();
 
 	function trackDownload() {
-		logEvent("download_resume", { url: RESUME_URL });
+		logEvent('download_resume', { url: RESUME_URL });
 	}
 </script>
 
@@ -37,8 +37,9 @@
 					target="_blank"
 					rel="noopener noreferrer"
 					class="text-accent-400 underline underline-offset-2 transition-colors hover:text-accent-300"
-					>Open the PDF in a new tab</a
-				>.
+				>
+					Open the PDF in a new tab
+				</a>.
 			</p>
 		</div>
 	{/snippet}
@@ -50,13 +51,7 @@
 			onclick={trackDownload}
 			class="inline-flex items-center gap-2 rounded-lg bg-accent-500 px-4 py-2 text-sm font-semibold text-white transition-colors hover:bg-accent-600"
 		>
-			<svg
-				class="h-4 w-4"
-				fill="none"
-				stroke="currentColor"
-				viewBox="0 0 24 24"
-				aria-hidden="true"
-			>
+			<svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
 				<path
 					stroke-linecap="round"
 					stroke-linejoin="round"

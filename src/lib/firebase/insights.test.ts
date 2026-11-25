@@ -5,10 +5,7 @@ vi.mock('$lib/firebase/firestore.svelte', () => ({
 	getMonthlyInsightByPeriod: vi.fn(),
 }));
 
-import {
-	getLatestMonthlyInsight,
-	getMonthlyInsightByPeriod,
-} from '$lib/firebase/firestore.svelte';
+import { getLatestMonthlyInsight, getMonthlyInsightByPeriod } from '$lib/firebase/firestore.svelte';
 import { createInsightsStore } from './insights.svelte';
 
 const mockedGetLatest = vi.mocked(getLatestMonthlyInsight);

@@ -15,7 +15,7 @@ async function init(): Promise<Analytics | null> {
 			try {
 				const [analyticsSdk, firebase] = await Promise.all([
 					import('firebase/analytics'),
-					import('./firebase')
+					import('./firebase'),
 				]);
 				sdk = analyticsSdk;
 				analytics = analyticsSdk.getAnalytics(firebase.default);
@@ -47,14 +47,17 @@ export function logPageView(pagePath?: string, pageTitle?: string) {
 	if (!browser) return;
 	const params = {
 		page_path: pagePath ?? window.location.pathname,
-		page_title: pageTitle ?? document.title
+		page_title: pageTitle ?? document.title,
 	};
 	whenIdle(() => {
 		void send('page_view', params);
 	});
 }
 
-export function logEvent(eventName: string, eventParams?: Record<string, string | number | boolean>) {
+export function logEvent(
+	eventName: string,
+	eventParams?: Record<string, string | number | boolean>,
+) {
 	if (!browser) return;
 	// Clicks shouldn't wait for idle, but the SDK still loads on demand.
 	void send(eventName, eventParams);

@@ -8,10 +8,10 @@ import {
 	saveHabitLogsForDateAtomic,
 	saveHabitLogsForJournalEntryAtomic,
 	type Habit,
-} from "./firestore.svelte";
-import { DRAFT_TTL_MS } from "../utils/noteDraft";
+} from './firestore.svelte';
+import { DRAFT_TTL_MS } from '../utils/noteDraft';
 
-const DRAFT_PREFIX = "mj_habit_draft_";
+const DRAFT_PREFIX = 'mj_habit_draft_';
 
 function draftKey(userId: string, date: string) {
 	return `${DRAFT_PREFIX}${userId}_${date}`;
@@ -28,24 +28,23 @@ function makeStore() {
 	let habits = $state<Habit[]>([]);
 	let selectedHabitIds = $state<Set<string>>(new Set());
 	let habitsLoading = $state(false);
-	let habitsError = $state("");
+	let habitsError = $state('');
 	let showHabitManager = $state(false);
 	let habitForm = $state({
-		name: "",
-		emoji: "",
+		name: '',
+		emoji: '',
 		submitting: false,
-		error: "",
+		error: '',
 	});
 
 	async function loadHabits(userUid: string) {
 		habitsLoading = true;
-		habitsError = "";
+		habitsError = '';
 		try {
 			habits = await getHabits(userUid);
 		} catch (err: unknown) {
-			console.error("Failed to load habits:", err);
-			habitsError =
-				err instanceof Error ? err.message : "Failed to load habits.";
+			console.error('Failed to load habits:', err);
+			habitsError = err instanceof Error ? err.message : 'Failed to load habits.';
 		} finally {
 			habitsLoading = false;
 		}
@@ -73,10 +72,7 @@ function makeStore() {
 			};
 			if (!Array.isArray(parsed.selectedHabitIds)) return null;
 			// Expired (or timestamp missing/corrupt): treat as absent and prune.
-			if (
-				typeof parsed.timestamp !== "number" ||
-				Date.now() - parsed.timestamp > DRAFT_TTL_MS
-			) {
+			if (typeof parsed.timestamp !== 'number' || Date.now() - parsed.timestamp > DRAFT_TTL_MS) {
 				clearDraft(userId, date);
 				return null;
 			}
@@ -116,24 +112,23 @@ function makeStore() {
 
 	async function handleAddHabit(userUid: string) {
 		if (!habitForm.name.trim()) {
-			habitForm.error = "Habit name is required.";
+			habitForm.error = 'Habit name is required.';
 			return;
 		}
 		habitForm.submitting = true;
-		habitForm.error = "";
+		habitForm.error = '';
 		try {
 			await addHabit({
 				name: habitForm.name.trim(),
-				emoji: habitForm.emoji.trim() || "•",
+				emoji: habitForm.emoji.trim() || '•',
 				ownerUid: userUid,
 				order: habits.length,
 			});
-			habitForm.name = "";
-			habitForm.emoji = "";
+			habitForm.name = '';
+			habitForm.emoji = '';
 			await loadHabits(userUid);
 		} catch (err: unknown) {
-			habitForm.error =
-				err instanceof Error ? err.message : "Failed to add habit.";
+			habitForm.error = err instanceof Error ? err.message : 'Failed to add habit.';
 		} finally {
 			habitForm.submitting = false;
 		}
@@ -148,13 +143,12 @@ function makeStore() {
 			? await onConfirm(`Delete "${habit.name}" from habits?`)
 			: confirm(`Delete "${habit.name}" from habits?`);
 		if (!confirmed) return;
-		habitsError = "";
+		habitsError = '';
 		try {
 			await deleteHabit(habit.id);
 			await loadHabits(userUid);
 		} catch (err: unknown) {
-			habitsError =
-				err instanceof Error ? err.message : "Failed to delete habit.";
+			habitsError = err instanceof Error ? err.message : 'Failed to delete habit.';
 		}
 	}
 
@@ -166,15 +160,10 @@ function makeStore() {
 		reordered.splice(targetIndex, 0, moved);
 		habits = reordered.map((habit, order) => ({ ...habit, order }));
 		try {
-			await Promise.all(
-				habits.map((habit, order) => updateHabitOrder(habit.id, order)),
-			);
+			await Promise.all(habits.map((habit, order) => updateHabitOrder(habit.id, order)));
 			await loadHabits(userUid);
 		} catch (err: unknown) {
-			habitsError =
-				err instanceof Error
-					? err.message
-					: "Failed to reorder habits.";
+			habitsError = err instanceof Error ? err.message : 'Failed to reorder habits.';
 			await loadHabits(userUid);
 		}
 	}
@@ -185,37 +174,21 @@ function makeStore() {
 		currentJournalFormId: string | null,
 	) {
 		try {
-			const logs = await getHabitLogsForJournalEntry(
-				userUid,
-				journalEntryId,
-			);
+			const logs = await getHabitLogsForJournalEntry(userUid, journalEntryId);
 			if (currentJournalFormId === journalEntryId) {
 				selectedHabitIds = new Set(logs.map((log) => log.habitId));
 			}
 		} catch (err: unknown) {
-			console.error("Failed to load habit logs for journal entry:", err);
+			console.error('Failed to load habit logs for journal entry:', err);
 			habitsError =
-				err instanceof Error
-					? err.message
-					: "Failed to load habit logs for this entry.";
+				err instanceof Error ? err.message : 'Failed to load habit logs for this entry.';
 			selectedHabitIds = new Set();
 		}
 	}
 
-	async function saveSelectedHabitLogs(
-		userUid: string,
-		journalEntryId: string,
-		date: string,
-	) {
-		const selectedHabits = habits.filter((habit) =>
-			selectedHabitIds.has(habit.id),
-		);
-		await saveHabitLogsForJournalEntryAtomic(
-			userUid,
-			journalEntryId,
-			date,
-			selectedHabits,
-		);
+	async function saveSelectedHabitLogs(userUid: string, journalEntryId: string, date: string) {
+		const selectedHabits = habits.filter((habit) => selectedHabitIds.has(habit.id));
+		await saveHabitLogsForJournalEntryAtomic(userUid, journalEntryId, date, selectedHabits);
 	}
 
 	async function loadHabitLogsForDate(userUid: string, date: string) {
@@ -223,11 +196,8 @@ function makeStore() {
 			const logs = await getHabitLogsForDate(userUid, date);
 			selectedHabitIds = new Set(logs.map((log) => log.habitId));
 		} catch (err: unknown) {
-			console.error("Failed to load habit logs for date:", err);
-			habitsError =
-				err instanceof Error
-					? err.message
-					: "Failed to load habit logs for this date.";
+			console.error('Failed to load habit logs for date:', err);
+			habitsError = err instanceof Error ? err.message : 'Failed to load habit logs for this date.';
 			selectedHabitIds = new Set();
 		}
 	}
@@ -237,27 +207,38 @@ function makeStore() {
 		date: string,
 		journalEntryId: string | null,
 	) {
-		const selectedHabits = habits.filter((habit) =>
-			selectedHabitIds.has(habit.id),
-		);
-		await saveHabitLogsForDateAtomic(
-			userUid,
-			date,
-			journalEntryId,
-			selectedHabits,
-		);
+		const selectedHabits = habits.filter((habit) => selectedHabitIds.has(habit.id));
+		await saveHabitLogsForDateAtomic(userUid, date, journalEntryId, selectedHabits);
 	}
 
 	return {
-		get habits() { return habits; },
-		get selectedHabitIds() { return selectedHabitIds; },
-		set selectedHabitIds(v) { selectedHabitIds = v; },
-		get habitsLoading() { return habitsLoading; },
-		get habitsError() { return habitsError; },
-		set habitsError(v) { habitsError = v; },
-		get showHabitManager() { return showHabitManager; },
-		set showHabitManager(v) { showHabitManager = v; },
-		get habitForm() { return habitForm; },
+		get habits() {
+			return habits;
+		},
+		get selectedHabitIds() {
+			return selectedHabitIds;
+		},
+		set selectedHabitIds(v) {
+			selectedHabitIds = v;
+		},
+		get habitsLoading() {
+			return habitsLoading;
+		},
+		get habitsError() {
+			return habitsError;
+		},
+		set habitsError(v) {
+			habitsError = v;
+		},
+		get showHabitManager() {
+			return showHabitManager;
+		},
+		set showHabitManager(v) {
+			showHabitManager = v;
+		},
+		get habitForm() {
+			return habitForm;
+		},
 		loadHabits,
 		toggleHabit,
 		handleAddHabit,

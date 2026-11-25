@@ -11,10 +11,7 @@ import { entries, load } from '../../../src/routes/blogs/[slug]/+page.server.js'
 
 describe('blogs/[slug] entries', () => {
 	it('maps prerender posts to slug params', async () => {
-		firestore.getPrerenderPosts.mockResolvedValue([
-			{ slug: 'a' },
-			{ slug: 'b' },
-		]);
+		firestore.getPrerenderPosts.mockResolvedValue([{ slug: 'a' }, { slug: 'b' }]);
 		await expect(entries()).resolves.toEqual([{ slug: 'a' }, { slug: 'b' }]);
 	});
 });

@@ -10,7 +10,7 @@ test('loads the homepage', async ({ page }) => {
 });
 
 test('displays hero section with key elements', async ({ page }) => {
-	await expect(page.getByText('Hi, I\'m')).toBeVisible();
+	await expect(page.getByText("Hi, I'm")).toBeVisible();
 	await expect(page.getByRole('heading', { name: /Mikas James/ })).toBeVisible();
 	await expect(page.getByText('Full-Stack Software Engineer')).toBeVisible();
 });
@@ -32,7 +32,7 @@ test('experience section is present', async ({ page }) => {
 
 test('skills section is present', async ({ page }) => {
 	await expect(page.getByText('Tech Stack')).toBeVisible();
-	await expect(page.getByRole('button', { name: 'Frontend' })).toBeVisible();
+	await expect(page.getByRole('tab', { name: 'Frontend' })).toBeVisible();
 });
 
 test('projects section is present', async ({ page }) => {
@@ -58,15 +58,15 @@ test('footer displays copyright', async ({ page }) => {
 });
 
 test('switches skill tabs', async ({ page }) => {
-	await page.getByRole('button', { name: 'Backend' }).click();
-	await expect(page.getByText('Python')).toBeVisible();
+	await page.getByRole('tab', { name: 'Backend' }).click();
+	await expect(page.getByText('Python', { exact: true })).toBeVisible();
 	await expect(page.getByText('Django', { exact: true })).toBeVisible();
 
-	await page.getByRole('button', { name: 'QA' }).click();
-	await expect(page.getByText('Playwright')).toBeVisible();
+	await page.getByRole('tab', { name: 'QA' }).click();
+	await expect(page.getByText('Playwright', { exact: true })).toBeVisible();
 });
 
 test('navigates project carousel', async ({ page }) => {
-	const projectCards = page.locator('[role="region"] [role="button"]');
+	const projectCards = page.locator('[role="region"] [role="group"]');
 	await expect(projectCards.first()).toBeVisible();
 });

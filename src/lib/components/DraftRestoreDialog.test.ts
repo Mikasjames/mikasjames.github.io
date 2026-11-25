@@ -7,7 +7,14 @@ describe('DraftRestoreDialog', () => {
 
 	it('mentions only habits when only a habit draft exists', () => {
 		const { container } = render(DraftRestoreDialog, {
-			props: { show: true, date, restoreHabits: true, onRestore: vi.fn(), onDiscard: vi.fn(), onDismiss: vi.fn() },
+			props: {
+				show: true,
+				date,
+				restoreHabits: true,
+				onRestore: vi.fn(),
+				onDiscard: vi.fn(),
+				onDismiss: vi.fn(),
+			},
 		});
 		expect(container).toHaveTextContent('unsaved habit selections');
 		expect(container).not.toHaveTextContent('journal note');
@@ -16,7 +23,14 @@ describe('DraftRestoreDialog', () => {
 
 	it('mentions only the note when only a note draft exists', () => {
 		const { container } = render(DraftRestoreDialog, {
-			props: { show: true, date, restoreNote: true, onRestore: vi.fn(), onDiscard: vi.fn(), onDismiss: vi.fn() },
+			props: {
+				show: true,
+				date,
+				restoreNote: true,
+				onRestore: vi.fn(),
+				onDiscard: vi.fn(),
+				onDismiss: vi.fn(),
+			},
 		});
 		expect(container).toHaveTextContent('unsaved journal note');
 		expect(container).not.toHaveTextContent('habit selections');

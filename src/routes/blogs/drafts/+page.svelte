@@ -1,13 +1,13 @@
 <script lang="ts">
-	import { goto } from "$app/navigation";
-	import { subscribeToAuth } from "$lib/firebase/auth";
-	import type { DocumentSnapshot } from "firebase/firestore";
-	import { getPostsPage, type BlogPost, DEFAULT_PAGE_SIZE } from "$lib/firebase/firestore.svelte";
-	import GridBackground from "$lib/components/GridBackground.svelte";
-	import Spinner from "$lib/components/Spinner.svelte";
-	import AppButton from "$lib/components/AppButton.svelte";
+	import { goto } from '$app/navigation';
+	import { subscribeToAuth } from '$lib/firebase/auth';
+	import type { DocumentSnapshot } from 'firebase/firestore';
+	import { getPostsPage, type BlogPost, DEFAULT_PAGE_SIZE } from '$lib/firebase/firestore.svelte';
+	import GridBackground from '$lib/components/GridBackground.svelte';
+	import Spinner from '$lib/components/Spinner.svelte';
+	import AppButton from '$lib/components/AppButton.svelte';
 
-	let user = $state<import("firebase/auth").User | null>(null);
+	let user = $state<import('firebase/auth').User | null>(null);
 	let authReady = $state(false);
 	let posts = $state<BlogPost[]>([]);
 	let loading = $state(true);
@@ -19,7 +19,7 @@
 		const unsub = subscribeToAuth((u) => {
 			user = u;
 			authReady = true;
-			if (!u) goto("/admin/login/");
+			if (!u) goto('/admin/login/');
 		});
 		return unsub;
 	});
@@ -57,11 +57,11 @@
 	});
 
 	function formatDate(d: Date | null) {
-		if (!d) return "";
-		return d.toLocaleDateString("en-US", {
-			year: "numeric",
-			month: "long",
-			day: "numeric",
+		if (!d) return '';
+		return d.toLocaleDateString('en-US', {
+			year: 'numeric',
+			month: 'long',
+			day: 'numeric',
 		});
 	}
 </script>
@@ -104,14 +104,8 @@
 		</div>
 
 		<div class="mb-14">
-			<p
-				class="font-mono text-xs text-accent-400 tracking-widest uppercase mb-3"
-			>
-				&gt;_ admin
-			</p>
-			<h1 class="text-4xl md:text-5xl font-bold text-zinc-100 leading-tight">
-				Drafts
-			</h1>
+			<p class="font-mono text-xs text-accent-400 tracking-widest uppercase mb-3">&gt;_ admin</p>
+			<h1 class="text-4xl md:text-5xl font-bold text-zinc-100 leading-tight">Drafts</h1>
 			<p class="mt-4 text-zinc-400 text-lg leading-relaxed max-w-xl">
 				Unpublished blog posts — only visible to you.
 			</p>
@@ -119,9 +113,7 @@
 		</div>
 
 		{#if loading}
-			<div
-				class="flex items-center justify-center py-20 gap-3 text-zinc-500 text-sm"
-			>
+			<div class="flex items-center justify-center py-20 gap-3 text-zinc-500 text-sm">
 				<Spinner size="md" color="zinc" />
 				Loading drafts…
 			</div>
@@ -130,12 +122,7 @@
 				<div
 					class="w-12 h-12 rounded-xl bg-surface-800 border border-zinc-800 flex items-center justify-center mx-auto mb-4"
 				>
-					<svg
-						class="w-6 h-6 text-zinc-600"
-						fill="none"
-						stroke="currentColor"
-						viewBox="0 0 24 24"
-					>
+					<svg class="w-6 h-6 text-zinc-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
 						<path
 							stroke-linecap="round"
 							stroke-linejoin="round"
@@ -170,13 +157,10 @@
 							<div class="flex-1 min-w-0">
 								<div class="flex items-center gap-3 mb-2.5">
 									{#if post.createdAt}
-										<time
-											class="text-xs text-zinc-550 font-mono"
-											>{formatDate(post.createdAt)}</time
-										>
-										<span
-											class="w-1 h-1 rounded-full bg-zinc-800"
-										></span>
+										<time class="text-xs text-zinc-550 font-mono">
+											{formatDate(post.createdAt)}
+										</time>
+										<span class="w-1 h-1 rounded-full bg-zinc-800"></span>
 									{/if}
 									<span
 										class="px-1.5 py-0.5 rounded bg-zinc-800 text-[10px] font-medium text-zinc-450 border border-zinc-700/50 uppercase tracking-wider font-mono"
@@ -191,9 +175,7 @@
 									{post.title}
 								</h2>
 
-								<p
-									class="text-sm text-zinc-400 leading-relaxed line-clamp-2"
-								>
+								<p class="text-sm text-zinc-400 leading-relaxed line-clamp-2">
 									{post.excerpt}
 								</p>
 
@@ -219,13 +201,19 @@
 						</div>
 					</a>
 				{/each}
-			{#if postsHasMore}
-				<div class="flex justify-center pt-2">
-					<AppButton variant="ghost" size="lg" onclick={loadMoreDrafts} disabled={loadingMore} loading={loadingMore}>
-						{loadingMore ? "Loading…" : "Show more"}
-					</AppButton>
-				</div>
-			{/if}
+				{#if postsHasMore}
+					<div class="flex justify-center pt-2">
+						<AppButton
+							variant="ghost"
+							size="lg"
+							onclick={loadMoreDrafts}
+							disabled={loadingMore}
+							loading={loadingMore}
+						>
+							{loadingMore ? 'Loading…' : 'Show more'}
+						</AppButton>
+					</div>
+				{/if}
 			</div>
 		{/if}
 	</div>

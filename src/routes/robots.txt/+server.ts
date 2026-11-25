@@ -12,7 +12,7 @@ Sitemap: ${SITE_URL}/sitemap.xml
 
 	return new Response(body, {
 		headers: {
-			'Content-Type': 'text/plain'
-		}
+			'Content-Type': 'text/plain',
+		},
 	});
 }

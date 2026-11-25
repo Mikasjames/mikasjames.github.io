@@ -1,4 +1,4 @@
-import type { User } from "firebase/auth";
+import type { User } from 'firebase/auth';
 
 export interface AdminSessionOptions {
 	subscribeToAuth: (callback: (user: User | null) => void) => (() => void) | Promise<() => void>;
@@ -6,11 +6,11 @@ export interface AdminSessionOptions {
 
 export function onAdminSession(
 	callback: (user: User) => void,
-	options?: AdminSessionOptions
+	options?: AdminSessionOptions,
 ): (() => void) | void {
 	const subscribeToAuth = options?.subscribeToAuth ?? defaultSubscribeToAuth;
 
-	if (typeof window === "undefined" || !localStorage.getItem("mj_admin_session")) {
+	if (typeof window === 'undefined' || !localStorage.getItem('mj_admin_session')) {
 		return;
 	}
 
@@ -27,7 +27,7 @@ export function onAdminSession(
 		}
 	};
 
-	if ("requestIdleCallback" in window) {
+	if ('requestIdleCallback' in window) {
 		window.requestIdleCallback(() => init());
 	} else {
 		setTimeout(init, 100);
@@ -39,6 +39,6 @@ export function onAdminSession(
 }
 
 async function defaultSubscribeToAuth(callback: (user: User | null) => void): Promise<() => void> {
-	const { subscribeToAuth } = await import("$lib/firebase/auth");
+	const { subscribeToAuth } = await import('$lib/firebase/auth');
 	return subscribeToAuth(callback);
 }

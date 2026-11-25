@@ -1,23 +1,21 @@
-import { getPublishedPosts } from "$lib/firebase/firestore.svelte";
-import type { BlogPost } from "$lib/firebase/firestore.svelte";
-import { SITE_URL } from "$lib/site";
+import { getPublishedPosts } from '$lib/firebase/firestore.svelte';
+import type { BlogPost } from '$lib/firebase/firestore.svelte';
+import { SITE_URL } from '$lib/site';
 
 export const prerender = true;
 
 function escapeXml(value: string): string {
 	return value
-		.replaceAll("&", "&amp;")
-		.replaceAll("<", "&lt;")
-		.replaceAll(">", "&gt;")
-		.replaceAll('"', "&quot;")
-		.replaceAll("'", "&apos;");
+		.replaceAll('&', '&amp;')
+		.replaceAll('<', '&lt;')
+		.replaceAll('>', '&gt;')
+		.replaceAll('"', '&quot;')
+		.replaceAll("'", '&apos;');
 }
 
 function urlEntry(path: string, lastmod: string | undefined): string {
 	const loc = `${SITE_URL}${path}`;
-	const lastmodTag = lastmod
-		? `\n    <lastmod>${escapeXml(lastmod)}</lastmod>`
-		: "";
+	const lastmodTag = lastmod ? `\n    <lastmod>${escapeXml(lastmod)}</lastmod>` : '';
 
 	return `  <url>
     <loc>${escapeXml(loc)}</loc>${lastmodTag}
@@ -28,25 +26,22 @@ export async function GET(): Promise<Response> {
 	const posts = await getPublishedPosts();
 
 	const urls = [
-		urlEntry("/", undefined),
-		urlEntry("/resume.pdf", undefined),
-		urlEntry("/blogs/", undefined),
+		urlEntry('/', undefined),
+		urlEntry('/resume.pdf', undefined),
+		urlEntry('/blogs/', undefined),
 		...posts.map((post: BlogPost) =>
-			urlEntry(
-				`/blogs/${post.slug}/`,
-				post.createdAt?.toISOString().slice(0, 10),
-			),
+			urlEntry(`/blogs/${post.slug}/`, post.createdAt?.toISOString().slice(0, 10)),
 		),
 	];
 
 	const body = `<?xml version="1.0" encoding="UTF-8"?>
 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
-${urls.join("\n")}
+${urls.join('\n')}
 </urlset>`;
 
 	return new Response(body, {
 		headers: {
-			"Content-Type": "application/xml",
+			'Content-Type': 'application/xml',
 		},
 	});
 }

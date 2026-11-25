@@ -1,18 +1,15 @@
 <script lang="ts">
-	import { formatDate } from "$lib/utils/date";
-	import type {
-		BlogPost,
-		JournalEntry,
-	} from "$lib/firebase/firestore.svelte";
-	import Spinner from "$lib/components/Spinner.svelte";
-	import AppButton from "$lib/components/AppButton.svelte";
+	import { formatDate } from '$lib/utils/date';
+	import type { BlogPost, JournalEntry } from '$lib/firebase/firestore.svelte';
+	import Spinner from '$lib/components/Spinner.svelte';
+	import AppButton from '$lib/components/AppButton.svelte';
 
 	type Entry = BlogPost | JournalEntry;
 
 	interface Props {
 		items: Entry[];
 		loading: boolean;
-		type: "blog" | "journal";
+		type: 'blog' | 'journal';
 		onEdit: (entry: Entry) => void;
 		onDelete: (entry: Entry) => void;
 		error?: string;
@@ -35,16 +32,12 @@
 		onStatusFilterChange = undefined,
 	}: Props = $props();
 
-	let search = $state("");
-	let statusFilter = $state<"all" | "published" | "unlisted" | "draft">(
-		"all",
-	);
-	let sort = $state<"newest" | "oldest">("newest");
+	let search = $state('');
+	let statusFilter = $state<'all' | 'published' | 'unlisted' | 'draft'>('all');
+	let sort = $state<'newest' | 'oldest'>('newest');
 
 	function handleStatusFilterChange() {
-		onStatusFilterChange?.(
-			statusFilter === "all" ? undefined : statusFilter,
-		);
+		onStatusFilterChange?.(statusFilter === 'all' ? undefined : statusFilter);
 	}
 
 	let filteredItems = $derived.by(() => {
@@ -53,55 +46,41 @@
 			const q = search.toLowerCase();
 			const primaryMatches = result.filter((item) => {
 				const title = item.title.toLowerCase();
-				const excerpt = (item.excerpt ?? "").toLowerCase();
-				const slug = "slug" in item ? item.slug.toLowerCase() : "";
-				return (
-					title.includes(q) || slug.includes(q) || excerpt.includes(q)
-				);
+				const excerpt = (item.excerpt ?? '').toLowerCase();
+				const slug = 'slug' in item ? item.slug.toLowerCase() : '';
+				return title.includes(q) || slug.includes(q) || excerpt.includes(q);
 			});
 			result =
 				primaryMatches.length > 0
 					? primaryMatches
-					: result.filter((item) =>
-							item.content.toLowerCase().includes(q),
-						);
+					: result.filter((item) => item.content.toLowerCase().includes(q));
 		}
-		if (type === "blog") {
+		if (type === 'blog') {
 			result = result.filter(
-				(item) => statusFilter === "all" || (item as BlogPost).status === statusFilter,
+				(item) => statusFilter === 'all' || (item as BlogPost).status === statusFilter,
 			);
 		}
-		return sort === "oldest"
+		return sort === 'oldest'
 			? [...result].sort((a, b) => {
-					if (type === "journal") {
-						return (
-							entrySortDate(a as JournalEntry) -
-							entrySortDate(b as JournalEntry)
-						);
+					if (type === 'journal') {
+						return entrySortDate(a as JournalEntry) - entrySortDate(b as JournalEntry);
 					}
-					return (
-						(a.createdAt?.getTime() ?? 0) -
-						(b.createdAt?.getTime() ?? 0)
-					);
+					return (a.createdAt?.getTime() ?? 0) - (b.createdAt?.getTime() ?? 0);
 				})
 			: result;
 	});
 
 	function entrySortDate(entry: JournalEntry): number {
-		return new Date(entry.entryDate + "T00:00:00").getTime();
+		return new Date(entry.entryDate + 'T00:00:00').getTime();
 	}
 
-	let searchPlaceholder = $derived(
-		type === "blog" ? "Search posts…" : "Search entries…",
-	);
+	let searchPlaceholder = $derived(type === 'blog' ? 'Search posts…' : 'Search entries…');
 	let emptyMessage = $derived(
-		type === "blog"
-			? "No posts yet. Publish your first one above!"
-			: "No journal entries found. Write your first entry above!",
+		type === 'blog'
+			? 'No posts yet. Publish your first one above!'
+			: 'No journal entries found. Write your first entry above!',
 	);
-	let loadingMessage = $derived(
-		type === "blog" ? "Loading posts…" : "Loading journal entries…",
-	);
+	let loadingMessage = $derived(type === 'blog' ? 'Loading posts…' : 'Loading journal entries…');
 </script>
 
 <section
@@ -138,7 +117,7 @@
 				? 'min-[420px]:grid-cols-2 md:w-auto'
 				: 'sm:w-auto'}"
 		>
-			{#if type === "blog"}
+			{#if type === 'blog'}
 				<select
 					bind:value={statusFilter}
 					onchange={handleStatusFilterChange}
@@ -163,17 +142,15 @@
 		</div>
 	</div>
 
-	{#if search || (type === "blog" && statusFilter !== "all")}
+	{#if search || (type === 'blog' && statusFilter !== 'all')}
 		<p class="text-xs text-zinc-550 mb-3">
 			{filteredItems.length} of {items.length}
-			{type === "blog" ? "posts" : "entries"} loaded
+			{type === 'blog' ? 'posts' : 'entries'} loaded
 		</p>
 	{/if}
 
 	{#if loading}
-		<div
-			class="flex items-center justify-center py-10 gap-3 text-zinc-500 text-sm"
-		>
+		<div class="flex items-center justify-center py-10 gap-3 text-zinc-500 text-sm">
 			<Spinner size="sm" color="zinc" />
 			{loadingMessage}
 		</div>
@@ -182,18 +159,18 @@
 			class="p-4 rounded-lg bg-red-950/20 border border-red-900/30 text-red-400 text-xs space-y-1"
 		>
 			<p class="font-semibold">
-				{type === "blog" ? "Blog" : "Journal"} Load Failed:
+				{type === 'blog' ? 'Blog' : 'Journal'} Load Failed:
 			</p>
 			<p class="text-zinc-405 leading-normal">
 				{error}
 			</p>
-			{#if type === "journal"}
+			{#if type === 'journal'}
 				<p class="text-[10px] text-zinc-550 leading-normal pt-1">
-					Please ensure your Firestore Security Rules permit
-					authenticated read access to the <code
+					Please ensure your Firestore Security Rules permit authenticated read access to the <code
 						class="bg-zinc-900 px-1 py-0.5 rounded text-red-300"
-						>journal</code
 					>
+						journal
+					</code>
 					collection for your Owner UID.
 				</p>
 			{/if}
@@ -209,7 +186,7 @@
 					class="flex flex-col gap-3 rounded-lg border border-zinc-800/40 bg-zinc-900/60 px-3 py-3 transition-all duration-200 hover:border-zinc-700/60 sm:flex-row sm:items-center sm:gap-4 sm:px-4"
 				>
 					<div class="flex min-w-0 flex-1 items-center gap-3">
-						{#if type === "blog"}
+						{#if type === 'blog'}
 							{@const post = item as BlogPost}
 							{#if post.coverImage}
 								<img
@@ -240,40 +217,36 @@
 
 						<div class="flex-1 min-w-0">
 							<div class="flex items-center gap-2 flex-wrap">
-								<p
-									class="text-sm font-medium text-zinc-200 truncate"
-								>
-									{item.title ||
-										(type === "journal"
-											? "Untitled Entry"
-											: "")}
+								<p class="text-sm font-medium text-zinc-200 truncate">
+									{item.title || (type === 'journal' ? 'Untitled Entry' : '')}
 								</p>
-								{#if type === "blog"}
+								{#if type === 'blog'}
 									{@const post = item as BlogPost}
-									{#if post.status === "draft"}
+									{#if post.status === 'draft'}
 										<span
 											class="px-1.5 py-0.5 rounded bg-zinc-800 text-[10px] font-medium text-zinc-450 border border-zinc-700/50 uppercase tracking-wider font-mono shrink-0"
-											>Draft</span
 										>
-									{:else if post.status === "unlisted"}
+											Draft
+										</span>
+									{:else if post.status === 'unlisted'}
 										<span
 											class="px-1.5 py-0.5 rounded bg-amber-500/10 text-[10px] font-medium text-amber-400 border border-amber-500/20 uppercase tracking-wider font-mono shrink-0"
-											>Unlisted</span
 										>
+											Unlisted
+										</span>
 									{:else}
 										<span
 											class="px-1.5 py-0.5 rounded bg-emerald-500/10 text-[10px] font-medium text-emerald-400 border border-emerald-500/20 uppercase tracking-wider font-mono shrink-0"
-											>Published</span
 										>
+											Published
+										</span>
 									{/if}
 								{/if}
 							</div>
-							{#if type === "blog"}
+							{#if type === 'blog'}
 								{@const post = item as BlogPost}
-								<p
-									class="text-xs text-zinc-650 font-mono mt-0.5 truncate"
-								>
-									{#if post.status === "draft"}
+								<p class="text-xs text-zinc-650 font-mono mt-0.5 truncate">
+									{#if post.status === 'draft'}
 										/blogs/drafts/{post.slug}/
 									{:else}
 										/blogs/{post.slug}/
@@ -281,40 +254,29 @@
 								</p>
 							{:else}
 								{@const entry = item as JournalEntry}
-								<p
-									class="text-xs text-zinc-500 font-mono mt-0.5 truncate"
-								>
-									{entry.excerpt ||
-										entry.content.substring(
-											0,
-											80,
-										)}{!entry.excerpt &&
+								<p class="text-xs text-zinc-500 font-mono mt-0.5 truncate">
+									{entry.excerpt || entry.content.substring(0, 80)}{!entry.excerpt &&
 									entry.content.length > 80
-										? "..."
-										: ""}
+										? '...'
+										: ''}
 								</p>
 							{/if}
 						</div>
 					</div>
 
 					<div
-						class="flex flex-wrap items-center justify-between gap-2 {type ===
-						'blog'
+						class="flex flex-wrap items-center justify-between gap-2 {type === 'blog'
 							? 'pl-[3.25rem] sm:ml-auto sm:flex-col sm:items-end sm:justify-center sm:gap-1 sm:pl-0'
 							: 'sm:ml-auto sm:flex-col sm:items-end sm:justify-center sm:gap-1'}"
 					>
 						<span class="text-xs text-zinc-600 whitespace-nowrap">
-							{type === "journal"
-								? (item as JournalEntry).entryDate
-								: formatDate(item.createdAt)}
+							{type === 'journal' ? (item as JournalEntry).entryDate : formatDate(item.createdAt)}
 						</span>
-						<div
-							class="flex flex-wrap items-center justify-end gap-x-3 gap-y-1 sm:shrink-0"
-						>
-							{#if type === "blog"}
+						<div class="flex flex-wrap items-center justify-end gap-x-3 gap-y-1 sm:shrink-0">
+							{#if type === 'blog'}
 								{@const post = item as BlogPost}
 								<a
-									href={post.status === "draft"
+									href={post.status === 'draft'
 										? `/blogs/drafts/${post.slug}/`
 										: `/blogs/${post.slug}/`}
 									target="_blank"
@@ -345,8 +307,14 @@
 
 		{#if hasMore}
 			<div class="mt-4 flex justify-center">
-				<AppButton variant="ghost" size="lg" onclick={onLoadMore} disabled={loadingMore} loading={loadingMore}>
-					{loadingMore ? "Loading…" : "Show more"}
+				<AppButton
+					variant="ghost"
+					size="lg"
+					onclick={onLoadMore}
+					disabled={loadingMore}
+					loading={loadingMore}
+				>
+					{loadingMore ? 'Loading…' : 'Show more'}
 				</AppButton>
 			</div>
 		{/if}

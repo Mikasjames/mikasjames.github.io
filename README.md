@@ -1,30 +1,30 @@
 # mikasjames.com
 
-Personal portfolio and blog built with [SvelteKit](https://kit.svelte.dev/), powered by a Firebase-backed CMS with admin dashboard, analytics, and automated CI/CD deploying to GitHub Pages.
+Personal portfolio and blog built with [SvelteKit](https://svelte.dev/docs/kit), powered by a Firebase-backed CMS with admin dashboard, analytics, and automated CI/CD deploying to GitHub Pages.
 
 ## Tech Stack
 
-| Layer | Technology |
-|-------|-----------|
-| Framework | [SvelteKit 2](https://kit.svelte.dev/) (runes mode) |
-| Language | [TypeScript](https://www.typescriptlang.org/) |
-| Styling | [Tailwind CSS v4](https://tailwindcss.com/) |
-| CMS / Database | [Firebase Firestore](https://firebase.google.com/products/firestore) |
-| Auth | [Firebase Auth](https://firebase.google.com/products/auth) (Google provider) |
-| Storage | [Firebase Storage](https://firebase.google.com/products/storage) |
-| Analytics | [Firebase Analytics](https://firebase.google.com/products/analytics) |
-| Functions | [Firebase Cloud Functions](https://firebase.google.com/products/functions) |
-| Adapter | [`@sveltejs/adapter-static`](https://kit.svelte.dev/docs/adapter-static) |
-| Hosting | [GitHub Pages](https://pages.github.com/) |
-| CI/CD | [GitHub Actions](https://github.com/features/actions) |
-| Testing | [Playwright](https://playwright.dev/) |
-| Fonts | Inter Variable, JetBrains Mono |
+| Layer          | Technology                                                                  |
+| -------------- | --------------------------------------------------------------------------- |
+| Framework      | [SvelteKit 2](https://svelte.dev/docs/kit) (runes mode)                     |
+| Language       | [TypeScript](https://www.typescriptlang.org/)                               |
+| Styling        | [Tailwind CSS v4](https://tailwindcss.com/)                                 |
+| CMS / Database | [Firebase Firestore](https://firebase.google.com/products/firestore)        |
+| Auth           | [Firebase Auth](https://firebase.google.com/products/auth) (email/password) |
+| Storage        | [Firebase Storage](https://firebase.google.com/products/storage)            |
+| Analytics      | [Firebase Analytics](https://firebase.google.com/products/analytics)        |
+| Functions      | [Firebase Cloud Functions](https://firebase.google.com/products/functions)  |
+| Adapter        | [`@sveltejs/adapter-static`](https://svelte.dev/docs/kit/adapter-static)    |
+| Hosting        | [GitHub Pages](https://pages.github.com/)                                   |
+| CI/CD          | [GitHub Actions](https://github.com/features/actions)                       |
+| Testing        | [Playwright](https://playwright.dev/)                                       |
+| Fonts          | Inter Variable, JetBrains Mono                                              |
 
 ## Features
 
 - **Portfolio** — Project showcase with live demos, tech stacks, and feature highlights
 - **Blog** — Full CRUD blog with Firestore-backed content, draft system, markdown rendering, reading time estimates
-- **Admin Dashboard** — Authenticated CMS for creating, editing, and publishing blog posts and journal entries 
+- **Admin Dashboard** — Authenticated CMS for creating, editing, and publishing blog posts and journal entries
 - **SEO** — Dynamic OG meta tags, auto-generated sitemap, robots.txt, canonical URLs
 - **Performance** — Static prerendering, hover preloads, optimized fonts, lazy-loaded images with placeholders
 - **PWA-ready** — Offline-capable architecture via service worker
@@ -37,7 +37,7 @@ Personal portfolio and blog built with [SvelteKit](https://kit.svelte.dev/), pow
 ### Prerequisites
 
 - Node.js 20+
-- A Firebase project with Firestore, Auth (Google), Storage, and Analytics enabled
+- A Firebase project with Firestore, Auth (email/password), Storage, and Analytics enabled
 - Firebase Admin SDK private key (for Cloud Functions)
 
 ### Setup
@@ -57,16 +57,16 @@ cp .env.example .env
 
 ### Environment Variables
 
-| Variable | Description |
-|----------|-------------|
-| `PUBLIC_SITE_URL` | Canonical site URL (default: `https://mikasjames.com`) |
-| `PUBLIC_FIREBASE_API_KEY` | Firebase Web API key |
-| `PUBLIC_FIREBASE_AUTH_DOMAIN` | Firebase Auth domain |
-| `PUBLIC_FIREBASE_PROJECT_ID` | Firebase project ID |
-| `PUBLIC_FIREBASE_STORAGE_BUCKET` | Firebase Storage bucket |
-| `PUBLIC_FIREBASE_MESSAGING_SENDER_ID` | Firebase messaging sender ID |
-| `PUBLIC_FIREBASE_APP_ID` | Firebase app ID |
-| `PUBLIC_FIREBASE_MEASUREMENT_ID` | Firebase measurement ID |
+| Variable                              | Description                                            |
+| ------------------------------------- | ------------------------------------------------------ |
+| `PUBLIC_SITE_URL`                     | Canonical site URL (default: `https://mikasjames.com`) |
+| `PUBLIC_FIREBASE_API_KEY`             | Firebase Web API key                                   |
+| `PUBLIC_FIREBASE_AUTH_DOMAIN`         | Firebase Auth domain                                   |
+| `PUBLIC_FIREBASE_PROJECT_ID`          | Firebase project ID                                    |
+| `PUBLIC_FIREBASE_STORAGE_BUCKET`      | Firebase Storage bucket                                |
+| `PUBLIC_FIREBASE_MESSAGING_SENDER_ID` | Firebase messaging sender ID                           |
+| `PUBLIC_FIREBASE_APP_ID`              | Firebase app ID                                        |
+| `PUBLIC_FIREBASE_MEASUREMENT_ID`      | Firebase measurement ID                                |
 
 ### Development
 
@@ -86,14 +86,20 @@ pnpm run preview   # preview the production build locally
 ### Run Tests
 
 ```bash
-pnpm run test:e2e
+pnpm run test            # App and Cloud Function unit tests
+pnpm run test:app        # SvelteKit/Vitest unit tests
+pnpm run test:coverage   # Unit tests with coverage thresholds
+pnpm run test:functions  # Cloud Function tests
+pnpm run test:e2e        # Playwright end-to-end tests
 ```
 
 ### Code Quality
 
 ```bash
-pnpm run check        # Type-check with svelte-check
-pnpm run check:watch  # Watch mode
+pnpm run check         # Type-check with svelte-check
+pnpm run check:watch   # Watch mode
+pnpm run format        # Format with Prettier
+pnpm run format:check  # Verify formatting without writing
 ```
 
 ## Project Structure
@@ -147,26 +153,26 @@ src/
 │       └── +server.ts     # robots.txt generation
 functions/
 ├── src/
-│   └── index.ts           # Cloud Functions (e.g., blog revalidation)
-├── .env                   # Firebase Admin SDK credentials
-└── .env.portfolio-crm-8d775
+│   ├── deploy/            # Blog rebuild dispatch
+│   ├── insights/          # Habit and journal insight generation
+│   └── olj/               # Online journal endpoints
+└── .env                   # Firebase Admin SDK credentials
 tests/
-└── e2e/
-    ├── homepage.spec.ts
-    ├── blog.spec.ts
-    └── navigation.spec.ts
+├── e2e/                   # Playwright specs
+└── unit/                  # Vitest route and utility tests
 .github/workflows/
-└── deploy.yml             # CI/CD pipeline
+├── ci.yml                 # Pull request quality checks
+└── deploy.yml             # Build and GitHub Pages deployment
 ```
 
 ## Deployment
 
-The site is deployed to **GitHub Pages** via GitHub Actions. On every push to `main` (or via `repository_dispatch` / manual trigger):
+The site is deployed to **GitHub Pages** via GitHub Actions. Every pull request runs the `CI` workflow (formatting, type checking, unit tests with coverage, Cloud Function tests, the production build, and Playwright). On every push to `main` (or via `repository_dispatch` / manual trigger), the `Deploy to GitHub Pages` workflow:
 
-1. Dependencies are installed (`pnpm ci`)
-2. The site is built with full Firebase environment variables from repository secrets
-3. The `build/` directory is uploaded as a Pages artifact
-4. GitHub Pages deploys the artifact
+1. Installs dependencies (`pnpm install --frozen-lockfile`)
+2. Builds the site with full Firebase environment variables from repository secrets
+3. Uploads the `build/` directory as a Pages artifact
+4. Deploys the artifact to GitHub Pages
 
 ### Manual Deployment
 
@@ -180,6 +186,6 @@ Or trigger from the Actions tab in GitHub.
 
 ## License
 
-The code under this repository is licensed under the [MIT License](LICENSE). 
+The code under this repository is licensed under the [MIT License](LICENSE).
 
 However, all personal content, project copy, writing, images, and branding assets are reserved under copyright and may not be used, republished, or redistributed without explicit permission. Feel free to use the underlying SvelteKit engine, CMS setup, and GitHub Actions pipelines for your own projects!

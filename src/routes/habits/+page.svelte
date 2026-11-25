@@ -1,7 +1,7 @@
 <script lang="ts">
-	import { onDestroy, untrack } from "svelte";
-	import { goto } from "$app/navigation";
-	import { subscribeToAuth, logout } from "$lib/firebase/auth";
+	import { onDestroy, untrack } from 'svelte';
+	import { goto } from '$app/navigation';
+	import { subscribeToAuth, logout } from '$lib/firebase/auth';
 	import {
 		getJournalEntryByDate,
 		getJournalEntriesByMonth,
@@ -9,19 +9,24 @@
 		upsertJournalEntry,
 		type HabitLog,
 		type JournalEntry,
-	} from "$lib/firebase/firestore.svelte";
-	import { createHabitsStore } from "$lib/firebase/habits.svelte";
-	import { renderMarkdown } from "$lib/utils/renderMarkdown";
-	import { getHappinessLabel, todayDateKey, formattedDate } from "$lib/utils/date";
-	import { saveNoteDraft, loadNoteDraft, clearNoteDraft, createNoteDraftDebouncer } from "$lib/utils/noteDraft";
-	import { createDraftPromptController } from "$lib/utils/draftPrompt.svelte";
-	import type { User } from "firebase/auth";
-	import GridBackground from "$lib/components/GridBackground.svelte";
-	import Spinner from "$lib/components/Spinner.svelte";
-	import AppButton from "$lib/components/AppButton.svelte";
-	import UserActions from "$lib/components/UserActions.svelte";
-	import HabitsManager from "$lib/components/HabitsManager.svelte";
-	import DraftRestoreDialog from "$lib/components/DraftRestoreDialog.svelte";
+	} from '$lib/firebase/firestore.svelte';
+	import { createHabitsStore } from '$lib/firebase/habits.svelte';
+	import { renderMarkdown } from '$lib/utils/renderMarkdown';
+	import { getHappinessLabel, todayDateKey, formattedDate } from '$lib/utils/date';
+	import {
+		saveNoteDraft,
+		loadNoteDraft,
+		clearNoteDraft,
+		createNoteDraftDebouncer,
+	} from '$lib/utils/noteDraft';
+	import { createDraftPromptController } from '$lib/utils/draftPrompt.svelte';
+	import type { User } from 'firebase/auth';
+	import GridBackground from '$lib/components/GridBackground.svelte';
+	import Spinner from '$lib/components/Spinner.svelte';
+	import AppButton from '$lib/components/AppButton.svelte';
+	import UserActions from '$lib/components/UserActions.svelte';
+	import HabitsManager from '$lib/components/HabitsManager.svelte';
+	import DraftRestoreDialog from '$lib/components/DraftRestoreDialog.svelte';
 
 	let user = $state<User | null>(null);
 	let authReady = $state(false);
@@ -30,10 +35,10 @@
 
 	let selectedDate = $state(todayDateKey());
 	let happinessRating = $state(3);
-	let content = $state("");
+	let content = $state('');
 	let journalEntryId = $state<string | null>(null);
 	let saving = $state(false);
-	let saveMsg = $state("");
+	let saveMsg = $state('');
 	let showNote = $state(false);
 	let showPreview = $state(false);
 
@@ -74,7 +79,7 @@
 		user = u;
 		authReady = true;
 		if (!u) {
-			goto("/admin/login/");
+			goto('/admin/login/');
 		}
 	});
 	onDestroy(() => {
@@ -87,10 +92,10 @@
 		const uid = user.uid;
 
 		selectedDate = date;
-		content = "";
+		content = '';
 		showNote = false;
 		showPreview = false;
-		saveMsg = "";
+		saveMsg = '';
 		journalEntryId = null;
 		happinessRating = 3;
 
@@ -99,13 +104,13 @@
 				monthEntries.find((e) => e.entryDate === date && e.ownerUid === uid),
 			);
 			const entry = cached ?? (await getJournalEntryByDate(uid, date));
-		
+
 			if (selectedDate !== date) return;
 
 			if (entry) {
 				journalEntryId = entry.id;
 				happinessRating = entry.happinessRating ?? 3;
-				content = entry.content || "";
+				content = entry.content || '';
 				if (content) showNote = true;
 			}
 		} catch {
@@ -144,23 +149,18 @@
 		try {
 			monthEntries = await getJournalEntriesByMonth(uid, year, month);
 		} catch (err) {
-			console.error("Failed to load calendar entries:", err);
+			console.error('Failed to load calendar entries:', err);
 			monthEntries = [];
 		}
 		await cacheHabitLogsForMonth(uid, year, month);
 		calendarLoading = false;
 	}
 
-	async function cacheHabitLogsForMonth(
-		uid: string,
-		year: number,
-		month: number,
-	) {
+	async function cacheHabitLogsForMonth(uid: string, year: number, month: number) {
 		const dayCount = new Date(year, month, 0).getDate();
 		const dates = Array.from(
 			{ length: dayCount },
-			(_, i) =>
-				`${year}-${String(month).padStart(2, "0")}-${String(i + 1).padStart(2, "0")}`,
+			(_, i) => `${year}-${String(month).padStart(2, '0')}-${String(i + 1).padStart(2, '0')}`,
 		);
 		const map: Record<string, Set<string>> = {};
 		for (const d of dates) map[d] = new Set();
@@ -170,7 +170,7 @@
 				map[date] = new Set(logs.map((log: HabitLog) => log.habitId));
 			}
 		} catch (err) {
-			console.warn("Habit logs unavailable:", err);
+			console.warn('Habit logs unavailable:', err);
 		}
 		habitLogsByDate = map;
 	}
@@ -178,12 +178,12 @@
 	async function handleSave() {
 		if (!user) return;
 		saving = true;
-		saveMsg = "";
+		saveMsg = '';
 		try {
 			const payload = {
-				title: content ? `Check-in — ${selectedDate}` : "",
-				excerpt: "",
-				content: content || "",
+				title: content ? `Check-in — ${selectedDate}` : '',
+				excerpt: '',
+				content: content || '',
 				coverImage: null,
 				imageMeta: {} as Record<string, { width: number; height: number }>,
 				happinessRating,
@@ -201,10 +201,12 @@
 			noteDraftSaver.cancel();
 
 			await loadCalendarMonth(calendarYear, calendarMonth);
-			saveMsg = "Saved!";
-			setTimeout(() => { saveMsg = ""; }, 2000);
+			saveMsg = 'Saved!';
+			setTimeout(() => {
+				saveMsg = '';
+			}, 2000);
 		} catch (err) {
-			saveMsg = err instanceof Error ? err.message : "Failed to save.";
+			saveMsg = err instanceof Error ? err.message : 'Failed to save.';
 		} finally {
 			saving = false;
 		}
@@ -231,7 +233,7 @@
 
 	$effect(() => {
 		if (!showNote && content && !saveMsg) {
-			content = "";
+			content = '';
 		}
 	});
 
@@ -254,13 +256,13 @@
 
 	function dotColor(day: number) {
 		const entry = entryForDay(day);
-		if (!entry || entry.happinessRating == null) return "bg-zinc-800 border-zinc-700";
+		if (!entry || entry.happinessRating == null) return 'bg-zinc-800 border-zinc-700';
 		const r = entry.happinessRating;
-		if (r <= 1) return "bg-rose-500 border-rose-400";
-		if (r === 2) return "bg-orange-500 border-orange-400";
-		if (r === 3) return "bg-amber-500 border-amber-400";
-		if (r === 4) return "bg-sky-500 border-sky-400";
-		return "bg-emerald-500 border-emerald-400";
+		if (r <= 1) return 'bg-rose-500 border-rose-400';
+		if (r === 2) return 'bg-orange-500 border-orange-400';
+		if (r === 3) return 'bg-amber-500 border-amber-400';
+		if (r === 4) return 'bg-sky-500 border-sky-400';
+		return 'bg-emerald-500 border-emerald-400';
 	}
 
 	function isToday(date: string) {
@@ -268,8 +270,18 @@
 	}
 
 	const monthNames = [
-		"January", "February", "March", "April", "May", "June",
-		"July", "August", "September", "October", "November", "December",
+		'January',
+		'February',
+		'March',
+		'April',
+		'May',
+		'June',
+		'July',
+		'August',
+		'September',
+		'October',
+		'November',
+		'December',
 	];
 
 	function goToday() {
@@ -283,21 +295,20 @@
 
 	async function handleLogout() {
 		await logout();
-		goto("/admin/login/");
+		goto('/admin/login/');
 	}
 
 	function parsedContent() {
-		if (!content) return "";
+		if (!content) return '';
 		// Never fall back to the raw string: it is untrusted input and this
 		// result goes straight into {@html}. A failed render is an empty note.
 		try {
 			return renderMarkdown(content);
 		} catch (err) {
-			console.error("Failed to render habit note:", err);
-			return "";
+			console.error('Failed to render habit note:', err);
+			return '';
 		}
 	}
-
 </script>
 
 <svelte:head>
@@ -307,7 +318,7 @@
 
 <div class="min-h-screen bg-[#09090b] pt-20 pb-12 px-4 md:px-8">
 	<GridBackground opacity="2" />
-	
+
 	{#if !authReady || (user && habitsStore.habitsLoading && !journalEntryId)}
 		<div class="min-h-[70vh] flex flex-col items-center justify-center gap-4">
 			<Spinner size="xl" color="accent" />
@@ -319,7 +330,9 @@
 				<div>
 					<div class="mb-2 flex items-center gap-2">
 						<span class="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
-						<p class="font-mono text-xs text-accent-400 tracking-widest uppercase">&gt;_ daily check-in</p>
+						<p class="font-mono text-xs text-accent-400 tracking-widest uppercase">
+							&gt;_ daily check-in
+						</p>
 					</div>
 					<h1 class="text-2xl font-bold tracking-tight text-zinc-100">
 						{formattedDate(selectedDate)}
@@ -329,15 +342,12 @@
 					{#snippet children()}
 						<AppButton variant="ghost" size="sm" href="/admin/">Admin Dashboard</AppButton>
 					{/snippet}
-
 				</UserActions>
 			</div>
 
 			<div class="space-y-5">
 				<div class="rounded-xl border border-zinc-800/60 bg-zinc-900/50 p-5">
-					<p class="mb-3 text-xs font-semibold uppercase tracking-wide text-zinc-400">
-						Mood
-					</p>
+					<p class="mb-3 text-xs font-semibold uppercase tracking-wide text-zinc-400">Mood</p>
 					<div class="flex items-center gap-4">
 						<span class="text-lg font-bold text-zinc-100 min-w-[3rem] text-center tabular-nums">
 							{happinessRating}
@@ -372,36 +382,46 @@
 					<button
 						type="button"
 						onclick={() => {
-						showNote = !showNote;
-						if (!showNote) {
-							// Collapsing the note discards the text — drop any
-							// pending save and the stored draft with it.
-							content = "";
-							noteDraftSaver.cancel();
-							if (user) clearNoteDraft(user.uid, selectedDate);
-						}
-					}}
+							showNote = !showNote;
+							if (!showNote) {
+								// Collapsing the note discards the text — drop any
+								// pending save and the stored draft with it.
+								content = '';
+								noteDraftSaver.cancel();
+								if (user) clearNoteDraft(user.uid, selectedDate);
+							}
+						}}
 						class="flex w-full items-center justify-between text-xs font-semibold uppercase tracking-wide text-zinc-400 transition hover:text-zinc-200"
 					>
-						<span>{showNote ? "Journal Note" : "+ Write a Note"}</span>
+						<span>{showNote ? 'Journal Note' : '+ Write a Note'}</span>
 						<svg
 							class="h-4 w-4 transition-transform {showNote ? 'rotate-180' : ''}"
-							fill="none" stroke="currentColor" viewBox="0 0 24 24"
+							fill="none"
+							stroke="currentColor"
+							viewBox="0 0 24 24"
 						>
-							<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
+							<path
+								stroke-linecap="round"
+								stroke-linejoin="round"
+								stroke-width="2"
+								d="M19 9l-7 7-7-7"
+							/>
 						</svg>
 					</button>
 					{#if showNote}
 						<div class="mt-3 space-y-3">
 							<div class="flex items-center gap-2">
 								<AppButton variant="ghost" size="sm" onclick={() => (showPreview = !showPreview)}>
-									{showPreview ? "Edit" : "Preview"}
+									{showPreview ? 'Edit' : 'Preview'}
 								</AppButton>
 								<span class="text-[10px] text-zinc-600">Supports markdown</span>
 							</div>
 							{#if showPreview}
-								<div class="min-h-[120px] rounded-lg border border-zinc-700/60 bg-zinc-950/30 p-3 max-w-none prose-custom text-zinc-300 text-left text-[0.96rem] leading-relaxed break-words">
-									{@html parsedContent() || "<p class='text-zinc-600 italic'>Nothing written yet...</p>"}
+								<div
+									class="min-h-[120px] rounded-lg border border-zinc-700/60 bg-zinc-950/30 p-3 max-w-none prose-custom text-zinc-300 text-left text-[0.96rem] leading-relaxed break-words"
+								>
+									{@html parsedContent() ||
+										"<p class='text-zinc-600 italic'>Nothing written yet...</p>"}
 								</div>
 							{:else}
 								<textarea
@@ -415,35 +435,46 @@
 					{/if}
 				</div>
 
-			<div class="flex items-center gap-4">
-				<AppButton variant="primary" size="lg" onclick={handleSave} disabled={saving} loading={saving}>
-					{saving ? "Saving..." : "Save Check-in"}
-				</AppButton>
+				<div class="flex items-center gap-4">
+					<AppButton
+						variant="primary"
+						size="lg"
+						onclick={handleSave}
+						disabled={saving}
+						loading={saving}
+					>
+						{saving ? 'Saving...' : 'Save Check-in'}
+					</AppButton>
 					{#if saveMsg}
-						<span class="text-sm {saveMsg === 'Saved!' ? 'text-emerald-400' : 'text-red-400'}">{saveMsg}</span>
+						<span class="text-sm {saveMsg === 'Saved!' ? 'text-emerald-400' : 'text-red-400'}">
+							{saveMsg}
+						</span>
 					{/if}
 				</div>
 			</div>
 
-		<div class="mt-10 rounded-xl border border-zinc-800/60 bg-zinc-900/50 p-5">
-			<div class="mb-4 flex items-center justify-between">
-				<AppButton variant="ghost" size="sm" onclick={prevMonth}>&larr;</AppButton>
-				<p class="text-sm font-semibold text-zinc-200">
-					{monthNames[calendarMonth - 1]} {calendarYear}
-				</p>
-				<AppButton variant="ghost" size="sm" onclick={nextMonth}>&rarr;</AppButton>
-			</div>
-
-			{#if calendarLoading}
-				<div class="flex justify-center py-4">
-					<Spinner size="md" color="accent" />
+			<div class="mt-10 rounded-xl border border-zinc-800/60 bg-zinc-900/50 p-5">
+				<div class="mb-4 flex items-center justify-between">
+					<AppButton variant="ghost" size="sm" onclick={prevMonth}>&larr;</AppButton>
+					<p class="text-sm font-semibold text-zinc-200">
+						{monthNames[calendarMonth - 1]}
+						{calendarYear}
+					</p>
+					<AppButton variant="ghost" size="sm" onclick={nextMonth}>&rarr;</AppButton>
 				</div>
+
+				{#if calendarLoading}
+					<div class="flex justify-center py-4">
+						<Spinner size="md" color="accent" />
+					</div>
 				{:else}
 					{@const pad = firstDayOfMonth(calendarYear, calendarMonth)}
 					{@const totalDays = daysInMonth(calendarYear, calendarMonth)}
 					<div class="grid grid-cols-7 gap-1 text-center">
-						{#each ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"] as day}
-							<span class="text-[10px] font-mono uppercase tracking-wider text-zinc-600 py-1">{day}</span>
+						{#each ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'] as day}
+							<span class="text-[10px] font-mono uppercase tracking-wider text-zinc-600 py-1">
+								{day}
+							</span>
 						{/each}
 						{#each Array(pad) as _}
 							<div></div>
@@ -454,9 +485,16 @@
 							<button
 								type="button"
 								onclick={() => loadDate(ds)}
-								class="flex flex-col items-center gap-1 rounded-lg p-2 transition hover:bg-zinc-800/50 {ds === selectedDate ? 'ring-1 ring-accent-500/50 bg-accent-500/10' : ''}"
+								class="flex flex-col items-center gap-1 rounded-lg p-2 transition hover:bg-zinc-800/50 {ds ===
+								selectedDate
+									? 'ring-1 ring-accent-500/50 bg-accent-500/10'
+									: ''}"
 							>
-								<span class="text-xs font-mono {isToday(ds) ? 'text-accent-400 font-bold' : 'text-zinc-400'}">
+								<span
+									class="text-xs font-mono {isToday(ds)
+										? 'text-accent-400 font-bold'
+										: 'text-zinc-400'}"
+								>
 									{day}
 								</span>
 								<span class="h-2 w-2 rounded-full border {dotColor(day)}"></span>

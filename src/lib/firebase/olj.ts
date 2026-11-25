@@ -36,9 +36,7 @@ function docToOljLoginLog(id: string, data: Record<string, unknown>): OljLoginLo
 
 export async function getLatestOljLoginLog(): Promise<OljLoginLog | null> {
 	const snapshot = await getDoc(doc(getDb(), 'oljLoginLogs', 'latest'));
-	return snapshot.exists()
-		? docToOljLoginLog(snapshot.id, snapshot.data())
-		: null;
+	return snapshot.exists() ? docToOljLoginLog(snapshot.id, snapshot.data()) : null;
 }
 
 export type OljLoginNowResult = {

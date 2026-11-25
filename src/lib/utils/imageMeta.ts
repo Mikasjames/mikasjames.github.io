@@ -1,91 +1,84 @@
-import imageCompression, { type Options as CompressOptions } from "browser-image-compression";
-import { extractImageUrlsFromMarkdown } from "./mediaMeta";
-import type { MediaItem } from "$lib/firebase/firestore.svelte";
+import imageCompression, { type Options as CompressOptions } from 'browser-image-compression';
+import { extractImageUrlsFromMarkdown } from './mediaMeta';
+import type { MediaItem } from '$lib/firebase/firestore.svelte';
 
-export type { MediaDimensions as ImageMeta } from "./mediaMeta";
+export type { MediaDimensions as ImageMeta } from './mediaMeta';
 export {
-  extractImageUrlsFromMarkdown,
-  sanitizeImageMetaFromMarkdown,
-  getImageDimensionsFromUrl,
-  resolveMissingImageMeta,
-} from "./mediaMeta";
+	extractImageUrlsFromMarkdown,
+	sanitizeImageMetaFromMarkdown,
+	getImageDimensionsFromUrl,
+	resolveMissingImageMeta,
+} from './mediaMeta';
 
 export function enrichImageMetaFromGallery(
-  markdown: string,
-  currentImageMeta: Record<string, { width: number; height: number }>,
-  galleryItems: MediaItem[],
+	markdown: string,
+	currentImageMeta: Record<string, { width: number; height: number }>,
+	galleryItems: MediaItem[],
 ): Record<string, { width: number; height: number }> {
-  const urls = extractImageUrlsFromMarkdown(markdown);
-  return urls.reduce(
-    (acc, url) => {
-      if (currentImageMeta[url]) {
-        acc[url] = currentImageMeta[url];
-        return acc;
-      }
+	const urls = extractImageUrlsFromMarkdown(markdown);
+	return urls.reduce(
+		(acc, url) => {
+			if (currentImageMeta[url]) {
+				acc[url] = currentImageMeta[url];
+				return acc;
+			}
 
-      const media = galleryItems.find((item) => item.url === url);
-      if (media?.width && media?.height) {
-        acc[url] = {
-          width: media.width,
-          height: media.height,
-        };
-      }
-      return acc;
-    },
-    {} as Record<string, { width: number; height: number }>,
-  );
+			const media = galleryItems.find((item) => item.url === url);
+			if (media?.width && media?.height) {
+				acc[url] = {
+					width: media.width,
+					height: media.height,
+				};
+			}
+			return acc;
+		},
+		{} as Record<string, { width: number; height: number }>,
+	);
 }
 
-export function removeImageReferencesFromMarkdown(
-  markdown: string,
-  imageUrl: string,
-): string {
-  if (!markdown) return "";
+export function removeImageReferencesFromMarkdown(markdown: string, imageUrl: string): string {
+	if (!markdown) return '';
 
-  const escapedUrl = imageUrl.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
-  const imageRefRegex = new RegExp(`!\\[[^\\]]*]\\(${escapedUrl}\\)`, "g");
+	const escapedUrl = imageUrl.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+	const imageRefRegex = new RegExp(`!\\[[^\\]]*]\\(${escapedUrl}\\)`, 'g');
 
-  const cleaned = markdown.replace(imageRefRegex, "");
-  return cleaned.replace(/\n{3,}/g, "\n\n").trim();
+	const cleaned = markdown.replace(imageRefRegex, '');
+	return cleaned.replace(/\n{3,}/g, '\n\n').trim();
 }
 
 export async function compressAndGetMeta(file: File) {
-  const isGif = file.type === "image/gif" || /\.gif$/i.test(file.name);
+	const isGif = file.type === 'image/gif' || /\.gif$/i.test(file.name);
 
-  let compressedFile: File;
+	let compressedFile: File;
 
-  if (isGif) {
-    compressedFile = file;
-  } else {
-    const options: CompressOptions = {
-      maxWidthOrHeight: 1200,
-      useWebWorker: true,
-      fileType: "image/webp",
-      initialQuality: 0.78,
-    };
+	if (isGif) {
+		compressedFile = file;
+	} else {
+		const options: CompressOptions = {
+			maxWidthOrHeight: 1200,
+			useWebWorker: true,
+			fileType: 'image/webp',
+			initialQuality: 0.78,
+		};
 
-    const compressedBlob = await imageCompression(file, options);
-    compressedFile =
-      compressedBlob instanceof File
-        ? compressedBlob
-        : new File(
-            [compressedBlob],
-            file.name.replace(/\.[^/.]+$/, "") + ".webp",
-            {
-              type: "image/webp",
-            },
-          );
-  }
+		const compressedBlob = await imageCompression(file, options);
+		compressedFile =
+			compressedBlob instanceof File
+				? compressedBlob
+				: new File([compressedBlob], file.name.replace(/\.[^/.]+$/, '') + '.webp', {
+						type: 'image/webp',
+					});
+	}
 
-  const url = URL.createObjectURL(compressedFile);
-  const img = new Image();
-  img.src = url;
-  await new Promise<void>((res, rej) => {
-    img.onload = () => res();
-    img.onerror = (e) => rej(e);
-  });
-  const width = img.naturalWidth;
-  const height = img.naturalHeight;
-  URL.revokeObjectURL(url);
-  return { compressedFile, width, height };
+	const url = URL.createObjectURL(compressedFile);
+	const img = new Image();
+	img.src = url;
+	await new Promise<void>((res, rej) => {
+		img.onload = () => res();
+		img.onerror = (e) => rej(e);
+	});
+	const width = img.naturalWidth;
+	const height = img.naturalHeight;
+	URL.revokeObjectURL(url);
+	return { compressedFile, width, height };
 }

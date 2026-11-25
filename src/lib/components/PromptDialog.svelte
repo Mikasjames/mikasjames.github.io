@@ -1,12 +1,12 @@
 <script lang="ts">
-	import Modal from "./Modal.svelte";
+	import Modal from './Modal.svelte';
 
 	let {
 		show = $bindable(false),
-		title = "Input",
-		label = "",
-		placeholder = "",
-		value = $bindable(""),
+		title = 'Input',
+		label = '',
+		placeholder = '',
+		value = $bindable(''),
 		onConfirm,
 		onCancel,
 	}: {
@@ -26,7 +26,7 @@
 
 	function cancel() {
 		show = false;
-		value = "";
+		value = '';
 		onCancel?.();
 	}
 </script>
@@ -38,8 +38,9 @@
 				<label
 					for="prompt-input"
 					class="block text-xs font-medium text-zinc-400 tracking-wide uppercase"
-					>{label}</label
 				>
+					{label}
+				</label>
 			{/if}
 			<input
 				id="prompt-input"
@@ -47,8 +48,8 @@
 				bind:value
 				{placeholder}
 				onkeydown={(e) => {
-					if (e.key === "Enter") confirm();
-					if (e.key === "Escape") cancel();
+					if (e.key === 'Enter') confirm();
+					if (e.key === 'Escape') cancel();
 				}}
 				autofocus
 				class="w-full px-3.5 py-2.5 rounded-lg bg-zinc-900 border border-zinc-700/60 text-zinc-100 text-sm placeholder-zinc-600 focus:outline-none focus:border-accent-500 focus:ring-1 focus:ring-accent-500/30 transition-all duration-200"

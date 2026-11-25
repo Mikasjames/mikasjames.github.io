@@ -110,15 +110,7 @@ describe('editorActions', () => {
 			const setForm = vi.fn();
 			const getForm = vi.fn();
 
-			await insertMarkdownAtCursor(
-				'url',
-				'alt',
-				null,
-				setActiveTab,
-				undefined,
-				getForm,
-				setForm,
-			);
+			await insertMarkdownAtCursor('url', 'alt', null, setActiveTab, undefined, getForm, setForm);
 
 			expect(setActiveTab).toHaveBeenCalledWith('write');
 			expect(setForm).not.toHaveBeenCalled();
@@ -169,11 +161,10 @@ describe('editorActions', () => {
 					imageMeta: { 'https://example.com/img.jpg': { width: 800, height: 600 } },
 				}),
 			);
-			expect(insertFn).toHaveBeenCalledWith(
-				'https://example.com/img.jpg',
-				'img',
-				{ width: 800, height: 600 },
-			);
+			expect(insertFn).toHaveBeenCalledWith('https://example.com/img.jpg', 'img', {
+				width: 800,
+				height: 600,
+			});
 		});
 
 		it('resets input value after upload', async () => {
@@ -271,7 +262,12 @@ describe('editorActions', () => {
 	describe('handleDeleteMediaWrapper', () => {
 		it('delegates to mediaStore.handleDeleteMedia with callbacks', async () => {
 			const mediaStore = createMockMediaStore();
-			const item = { id: '1', url: 'https://example.com/img.jpg', name: 'img.jpg', uploadedAt: null };
+			const item = {
+				id: '1',
+				url: 'https://example.com/img.jpg',
+				name: 'img.jpg',
+				uploadedAt: null,
+			};
 			const callbacks = {
 				onBeforeConfirm: vi.fn().mockResolvedValue(true),
 				onError: vi.fn(),
@@ -291,7 +287,12 @@ describe('editorActions', () => {
 
 		it('calls onRemoveImage and onRemoveMarkdown when onDelete fires', async () => {
 			const mediaStore = createMockMediaStore();
-			const item = { id: '1', url: 'https://example.com/img.jpg', name: 'img.jpg', uploadedAt: null };
+			const item = {
+				id: '1',
+				url: 'https://example.com/img.jpg',
+				name: 'img.jpg',
+				uploadedAt: null,
+			};
 			const callbacks = {
 				onBeforeConfirm: vi.fn().mockResolvedValue(true),
 				onError: vi.fn(),

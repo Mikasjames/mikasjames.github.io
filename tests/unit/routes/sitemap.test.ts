@@ -29,14 +29,10 @@ describe('sitemap.xml GET', () => {
 
 	it('escapes XML-significant characters in slugs and drops empty lastmods', async () => {
 		const { GET } = await import('../../../src/routes/sitemap.xml/+server.js');
-		firestore.getPublishedPosts.mockResolvedValue([
-			{ slug: 'tricky&<slug>', createdAt: null },
-		]);
+		firestore.getPublishedPosts.mockResolvedValue([{ slug: 'tricky&<slug>', createdAt: null }]);
 
 		const body = await (await GET()).text();
-		expect(body).toContain(
-			'<loc>https://test.local/blogs/tricky&amp;&lt;slug&gt;/</loc>',
-		);
+		expect(body).toContain('<loc>https://test.local/blogs/tricky&amp;&lt;slug&gt;/</loc>');
 		expect(body).not.toContain('<lastmod>');
 	});
 });

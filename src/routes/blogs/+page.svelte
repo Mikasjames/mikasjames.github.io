@@ -3,11 +3,11 @@
 	let posts = $derived(data.posts ?? []);
 
 	function formatDate(d: Date | null) {
-		if (!d) return "";
-		return d.toLocaleDateString("en-US", {
-			year: "numeric",
-			month: "long",
-			day: "numeric",
+		if (!d) return '';
+		return d.toLocaleDateString('en-US', {
+			year: 'numeric',
+			month: 'long',
+			day: 'numeric',
 		});
 	}
 
@@ -16,7 +16,7 @@
 		const mins = Math.max(1, Math.round(words / 200));
 		return `${mins} min read`;
 	}
-	import GridBackground from "$lib/components/GridBackground.svelte";
+	import GridBackground from '$lib/components/GridBackground.svelte';
 </script>
 
 <svelte:head>
@@ -36,16 +36,8 @@
 
 	<div class="relative mx-auto max-w-3xl">
 		<div class="mb-14">
-			<p
-				class="font-mono text-xs text-accent-400 tracking-widest uppercase mb-3"
-			>
-				&gt;_ writing
-			</p>
-			<h1
-				class="text-4xl md:text-5xl font-bold text-zinc-100 leading-tight"
-			>
-				Blog
-			</h1>
+			<p class="font-mono text-xs text-accent-400 tracking-widest uppercase mb-3">&gt;_ writing</p>
+			<h1 class="text-4xl md:text-5xl font-bold text-zinc-100 leading-tight">Blog</h1>
 			<p class="mt-4 text-zinc-400 text-lg leading-relaxed max-w-xl">
 				Some stuff that came to mind.
 			</p>
@@ -57,12 +49,7 @@
 				<div
 					class="w-12 h-12 rounded-xl bg-surface-800 border border-zinc-800 flex items-center justify-center mx-auto mb-4"
 				>
-					<svg
-						class="w-6 h-6 text-zinc-600"
-						fill="none"
-						stroke="currentColor"
-						viewBox="0 0 24 24"
-					>
+					<svg class="w-6 h-6 text-zinc-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
 						<path
 							stroke-linecap="round"
 							stroke-linejoin="round"
@@ -71,9 +58,7 @@
 						/>
 					</svg>
 				</div>
-				<p class="text-zinc-500 text-sm">
-					No posts yet — check back soon.
-				</p>
+				<p class="text-zinc-500 text-sm">No posts yet — check back soon.</p>
 			</div>
 		{:else}
 			<div class="space-y-5">
@@ -89,8 +74,8 @@
 								>
 									<img
 										src={post.coverImage}
-										fetchpriority={i === 0 ? "high" : "low"}
-										loading={i === 0 ? "eager" : "lazy"}
+										fetchpriority={i === 0 ? 'high' : 'low'}
+										loading={i === 0 ? 'eager' : 'lazy'}
 										decoding="async"
 										alt=""
 										class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
@@ -101,17 +86,12 @@
 							<div class="flex-1 min-w-0">
 								<div class="flex items-center gap-3 mb-2.5">
 									{#if post.createdAt}
-										<time
-											class="text-xs text-zinc-550 font-mono"
-											>{formatDate(post.createdAt)}</time
-										>
-										<span
-											class="w-1 h-1 rounded-full bg-zinc-800"
-										></span>
+										<time class="text-xs text-zinc-550 font-mono">
+											{formatDate(post.createdAt)}
+										</time>
+										<span class="w-1 h-1 rounded-full bg-zinc-800"></span>
 									{/if}
-									<span class="text-xs text-zinc-550"
-										>{readingTime(post.content)}</span
-									>
+									<span class="text-xs text-zinc-550">{readingTime(post.content)}</span>
 								</div>
 
 								<h2
@@ -120,9 +100,7 @@
 									{post.title}
 								</h2>
 
-								<p
-									class="text-sm text-zinc-400 leading-relaxed line-clamp-2"
-								>
+								<p class="text-sm text-zinc-400 leading-relaxed line-clamp-2">
 									{post.excerpt}
 								</p>
 

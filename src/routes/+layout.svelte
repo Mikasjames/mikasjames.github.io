@@ -1,19 +1,19 @@
 <script lang="ts">
-	import "@fontsource-variable/inter/index.css";
-	import "@fontsource/jetbrains-mono/index.css";
+	import '@fontsource-variable/inter/index.css';
+	import '@fontsource/jetbrains-mono/index.css';
 
-import Load from "$lib/components/Load.svelte";
-import Toast from "$lib/components/Toast.svelte";
-import PwaInstallPrompt from "$lib/components/PwaInstallPrompt.svelte";
-import AdminNav from "$lib/components/AdminNav.svelte";
-	import "../app.css";
-	import { onMount } from "svelte";
-	import { page } from "$app/stores";
-	import { afterNavigate } from "$app/navigation";
-	import { logPageView } from "$lib/firebase/analytics";
-	import interLatin from "@fontsource-variable/inter/files/inter-latin-wght-normal.woff2?url";
+	import Load from '$lib/components/Load.svelte';
+	import Toast from '$lib/components/Toast.svelte';
+	import PwaInstallPrompt from '$lib/components/PwaInstallPrompt.svelte';
+	import AdminNav from '$lib/components/AdminNav.svelte';
+	import '../app.css';
+	import { onMount } from 'svelte';
+	import { page } from '$app/stores';
+	import { afterNavigate } from '$app/navigation';
+	import { logPageView } from '$lib/firebase/analytics';
+	import interLatin from '@fontsource-variable/inter/files/inter-latin-wght-normal.woff2?url';
 
-	const isHome = $derived($page.url.pathname === "/");
+	const isHome = $derived($page.url.pathname === '/');
 
 	let { children } = $props();
 	let showLoaderDOM = $state(true);
@@ -33,11 +33,11 @@ import AdminNav from "$lib/components/AdminNav.svelte";
 	});
 
 	const navLinks = [
-		{ href: "#about", label: "About" },
-		{ href: "#experience", label: "Experience" },
-		{ href: "#skills", label: "Skills" },
-		{ href: "#projects", label: "Projects" },
-		{ href: "#contact", label: "Contact" },
+		{ href: '#about', label: 'About' },
+		{ href: '#experience', label: 'Experience' },
+		{ href: '#skills', label: 'Skills' },
+		{ href: '#projects', label: 'Projects' },
+		{ href: '#contact', label: 'Contact' },
 	];
 
 	let mobileOpen = $state(false);
@@ -57,13 +57,7 @@ import AdminNav from "$lib/components/AdminNav.svelte";
 </script>
 
 <svelte:head>
-	<link
-		rel="preload"
-		as="font"
-		type="font/woff2"
-		href={interLatin}
-		crossorigin="anonymous"
-	/>
+	<link rel="preload" as="font" type="font/woff2" href={interLatin} crossorigin="anonymous" />
 </svelte:head>
 
 <svelte:window onscroll={onScroll} />
@@ -79,7 +73,7 @@ import AdminNav from "$lib/components/AdminNav.svelte";
 >
 	<nav class="mx-auto max-w-5xl px-6 py-4 flex items-center justify-between">
 		<a
-			href={isHome ? "#about" : "/"}
+			href={isHome ? '#about' : '/'}
 			onclick={closeMobile}
 			class="font-mono text-sm font-medium text-zinc-400 hover:text-accent-400 transition-colors duration-200 tracking-widest uppercase"
 		>
@@ -104,9 +98,7 @@ import AdminNav from "$lib/components/AdminNav.svelte";
 				<a
 					href="/blogs/"
 					class="text-sm font-medium transition-colors duration-200 relative group
-						{$page.url.pathname.startsWith('/blogs')
-						? 'text-accent-400'
-						: 'text-zinc-400 hover:text-zinc-100'}"
+						{$page.url.pathname.startsWith('/blogs') ? 'text-accent-400' : 'text-zinc-400 hover:text-zinc-100'}"
 				>
 					Blog
 					<span
@@ -126,12 +118,7 @@ import AdminNav from "$lib/components/AdminNav.svelte";
 			aria-label="Toggle mobile menu"
 		>
 			{#if mobileOpen}
-				<svg
-					class="w-5 h-5"
-					fill="none"
-					stroke="currentColor"
-					viewBox="0 0 24 24"
-				>
+				<svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
 					<path
 						stroke-linecap="round"
 						stroke-linejoin="round"
@@ -140,12 +127,7 @@ import AdminNav from "$lib/components/AdminNav.svelte";
 					/>
 				</svg>
 			{:else}
-				<svg
-					class="w-5 h-5"
-					fill="none"
-					stroke="currentColor"
-					viewBox="0 0 24 24"
-				>
+				<svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
 					<path
 						stroke-linecap="round"
 						stroke-linejoin="round"
@@ -158,9 +140,7 @@ import AdminNav from "$lib/components/AdminNav.svelte";
 	</nav>
 
 	{#if mobileOpen}
-		<div
-			class="md:hidden border-t border-zinc-800/60 bg-[#09090b]/95 backdrop-blur-md px-6 py-4"
-		>
+		<div class="md:hidden border-t border-zinc-800/60 bg-[#09090b]/95 backdrop-blur-md px-6 py-4">
 			<ul class="flex flex-col gap-1">
 				{#each navLinks as link}
 					<li>
