@@ -227,10 +227,10 @@ describe('buildInsight — habit summary passthrough', () => {
 });
 
 // Helper to create CallableRequest mock
-function mockCallableRequest(authUid?: string): CallableRequest<unknown> {
+function mockCallableRequest(authUid?: string, data: unknown = {}): CallableRequest<unknown> {
 	return {
 		auth: authUid ? { uid: authUid, token: {} as any } : undefined,
-		data: {},
+		data,
 		rawRequest: {} as any,
 	};
 }
@@ -267,6 +267,35 @@ describe('generateInsightsNow (callable) — auth & permission checks', () => {
 		const req = mockCallableRequest(OWNER_UID);
 		await expect(generateInsightsNow.run(req)).rejects.toThrow(
 			new HttpsError('failed-precondition', 'OWNER_UID secret is not set on the backend'),
+		);
+	});
+});
+
+describe('generateInsightsNow (callable) — period validation', () => {
+	const OWNER_UID = 'test-owner-uid';
+
+	beforeEach(() => {
+		vi.clearAllMocks();
+		process.env.OWNER_UID = OWNER_UID;
+		process.env.GROQ_API_KEY = 'test-key';
+		process.env.GEMINI_API_KEY = 'test-key';
+	});
+
+	it.each(['2026-7', '2026-00', '2026-13', 'not-a-month', 202607])(
+		'rejects invalid period %s',
+		async (period) => {
+			const req = mockCallableRequest(OWNER_UID, { period });
+			await expect(generateInsightsNow.run(req)).rejects.toThrow(
+				new HttpsError('invalid-argument', 'period must use the YYYY-MM format'),
+			);
+		},
+	);
+
+	it('rejects a future period', async () => {
+		const nextYear = new Date().getUTCFullYear() + 1;
+		const req = mockCallableRequest(OWNER_UID, { period: `${nextYear}-01` });
+		await expect(generateInsightsNow.run(req)).rejects.toThrow(
+			new HttpsError('invalid-argument', 'Cannot generate insights for a future period'),
 		);
 	});
 });
