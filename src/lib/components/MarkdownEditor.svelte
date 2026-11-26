@@ -15,7 +15,7 @@
 		placeholderText = 'Write content here… Markdown is supported.',
 		onOpenMediaGallery,
 		onInput,
-	} = $props<{
+	}: {
 		content: string;
 		imageMeta: Record<string, ImageMeta>;
 		textareaRef?: HTMLTextAreaElement | null;
@@ -24,7 +24,7 @@
 		placeholderText?: string;
 		onOpenMediaGallery?: () => void;
 		onInput?: (content: string) => void;
-	}>();
+	} = $props();
 
 	async function applyFormat(action: FormatAction) {
 		activeTab = 'write';
