@@ -9,6 +9,9 @@ node_modules
 /functions/.svelte-kit
 /build
 /functions/lib/
+# Functions deploy pins npm (see functions/package-lock.json); pnpm's lockfile
+# for the workspace is the root ./pnpm-lock.yaml.
+/functions/pnpm-lock.yaml
 
 # OS
 .DS_Store

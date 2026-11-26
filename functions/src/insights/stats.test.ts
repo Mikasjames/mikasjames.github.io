@@ -3,6 +3,8 @@ import {
 	average,
 	dailyRatingPoints,
 	longestStreak,
+	maxInsightPeriod,
+	monthRangeFromPeriod,
 	previousMonthRange,
 	trendSlope,
 	variance,
@@ -36,6 +38,41 @@ describe('previousMonthRange', () => {
 		expect(range.key).toBe('2025-12');
 		expect(range.start).toEqual(new Date(Date.UTC(2025, 11, 1)));
 		expect(range.end).toEqual(new Date(Date.UTC(2026, 0, 1)));
+	});
+});
+
+describe('monthRangeFromPeriod', () => {
+	it('builds a UTC month range from a YYYY-MM key', () => {
+		const range = monthRangeFromPeriod('2026-07');
+		expect(range.year).toBe(2026);
+		expect(range.month).toBe(6);
+		expect(range.key).toBe('2026-07');
+		expect(range.start).toEqual(new Date(Date.UTC(2026, 6, 1)));
+		expect(range.end).toEqual(new Date(Date.UTC(2026, 7, 1)));
+	});
+
+	it('handles December without wrapping', () => {
+		const range = monthRangeFromPeriod('2026-12');
+		expect(range.key).toBe('2026-12');
+		expect(range.start).toEqual(new Date(Date.UTC(2026, 11, 1)));
+		expect(range.end).toEqual(new Date(Date.UTC(2027, 0, 1)));
+	});
+
+	it.each(['', '2026', '2026-7', '0026-01', '2026-00', '2026-13', 'not-a-month'])(
+		'rejects malformed period %s',
+		(period) => {
+			expect(() => monthRangeFromPeriod(period)).toThrow(/Invalid period/);
+		},
+	);
+});
+
+describe('maxInsightPeriod', () => {
+	it('returns the next UTC month', () => {
+		expect(maxInsightPeriod(new Date(Date.UTC(2026, 10, 25)))).toBe('2026-12');
+	});
+
+	it('rolls over into the next year in December', () => {
+		expect(maxInsightPeriod(new Date(Date.UTC(2026, 11, 31)))).toBe('2027-01');
 	});
 });
 

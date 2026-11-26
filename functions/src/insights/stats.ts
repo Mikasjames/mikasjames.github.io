@@ -1,12 +1,45 @@
 import type { JournalInsightEntry, RatingPoint } from './types.js';
 
-export function previousMonthRange(reference = new Date()): {
+export type MonthRange = {
 	year: number;
 	month: number;
 	start: Date;
 	end: Date;
 	key: string;
-} {
+};
+
+export function monthRangeFromPeriod(period: string): MonthRange {
+	const match = /^(\d{4})-(\d{2})$/.exec(period);
+	if (!match) {
+		throw new Error(`Invalid period "${period}". Expected YYYY-MM.`);
+	}
+
+	const year = Number(match[1]);
+	const month = Number(match[2]) - 1;
+	if (year < 1000) {
+		throw new Error(`Invalid period "${period}". Year must be four digits between 1000 and 9999.`);
+	}
+	if (month < 0 || month > 11) {
+		throw new Error(`Invalid period "${period}". Month must be between 01 and 12.`);
+	}
+
+	const start = new Date(Date.UTC(year, month, 1));
+	const end = new Date(Date.UTC(year, month + 1, 1));
+	return {
+		year,
+		month,
+		start,
+		end,
+		key: `${year}-${String(month + 1).padStart(2, '0')}`,
+	};
+}
+
+export function maxInsightPeriod(reference = new Date()): string {
+	const nextMonth = new Date(Date.UTC(reference.getUTCFullYear(), reference.getUTCMonth() + 1, 1));
+	return `${nextMonth.getUTCFullYear()}-${String(nextMonth.getUTCMonth() + 1).padStart(2, '0')}`;
+}
+
+export function previousMonthRange(reference = new Date()): MonthRange {
 	const year =
 		reference.getUTCMonth() === 0 ? reference.getUTCFullYear() - 1 : reference.getUTCFullYear();
 	const month = reference.getUTCMonth() === 0 ? 11 : reference.getUTCMonth() - 1;

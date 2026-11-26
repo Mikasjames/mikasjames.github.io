@@ -46,10 +46,13 @@
 		coverError: string;
 	}
 
-	let { mediaStore, loadPosts } = $props<{
+	let {
+		mediaStore,
+		loadPosts,
+	}: {
 		mediaStore: MediaStore;
 		loadPosts: () => Promise<void>;
-	}>();
+	} = $props();
 
 	let blogForm = $state<BlogFormState>({
 		id: null,

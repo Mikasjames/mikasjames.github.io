@@ -6,12 +6,12 @@
 		onCoverUpload,
 		coverUploading,
 		coverError,
-	} = $props<{
+	}: {
 		coverImage: string | null;
 		onCoverUpload: (e: Event) => void;
 		coverUploading: boolean;
 		coverError: string;
-	}>();
+	} = $props();
 
 	function removeCoverImage() {
 		coverImage = null;

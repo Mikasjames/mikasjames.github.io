@@ -1,4 +1,3 @@
-import { onSchedule } from 'firebase-functions/v2/scheduler';
 import { onCall, HttpsError } from 'firebase-functions/v2/https';
 import { Timestamp } from 'firebase-admin/firestore';
 import { db } from '../firebase.js';
@@ -10,6 +9,8 @@ import {
 	average,
 	dailyRatingPoints,
 	longestStreak,
+	maxInsightPeriod,
+	monthRangeFromPeriod,
 	previousMonthRange,
 	trendSlope,
 	variance,
@@ -96,30 +97,32 @@ export async function buildInsight(entries: JournalInsightEntry[], habitLogs: Ha
 }
 
 /**
- * Shared workflow for compiling monthly & yearly insights
+ * Shared workflow for compiling monthly & yearly insights.
+ * Defaults to the previous month when no period (YYYY-MM) is provided.
  */
-export async function processUserInsights(ownerUid: string) {
+export async function processUserInsights(ownerUid: string, period?: string) {
 	console.log(`AI provider: ${getAiProvider()}`);
 
-	const range = previousMonthRange();
+	const range = period ? monthRangeFromPeriod(period) : previousMonthRange();
 	console.log(`Processing insights for period: ${range.key}`);
 
 	const entries = await loadJournalEntries(range.start, range.end, ownerUid);
 
 	if (entries.length === 0) {
-		console.log('No journal entries found for this period — skipping insight generation');
-		return { ok: false, message: 'No journal entries found for previous month', period: range.key };
+		console.log(`No journal entries found for ${range.key} — skipping insight generation`);
+		return { ok: false, message: `No journal entries found for ${range.key}`, period: range.key };
 	}
 
 	console.log(`Building insights for ${ownerUid} (${entries.length} entries)`);
 
 	const yearStart = new Date(Date.UTC(range.year, 0, 1));
-	const yearEnd = new Date(Date.UTC(range.year + 1, 0, 1));
+	// Year-to-date means January 1 through the end of the selected month.
+	const yearEnd = range.end;
 
 	// Fetch habit logs and year entries concurrently
 	const [monthHabitLogs, yearEntries, yearHabitLogs] = await Promise.all([
 		loadHabitLogs(range.start, range.end, ownerUid),
-		loadYearEntries(ownerUid, range.year),
+		loadYearEntries(ownerUid, range.year, yearEnd),
 		loadHabitLogs(yearStart, yearEnd, ownerUid),
 	]);
 
@@ -129,31 +132,45 @@ export async function processUserInsights(ownerUid: string) {
 		buildInsight(yearEntries, yearHabitLogs),
 	]);
 
-	const batchWrite = [
-		db
-			.collection('insights')
-			.doc(ownerUid)
-			.collection('monthly')
-			.doc(range.key)
-			.set({
-				period: range.key,
-				periodStart: Timestamp.fromDate(range.start),
-				periodEnd: Timestamp.fromDate(range.end),
-				generatedAt: Timestamp.now(),
-				monthly: monthInsight,
-				yearToDate: yearInsight,
-			}),
-		db.collection('insights').doc(ownerUid).collection('yearly').doc(String(range.year)).set(
-			{
-				year: range.year,
-				generatedAt: Timestamp.now(),
-				yearly: yearInsight,
-			},
-			{ merge: true },
-		),
+	const monthlyRef = db.collection('insights').doc(ownerUid).collection('monthly').doc(range.key);
+	const yearlyRef = db
+		.collection('insights')
+		.doc(ownerUid)
+		.collection('yearly')
+		.doc(String(range.year));
+
+	// Backfilling an older month must not replace a newer yearly snapshot.
+	const yearlyData = (await yearlyRef.get()).data();
+	const existingAsOfPeriod = yearlyData?.asOfPeriod;
+	const shouldUpdateYearly =
+		typeof existingAsOfPeriod !== 'string' || range.key >= existingAsOfPeriod;
+
+	const writes: Array<Promise<unknown>> = [
+		monthlyRef.set({
+			period: range.key,
+			periodStart: Timestamp.fromDate(range.start),
+			periodEnd: Timestamp.fromDate(range.end),
+			generatedAt: Timestamp.now(),
+			monthly: monthInsight,
+			yearToDate: yearInsight,
+		}),
 	];
 
-	await Promise.all(batchWrite);
+	if (shouldUpdateYearly) {
+		writes.push(
+			yearlyRef.set(
+				{
+					year: range.year,
+					asOfPeriod: range.key,
+					generatedAt: Timestamp.now(),
+					yearly: yearInsight,
+				},
+				{ merge: true },
+			),
+		);
+	}
+
+	await Promise.all(writes);
 	console.log(`✅ Successfully compiled insights for ${ownerUid}`);
 
 	return {
@@ -162,23 +179,6 @@ export async function processUserInsights(ownerUid: string) {
 		generatedAt: new Date().toISOString(),
 	};
 }
-
-export const compileJournalHappinessInsights = onSchedule(
-	{
-		schedule: '0 13 2 * *',
-		timeZone: 'UTC',
-		memory: '512MiB',
-		timeoutSeconds: 540,
-		secrets: ['GROQ_API_KEY', 'GEMINI_API_KEY', 'OWNER_UID'],
-	},
-	async () => {
-		const ownerUid = process.env.OWNER_UID;
-		if (!ownerUid) {
-			throw new Error('OWNER_UID secret is not set — cannot compile insights');
-		}
-		await processUserInsights(ownerUid);
-	},
-);
 
 export const generateInsightsNow = onCall(
 	{
@@ -204,8 +204,24 @@ export const generateInsightsNow = onCall(
 			);
 		}
 
+		const data = (request.data ?? {}) as { period?: unknown };
+		let period: string | undefined;
+		if (data.period !== undefined) {
+			if (typeof data.period !== 'string' || !/^\d{4}-(0[1-9]|1[0-2])$/.test(data.period)) {
+				throw new HttpsError('invalid-argument', 'period must use the YYYY-MM format');
+			}
+
+			// Allow the next UTC month so a local-time "current month" that is already
+			// ahead of UTC (e.g. UTC+8 on the 1st) is not rejected.
+			if (data.period > maxInsightPeriod()) {
+				throw new HttpsError('invalid-argument', 'Cannot generate insights for a future period');
+			}
+
+			period = data.period;
+		}
+
 		try {
-			return await processUserInsights(ownerUid);
+			return await processUserInsights(ownerUid, period);
 		} catch (error) {
 			console.error(`❌ Failed to compile journal happiness insights for ${ownerUid}`, error);
 			if (error instanceof HttpsError) throw error;

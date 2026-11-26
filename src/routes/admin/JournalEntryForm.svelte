@@ -57,12 +57,17 @@
 		coverError: string;
 	}
 
-	let { user, mediaStore, habitsStore, loadJournalEntries } = $props<{
+	let {
+		user,
+		mediaStore,
+		habitsStore,
+		loadJournalEntries,
+	}: {
 		user: User | null;
 		mediaStore: MediaStore;
 		habitsStore: HabitsStore;
 		loadJournalEntries: () => Promise<void>;
-	}>();
+	} = $props();
 
 	let journalForm = $state<JournalFormState>({
 		id: null,

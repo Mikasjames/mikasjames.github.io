@@ -12,7 +12,7 @@
 		mediaLoadError,
 		insertMarkdownAtCursor,
 		setEditorCoverImage,
-	} = $props<{
+	}: {
 		onOpenMediaGallery: () => void;
 		handleContentUpload: (e: Event) => void;
 		contentUploading: boolean;
@@ -22,10 +22,10 @@
 		insertMarkdownAtCursor: (
 			url: string,
 			altText: string,
-			dims: { width: number; height: number },
+			dims?: { width?: number; height?: number },
 		) => void;
 		setEditorCoverImage: (url: string) => void;
-	}>();
+	} = $props();
 </script>
 
 <div class="space-y-3 p-4 rounded-xl bg-zinc-900/40 border border-zinc-800/60">

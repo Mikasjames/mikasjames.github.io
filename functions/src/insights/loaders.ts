@@ -40,8 +40,12 @@ export async function loadJournalEntries(
 	);
 }
 
-export async function loadYearEntries(uid: string, year: number): Promise<JournalInsightEntry[]> {
-	return queryJournalEntries(uid, `${year}-01-01`, `${year + 1}-01-01`);
+export async function loadYearEntries(
+	uid: string,
+	year: number,
+	endExclusive = new Date(Date.UTC(year + 1, 0, 1)),
+): Promise<JournalInsightEntry[]> {
+	return queryJournalEntries(uid, `${year}-01-01`, endExclusive.toISOString().slice(0, 10));
 }
 
 export async function loadHabitLogs(
