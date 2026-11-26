@@ -12,13 +12,17 @@
 
 	type InsightsStore = ReturnType<typeof createInsightsStore>;
 
-	let { user, insightsStore } = $props<{
+	let {
+		user,
+		insightsStore,
+	}: {
 		user: User;
 		insightsStore: InsightsStore;
-	}>();
+	} = $props();
 
 	async function handleGenerateInsights() {
-		const result = await insightsStore.generateInsightsNow(user.uid);
+		const period = insightsStore.selectedPeriod || insightsStore.currentPeriodKey();
+		const result = await insightsStore.generateInsightsNow(user.uid, period);
 		if (result.ok) {
 			toast(`Insights generated for ${result.period}`, 'success');
 		} else {
@@ -54,6 +58,8 @@
 				</p>
 				<button
 					type="button"
+					disabled={(insightsStore.selectedPeriod || insightsStore.currentPeriodKey()) >=
+						insightsStore.currentPeriodKey()}
 					onclick={() =>
 						insightsStore.loadPeriod(
 							user.uid,
@@ -62,7 +68,7 @@
 								1,
 							),
 						)}
-					class="rounded-lg border border-zinc-700/60 bg-zinc-900 px-3 py-2 text-sm text-zinc-300 transition hover:border-accent-500/50 hover:text-accent-300"
+					class="rounded-lg border border-zinc-700/60 bg-zinc-900 px-3 py-2 text-sm text-zinc-300 transition hover:border-accent-500/50 hover:text-accent-300 disabled:cursor-not-allowed disabled:opacity-40"
 				>
 					→
 				</button>
@@ -96,17 +102,11 @@
 				onclick={handleGenerateInsights}
 				class="sm:ml-auto"
 			>
-				Run AI Analysis
+				Analyze {insightsStore.formatInsightPeriod(
+					insightsStore.selectedPeriod || insightsStore.currentPeriodKey(),
+				)}
 			</AppButton>
 		</div>
-
-		{#if insightsStore.selectedPeriod === insightsStore.currentPeriodKey()}
-			<div
-				class="mt-4 rounded-lg border border-accent-500/20 bg-accent-500/10 px-4 py-3 text-sm text-accent-200"
-			>
-				This month's insights will be ready on {insightsStore.nextMonthReadyLabel()}.
-			</div>
-		{/if}
 
 		{#if insightsStore.loading}
 			<div class="mt-6 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
