@@ -61,13 +61,16 @@ export function createInsightsStore() {
 		}
 	}
 
-	async function generateInsightsNow(userUid: string): Promise<GenerateInsightsResult> {
+	async function generateInsightsNow(
+		userUid: string,
+		period = selectedPeriod || currentPeriodKey(),
+	): Promise<GenerateInsightsResult> {
 		generating = true;
 		error = '';
 		try {
-			const result = await callGenerateInsightsNow();
+			const result = await callGenerateInsightsNow(period);
 			if (result.ok) {
-				await loadLatest(userUid);
+				await loadPeriod(userUid, result.period ?? period);
 			} else {
 				error = result.message || 'Failed to generate insights.';
 			}
@@ -91,16 +94,6 @@ export function createInsightsStore() {
 	function currentPeriodKey() {
 		const now = new Date();
 		return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
-	}
-
-	function nextMonthReadyLabel() {
-		const now = new Date();
-		const next = new Date(now.getFullYear(), now.getMonth() + 1, 1);
-		return next.toLocaleDateString('en-US', {
-			month: 'long',
-			day: 'numeric',
-			year: 'numeric',
-		});
 	}
 
 	function formatInsightPeriod(period: string) {
@@ -191,7 +184,6 @@ export function createInsightsStore() {
 		generateInsightsNow,
 		shiftPeriod,
 		currentPeriodKey,
-		nextMonthReadyLabel,
 		formatInsightPeriod,
 		daysInPeriod,
 		ratingBarWidth,

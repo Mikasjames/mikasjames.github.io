@@ -8,11 +8,11 @@ export interface GenerateInsightsResult {
 	message?: string;
 }
 
-export async function callGenerateInsightsNow(): Promise<GenerateInsightsResult> {
-	const callable = httpsCallable<undefined, GenerateInsightsResult>(
+export async function callGenerateInsightsNow(period?: string): Promise<GenerateInsightsResult> {
+	const callable = httpsCallable<{ period?: string }, GenerateInsightsResult>(
 		getFunctions(app),
 		'generateInsightsNow',
 	);
-	const result = await callable();
+	const result = await callable(period ? { period } : {});
 	return result.data;
 }

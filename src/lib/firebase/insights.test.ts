@@ -5,11 +5,17 @@ vi.mock('$lib/firebase/firestore.svelte', () => ({
 	getMonthlyInsightByPeriod: vi.fn(),
 }));
 
+vi.mock('$lib/firebase/insights', () => ({
+	callGenerateInsightsNow: vi.fn(),
+}));
+
 import { getLatestMonthlyInsight, getMonthlyInsightByPeriod } from '$lib/firebase/firestore.svelte';
+import { callGenerateInsightsNow } from '$lib/firebase/insights';
 import { createInsightsStore } from './insights.svelte';
 
 const mockedGetLatest = vi.mocked(getLatestMonthlyInsight);
 const mockedGetPeriod = vi.mocked(getMonthlyInsightByPeriod);
+const mockedCallGenerate = vi.mocked(callGenerateInsightsNow);
 
 const DAY = 86_400_000;
 
@@ -176,5 +182,43 @@ describe('createInsightsStore — loading behavior', () => {
 
 		store.tab = 'yearToDate';
 		expect(store.selectedScope).toBeNull();
+	});
+});
+
+describe('createInsightsStore — generating insights', () => {
+	it('generates for the selected period and reloads that same period', async () => {
+		const store = createInsightsStore();
+		mockedGetPeriod.mockResolvedValue({ period: '2026-05' } as never);
+		mockedCallGenerate.mockResolvedValue({ ok: true, period: '2026-05' });
+
+		await store.loadPeriod('user-1', '2026-05');
+		const result = await store.generateInsightsNow('user-1');
+
+		expect(mockedCallGenerate).toHaveBeenCalledWith('2026-05');
+		expect(mockedGetPeriod).toHaveBeenLastCalledWith('user-1', '2026-05');
+		expect(result.ok).toBe(true);
+		expect(store.generating).toBe(false);
+	});
+
+	it('uses an explicit period even when none is selected yet', async () => {
+		const store = createInsightsStore();
+		mockedGetPeriod.mockResolvedValue({ period: '2024-01' } as never);
+		mockedCallGenerate.mockResolvedValue({ ok: true, period: '2024-01' });
+
+		await store.generateInsightsNow('user-1', '2024-01');
+
+		expect(mockedCallGenerate).toHaveBeenCalledWith('2024-01');
+		expect(mockedGetPeriod).toHaveBeenCalledWith('user-1', '2024-01');
+	});
+
+	it('surfaces a failed generation message', async () => {
+		const store = createInsightsStore();
+		mockedCallGenerate.mockResolvedValue({ ok: false, message: 'No entries' });
+
+		const result = await store.generateInsightsNow('user-1', '2026-05');
+
+		expect(result).toEqual({ ok: false, message: 'No entries' });
+		expect(store.error).toBe('No entries');
+		expect(store.generating).toBe(false);
 	});
 });
