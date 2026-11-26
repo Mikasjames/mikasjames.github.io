@@ -106,6 +106,16 @@ describe('loadYearEntries', () => {
 			['entryDate', '<', '2025-01-01'],
 		]);
 	});
+
+	it('supports an explicit exclusive end for year-to-date queries', async () => {
+		await loadYearEntries('u9', 2024, new Date(Date.UTC(2024, 2, 1)));
+
+		expect(whereCalls).toEqual([
+			['ownerUid', '==', 'u9'],
+			['entryDate', '>=', '2024-01-01'],
+			['entryDate', '<', '2024-03-01'],
+		]);
+	});
 });
 
 describe('loadHabitLogs', () => {
